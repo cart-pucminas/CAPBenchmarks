@@ -26,7 +26,7 @@ master: $(SRC_MASTER)
 
 # Builds mppa master application
 slave: $(SRC_SLAVE)
-	$(CC) -mos=nodeos $(CFLAGS) $(SRC_SLAVE) -o slave -lmppaipc
+	$(CC) -mos=nodeos $(CFLAGS) $(SRC_SLAVE) -fopenmp -o slave -lmppaipc
 
 # Cleans compilation files.
 clean:

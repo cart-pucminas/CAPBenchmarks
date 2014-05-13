@@ -13,7 +13,7 @@
 	/*
 	 * Problem size.
 	 */
-	#define PROBLEM_SIZE 134217728
+	#define PROBLEM_SIZE 8388608
 	
 	/*
 	 * Chunk size.

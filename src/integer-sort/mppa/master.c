@@ -120,6 +120,8 @@ static void sort(int *array, int n)
 	nsent = 0;
 	for (i = 0; i < nchunks; i++)
 	{
+		fprintf(stderr, "master: sending chunk %d\n", i);
+		
 		sendchunk(nsent++, array, i);
 		
 		/* Wait for chunks. */
