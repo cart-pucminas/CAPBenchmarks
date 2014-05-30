@@ -21,11 +21,11 @@ struct problem
 };
 
 /* Problem sizes. */
-static struct problem tiny        = {  ,  };
-static struct problem small       = {  ,  };
-static struct problem workstation = {  ,  };
-static struct problem standard    = {  ,  };
-static struct problem large       = {  ,  };
+static struct problem tiny        = {  5, 1024 };	// 26.214.400 ops approximately
+static struct problem small       = {  7, 2048 };	// 205.520.896 ops approximately
+static struct problem workstation = {  9, 4096 };	// 1.358.954.496 ops approximately
+static struct problem standard    = {  9, 16384 };	// 21.743.271.396 ops approximately
+static struct problem large       = {  13, 32768 };	// 181.462.368.256 ops approximately
 
 /* Benchmark parameters. */
 int verbose = 0;                  /* Be verbose?        */
