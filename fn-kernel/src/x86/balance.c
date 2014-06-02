@@ -9,19 +9,30 @@
  */
 void balance(int *work, int n, int k)
 {
-	int i, j; /* Loop indexes.   */
+	int i, j;
 	
-	work[0] = 0;
+	j = 0;
 	
 	/* Balance workload. */
-	j = 0;
-	for (i = 1; i < (n >> 2); i += 2)
+	if (n & 1)
 	{
-		work[i] = j;
-		work[n - 1 - i] = j;
-		j++;
-		
-		if (j == k)
-			j = 0;
+		work[0] = 0;
+		for (i = 1; i <= (n >> 2); i++)
+		{
+			work[i] = j;
+			work[n - i] = j;
+			
+			if ((++j) == k)
+				j = 0;
+		}
+	} else {
+		for (i = 0; i < (n >> 2); i++)
+		{
+			work[i] = j;
+			work[n - i - 1] = j;
+			
+			if ((++j) == k)
+				j = 0;
+		}
 	}
 }

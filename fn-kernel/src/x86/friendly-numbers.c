@@ -66,12 +66,9 @@ int friendly_numbers(int start, int end)
 	
 	num = smalloc(sizeof(int)*range);
 	den = smalloc(sizeof(int)*range);
-	
 	tasks = smalloc(sizeof(int)*range);
 	
 	/* Balance workload. */
-	for (i = start; i < end; i++)
-		tasks[i - start] = i;
 	balance(tasks, range, nthreads);
 	
 	/* Compute abundances. */
