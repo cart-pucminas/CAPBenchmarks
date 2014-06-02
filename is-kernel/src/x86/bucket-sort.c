@@ -21,6 +21,7 @@ extern void mergesort(struct list *l);
 void bucketsort(int *array, int n)
 {
 	int max;               /* Max number in array. */
+	int maxp;              /* Max private.         */
 	int i, j;              /* Loop indexes.        */
 	int range;             /* Bucket range.        */
 	struct list **buckets; /* Buckets.             */
@@ -32,12 +33,27 @@ void bucketsort(int *array, int n)
 	
 	/* Find max number in the array. */
 	max = INT_MIN;
-	#pragma omp parallel for private(i) default(shared) reduction(max : max)
-	for (i = 0; i < n; i++)
+	#pragma omp parallel private(i, maxp) default(shared)
 	{
-		/* Found. */
-		if (array[i] > max)
-			max = array[i];
+		maxp = INT_MIN;
+		
+		#pragma omp for
+		for (i = 0; i < n; i++)
+		{
+			/* Found. */
+			if (array[i] > max)
+				max = array[i];
+		}
+	
+		/* Reduce. */
+		if (maxp > max)
+		{
+			#pragma omp critical
+			{
+				if (maxp > max)
+					max = maxp;
+			}
+		}
 	}
 	
 	/* Distribute numbers into buckets. */
