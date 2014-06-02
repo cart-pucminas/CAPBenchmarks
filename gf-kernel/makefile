@@ -7,7 +7,7 @@ export INCDIR = $(CURDIR)/include
 export SRCDIR = $(CURDIR)/src
 
 # Executable file.
-export EXEC = gn-kernel
+export EXEC = gf
 
 # Builds for Intel x86.
 x86:

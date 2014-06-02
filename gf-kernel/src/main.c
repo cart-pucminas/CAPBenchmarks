@@ -4,6 +4,7 @@
  * Gaussian Filter Benchmark Kernel.
  */
 
+#include <global.h>
 #include <math.h>
 #include <omp.h>
 #include <stdint.h>
@@ -12,20 +13,26 @@
 #include <util.h>
 
 /*
+ * Gaussian filter.
+ */
+extern void gauss_filter
+(unsigned char *img, int imgsize, double *mask, int masksize);
+
+/*
  * Problem.
  */
 struct problem
 {
-	int imgsize;  /* Image size. */
 	int masksize; /* mask size.  */
+	int imgsize;  /* Image size. */
 };
 
 /* Problem sizes. */
-static struct problem tiny        = {  5, 1024 };	// 26.214.400 ops approximately
-static struct problem small       = {  7, 2048 };	// 205.520.896 ops approximately
-static struct problem workstation = {  9, 4096 };	// 1.358.954.496 ops approximately
-static struct problem standard    = {  9, 16384 };	// 21.743.271.396 ops approximately
-static struct problem large       = {  13, 32768 };	// 181.462.368.256 ops approximately
+static struct problem tiny        = {  5,  1024 };	/*      26.214.400 ops */
+static struct problem small       = {  7,  2048 };	/*     205.520.896 ops */
+static struct problem workstation = {  9,  4096 };	/*   1.358.954.496 ops */
+static struct problem standard    = {  9, 16384 };	/*  21.743.271.396 ops */
+static struct problem large       = { 13, 32768 };	/* 181.462.368.256 ops */
 
 /* Benchmark parameters. */
 int verbose = 0;                  /* Be verbose?        */
@@ -125,6 +132,43 @@ static void readargs(int argc, char **argv)
 }
 
 /*
+ * Generates mask.
+ */
+static void generate_mask(double *mask)
+{
+	int half;
+	int i, j;
+	double sec;
+	double first;
+	double total;
+	
+	first = 1.0/(2.0*PI*SD*SD);
+	half = p->masksize >> 1;
+	total = 0;
+	
+	#define MASK(i, j) \
+		mask[(i)*p->masksize + (j)]
+
+	for (i = -half; i <= half; i++)
+	{
+		for (j = -half; j <= half; j++)
+		{
+			sec = -(( i*i + j*j )/2.0*SD*SD);
+			sec = pow(E, sec);
+
+			MASK(i + half, j + half) = first*sec;
+			total += MASK(i + half, j + half);
+		}
+	}
+	
+	for (i = 0 ; i < p->masksize; i++)
+	{
+		for (j = 0; j < p->masksize; j++)
+			MASK(i, j) /= total;
+	}
+}
+
+/*
  * Runs benchmark.
  */
 int main(int argc, char **argv)
@@ -138,7 +182,7 @@ int main(int argc, char **argv)
 	readargs(argc, argv);
 	
 	timer_init();
-	srandum(seed);
+	srandnum(seed);
 	omp_set_num_threads(nthreads);
 	
 	/* Benchmark initialization. */
@@ -149,7 +193,7 @@ int main(int argc, char **argv)
 	for (i = 0; i < p->imgsize*p->imgsize; i++)
 		img[i] = randnum() & 0xff;
 	mask = smalloc(p->masksize*p->masksize*sizeof(char));
-	
+	generate_mask(mask);
 	end = timer_get();
 	if (verbose)
 		printf("  time spent: %f\n", timer_diff(start, end)*MICROSEC);
@@ -157,8 +201,8 @@ int main(int argc, char **argv)
 	/* Apply filter. */
 	if (verbose)
 		printf("applying filter...\n");
-	start = timer_get(img, );
-	filter(img, p->imgsize, mask, p->masksize);
+	start = timer_get();
+	gauss_filter(img, p->imgsize, mask, p->masksize);
 	end = timer_get();
 	if (verbose)
 		printf("  time spent: ");

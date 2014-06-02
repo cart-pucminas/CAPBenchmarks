@@ -18,11 +18,15 @@ export X86_LIBS = "-lm -fopenmp"
 export MPPA_LIBS = "-lm -lmppaipc"
 
 # Builds all kernels for Intel x86.
-all-x86: fn-x86 is-x86 km-x86 lu-x86
+all-x86: fn-x86 gf-x86 is-x86 km-x86 lu-x86
 
 # Builds FN kernel for Intel x86.
 fn-x86:
 	cd fn-kernel && $(MAKE) x86 LIBS=$(X86_LIBS)
+
+# Builds GF kernel for Intel x86.
+gf-x86:
+	cd gf-kernel && $(MAKE) x86 LIBS=$(X86_LIBS)
 
 # Builds IS kernel for x86.
 is-x86:
@@ -54,6 +58,7 @@ lu-mppa256:
 # Cleans compilation files.
 clean:
 	cd fn-kernel && $(MAKE) clean
+	cd gf-kernel && $(MAKE) clean
 	cd is-kernel && $(MAKE) clean
 	cd km-kernel && $(MAKE) clean
 	cd lu-kernel && $(MAKE) clean
