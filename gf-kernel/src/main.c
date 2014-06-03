@@ -6,11 +6,14 @@
 
 #include <global.h>
 #include <math.h>
-#include <omp.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <util.h>
+
+#ifndef _MPPA_256_
+#include <omp.h>
+#endif
 
 /*
  * Gaussian filter.
@@ -28,11 +31,11 @@ struct problem
 };
 
 /* Problem sizes. */
-static struct problem tiny        = {  5,  1024 };	/*      26.214.400 ops */
-static struct problem small       = {  7,  2048 };	/*     205.520.896 ops */
-static struct problem workstation = {  9,  4096 };	/*   1.358.954.496 ops */
-static struct problem standard    = {  9, 16384 };	/*  21.743.271.396 ops */
-static struct problem large       = { 13, 32768 };	/* 181.462.368.256 ops */
+static struct problem tiny        = {  5,  1024 };
+static struct problem small       = {  7,  2048 };
+static struct problem workstation = {  9,  4096 };
+static struct problem standard    = {  9, 16384 };
+static struct problem large       = { 13, 32768 };
 
 /* Benchmark parameters. */
 int verbose = 0;                  /* Be verbose?        */
@@ -153,7 +156,7 @@ static void generate_mask(double *mask)
 	{
 		for (j = -half; j <= half; j++)
 		{
-			sec = -(( i*i + j*j )/2.0*SD*SD);
+			sec = -((i*i + j*j)/2.0*SD*SD);
 			sec = pow(E, sec);
 
 			MASK(i + half, j + half) = first*sec;
@@ -183,7 +186,9 @@ int main(int argc, char **argv)
 	
 	timer_init();
 	srandnum(seed);
+#ifndef _MPPA_256_	
 	omp_set_num_threads(nthreads);
+#endif
 	
 	/* Benchmark initialization. */
 	if (verbose)
@@ -192,12 +197,12 @@ int main(int argc, char **argv)
 	img = smalloc(p->imgsize*p->imgsize*sizeof(char));
 	for (i = 0; i < p->imgsize*p->imgsize; i++)
 		img[i] = randnum() & 0xff;
-	mask = smalloc(p->masksize*p->masksize*sizeof(char));
+	mask = smalloc(p->masksize*p->masksize*sizeof(double));
 	generate_mask(mask);
 	end = timer_get();
 	if (verbose)
 		printf("  time spent: %f\n", timer_diff(start, end)*MICROSEC);
-	
+		
 	/* Apply filter. */
 	if (verbose)
 		printf("applying filter...\n");

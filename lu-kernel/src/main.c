@@ -141,7 +141,7 @@ int main(int argc, char **argv)
 	
 	readargs(argc, argv);
 	
-	srandum(seed);
+	srandnum(seed);
 	timer_init();
 #ifndef _MPPA_256_	
 	omp_set_num_threads(nthreads);

@@ -86,7 +86,7 @@ static unsigned randum_z = RANDNUM_Z;
 /*
  * Initializes the random number generator.
  */
-void srandum(int seed)
+void srandnum(int seed)
 {
 	unsigned w, z;
 

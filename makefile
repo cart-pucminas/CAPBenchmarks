@@ -41,11 +41,15 @@ lu-x86:
 	cd lu-kernel && $(MAKE) x86 LIBS=$(X86_LIBS)
 
 # Builds all kernels for MPPA-256.
-all-mppa256: fn-mppa256 lu-mppa256
+all-mppa256: fn-mppa256 gf-mppa256 lu-mppa256
 
 # Builds FN kernel for MPPA-256.
 fn-mppa256:
 	cd fn-kernel/ && $(MAKE) mppa256 LIBS=$(MPPA_LIBS)
+
+# Builds GF kernel for MPPA-256.
+gf-mppa256:
+	cd gf-kernel/ && $(MAKE) mppa256 LIBS=$(MPPA_LIBS)
 
 # Builds KM kernel for MPPA-256.
 km-mppa256:

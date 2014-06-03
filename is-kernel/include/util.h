@@ -31,7 +31,7 @@
 	/*
 	 * Initializes the random number generator.
 	 */
-	extern void srandum(int seed);
+	extern void srandnum(int seed);
 	
 	/*
 	 * Computers the difference between two times

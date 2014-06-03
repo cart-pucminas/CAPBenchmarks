@@ -34,6 +34,7 @@ static struct problem large       = { 134217728 };
 /* Benchmark parameters. */
 int verbose = 0;                  /* Be verbose?        */
 int nthreads = 1;                 /* Number of threads. */
+static int seed = 0;              /* Seed number.       */
 static struct problem *p = &tiny; /* Problem.           */
 
 /*
@@ -140,7 +141,7 @@ int main(int argc, char **argv)
 	readargs(argc, argv);
 	
 	timer_init();
-	srandum(0);
+	srandnum(seed);
 	omp_set_num_threads(nthreads);
 	
 	/* Benchmark initialization. */
