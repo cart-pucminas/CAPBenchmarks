@@ -39,9 +39,9 @@ void gauss_filter(void)
 		for (imgJ = 0; imgJ < CHUNK_SIZE; imgJ++)
 		{
 			new_element = 0.0;
-			for (maskI = 0; maskI < CHUNK_SIZE; maskI++)
+			for (maskI = 0; maskI < masksize; maskI++)
 			{	
-				for (maskJ = 0; maskJ < CHUNK_SIZE; maskJ++)
+				for (maskJ = 0; maskJ < masksize; maskJ++)
 				{
 					i = (imgI - half < 0) ? CHUNK_SIZE-1 - maskI : imgI - half;
 					j = (imgJ - half < 0) ? CHUNK_SIZE-1 - maskJ : imgJ - half;
