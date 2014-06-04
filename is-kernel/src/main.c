@@ -5,11 +5,14 @@
  */
 
 #include <math.h>
-#include <omp.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <util.h>
+
+#ifndef _MPPA_256_
+#include <omp.h>
+#endif
 
 /*
  * Bucket sort algorithm.
@@ -142,7 +145,9 @@ int main(int argc, char **argv)
 	
 	timer_init();
 	srandnum(seed);
+#ifndef _MPPA_256_	
 	omp_set_num_threads(nthreads);
+#endif
 	
 	/* Benchmark initialization. */
 	if (verbose)
@@ -153,9 +158,7 @@ int main(int argc, char **argv)
 		a[i] = randnum() & 0xfffff;
 	end = timer_get();
 	if (verbose)
-	{
 		printf("  time spent: %f\n", timer_diff(start, end)*MICROSEC);
-	}
 	
 	/* Cluster data. */
 	if (verbose)

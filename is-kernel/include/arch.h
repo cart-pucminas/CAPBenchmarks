@@ -32,6 +32,10 @@
 	 * Frequency of cores.
 	 */
 	#define MPPA_FREQUENCY 400
+	
+	
+	/* Maximum cluster workload. */
+	#define CLUSTER_WORKLOAD 0xfffff /* 1 MB */
 
 #endif
 
