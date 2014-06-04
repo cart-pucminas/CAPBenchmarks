@@ -78,11 +78,12 @@ int friendly_numbers(int start, int end)
 		
 		for (i = start; i <= end; i++) 
 		{	
+			j = i - start;
+				
 			/* Not my task. */
-			if (tasks[i] != tid)
+			if (tasks[j] != tid)
 				continue;
 				
-				j = i - start;
 				num[j] = sumdiv(i);
 				den[j] = i;
 				
