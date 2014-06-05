@@ -2,6 +2,7 @@
  * Copyright(C) 2014 Pedro H. Penna <pedrohenriquepenna@gmail.com>
  */
 
+#include <darray.h>
 #include <global.h>
 #include <limits.h>
 #include <list.h>
@@ -11,25 +12,25 @@
 #define NBUCKETS 8192
 
 /*
- * Merge sort algorithm.
+ * Sorts an array of numbers.
  */
-extern void mergesort(struct list *l);
+extern void sort(struct darray *da);
 
 /*
  * Bucket sort algorithm.
  */
 void bucketsort(int *array, int n)
 {
-	int max;               /* Max number in array. */
-	int maxp;              /* Max private.         */
-	int i, j;              /* Loop indexes.        */
-	int range;             /* Bucket range.        */
-	struct list **buckets; /* Buckets.             */
+	int max;                 /* Max number in array. */
+	int maxp;                /* Max private.         */
+	int range;               /* Bucket range.        */
+	int i, j, k;             /* Loop indexes.        */
+	struct darray **buckets; /* Buckets.             */
 
 	/* Create buckets. */
-	buckets = smalloc(NBUCKETS*sizeof(struct list *));
+	buckets = smalloc(NBUCKETS*sizeof(struct darray *));
 	for (i = 0; i < NBUCKETS; i++)
-		buckets[i] = list_create();
+		buckets[i] = darray_create(n/NBUCKETS);
 	
 	/* Find max number in the array. */
 	max = INT_MIN;
@@ -64,27 +65,29 @@ void bucketsort(int *array, int n)
 		if (j >= NBUCKETS)
 			j = NBUCKETS - 1;
 		
-		list_push(buckets[j], array[i]);
+		darray_append(buckets[j], array[i]);
 	}
+	
 	
 	/* Sort Each bucket. */
 	#pragma omp parallel for private(i) default(shared)
 	for (i = 0; i < NBUCKETS; i++)
 	{
-		if (!list_empty(buckets[i]))
-			mergesort(buckets[i]);
+		if (darray_size(buckets[i]) > 0)
+			sort(buckets[i]);
 	}
 	
+	
 	/* Rebuild array. */
-	i = 0;
-	for (j = 0; j < NBUCKETS; j++)
+	k = 0;
+	for (i = 0; i < NBUCKETS; i++)
 	{
-		while (!list_empty(buckets[j]))
-			array[i++] = list_pop(buckets[j]);
+		for (j = 0; j < darray_size(buckets[i]); j++)
+			array[k] = darray_get(buckets[i], j);
 	}
 	
 	/* House keeping. */
 	for (i = 0; i < NBUCKETS; i++)
-		list_destroy(buckets[i]);
+		darray_destroy(buckets[i]);
 	free(buckets);
 }

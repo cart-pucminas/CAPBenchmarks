@@ -24,6 +24,16 @@
 	extern unsigned randnum(void);
 	
 	/*
+	 * Safe calloc().
+	 */
+	extern void *scalloc(size_t nmemb, size_t size);
+	
+	/*
+	 * Safe realloc().
+	 */
+	extern void *srealloc(void *p, size_t size);
+	
+	/*
 	 * Safe malloc().
 	 */
 	extern void *smalloc(size_t size);

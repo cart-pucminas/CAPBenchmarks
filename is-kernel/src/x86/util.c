@@ -37,6 +37,37 @@ void *smalloc(size_t size)
 }
 
 /*
+ * Safe calloc().
+ */
+void *scalloc(size_t nmemb, size_t size)
+{
+	void *p;
+	
+	p = calloc(nmemb, size);
+	
+	/* Failed to allocate memory. */
+	if (p == NULL)
+		error("cannot calloc()");
+	
+	return (p);
+}
+
+/*
+ * Safe realloc().
+ */
+void *srealloc(void *p, size_t size)
+{
+	
+	p = realloc(p, size);
+	
+	/* Failed to allocate memory. */
+	if (p == NULL)
+		error("cannot realloc()");
+	
+	return (p);
+}
+
+/*
  * Timer residual error.
  */
 uint64_t timer_error = 0;
