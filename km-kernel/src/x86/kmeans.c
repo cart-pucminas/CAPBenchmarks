@@ -13,15 +13,16 @@
 #include <vector.h>
 
 /* Kmeans data. */
-float mindistance;          /* Minimum distance.             */
-int npoints;                /* Number of points.             */
-vector_t *data;             /* Data being clustered.         */
-int ncentroids;             /* Number of clusters.           */
-int *map;                   /* Map of clusters.              */
-vector_t *centroids;        /* Data centroids.               */
-vector_t tmp[NUM_CORES];    /* Temporary centroids.          */
-int too_far[NUM_CORES];     /* Are there any points too far? */
-int has_changed[NUM_CORES]; /* has any centroid change?      */
+float mindistance;   /* Minimum distance.             */
+int npoints;         /* Number of points.             */
+vector_t *data;      /* Data being clustered.         */
+int ncentroids;      /* Number of clusters.           */
+int *map;            /* Map of clusters.              */
+vector_t *centroids; /* Data centroids.               */
+vector_t *tmp;       /* Temporary centroids.          */
+int *dirty;          /* Dirty centroid?               */
+int *too_far;        /* Are there any points too far? */
+int *has_changed;    /* has any centroid change?      */
 
 /*
  * Populates clusters.
@@ -59,6 +60,9 @@ static void populate(void)
 				{
 					map[i] = j;
 					distance = tmp;
+					
+					#pragma omp critical
+					dirty[j] = 1;
 				}
 			}
 			
@@ -87,7 +91,11 @@ static void compute_centroids(void)
 		
 		#pragma omp for
 		for (i = 0; i < ncentroids; i++)
-		{				
+		{
+			/* Cluster did not change. */
+			if (!dirty[i])
+				continue;
+				
 			/* Initialize temporary vector.*/
 			vector_assign(tmp[tid], centroids[i]);
 			vector_clear(centroids[i]);
@@ -106,12 +114,12 @@ static void compute_centroids(void)
 			}		
 			if (population > 1)
 				vector_mult(centroids[i], 1.0/population);
-				
-			/* Cluster mean has changed. */
-			if (!vector_equal(tmp[tid], centroids[i]))
-				has_changed[tid] = 1;
+			
+			has_changed[tid] = 1;
 		}
 	}
+	
+	memset(dirty, 0, ncentroids*sizeof(int));
 }
 
 /*
@@ -119,7 +127,7 @@ static void compute_centroids(void)
  */
 int *kmeans(vector_t *_data, int _npoints, int _ncentroids, float _mindistance)
 {
-	int i;     /* Loop index. */
+	int i, j;  /* Loop index. */
 	int again; /* Loop again? */
 	
 	/* Setup parameters. */
@@ -129,12 +137,36 @@ int *kmeans(vector_t *_data, int _npoints, int _ncentroids, float _mindistance)
 	mindistance = _mindistance;
 	
 	/* Create auxiliary structures. */
-	map  = smalloc(npoints*sizeof(int));
+	map  = scalloc(npoints, sizeof(int));
+	too_far = smalloc(nthreads*sizeof(int));
+	has_changed = smalloc(nthreads*sizeof(int));
+	dirty = smalloc(ncentroids*sizeof(int));
 	centroids = smalloc(ncentroids*sizeof(vector_t));
 	for (i = 0; i < ncentroids; i++)
 		centroids[i] = vector_create(vector_size(data[0]));
+	tmp = smalloc(nthreads*sizeof(vector_t));
 	for (i = 0; i < nthreads; i++)
 		tmp[i] = vector_create(vector_size(data[0]));
+	
+	/* Initialize mapping. */
+	for (i = 0; i < npoints; i++)
+		map[i] = -1;
+
+	/* Initialize centroids. */
+	for (i = 0; i < ncentroids; i++)
+	{
+		dirty[i] = 1;
+		j = randnum()%npoints;
+		vector_assign(centroids[i], data[j]);
+		map[j] = i;
+	}
+
+	/* Map unmapped data points. */
+	for (i = 0; i < npoints; i++)
+	{
+		if (map[i] < 0)
+			map[i] = randnum()%ncentroids;
+	}
 	
 	/* Cluster data. */
 	do
@@ -154,13 +186,16 @@ int *kmeans(vector_t *_data, int _npoints, int _ncentroids, float _mindistance)
 
 	} while (again);
 	
-	
 	/* House keeping.  */
 	for (i = 0; i < ncentroids; i++)
 		vector_destroy(centroids[i]);
 	free(centroids);
 	for (i = 0; i < nthreads; i++)
 		vector_destroy(tmp[i]);
+	free(tmp);
+	free(too_far);
+	free(has_changed);
+	free(dirty);
 	
 	return (map);
 }

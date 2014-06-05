@@ -1,13 +1,14 @@
 /*
  * Copyright(C) 2014 Pedro H. Penna <pedrohenriquepenna@gmail.com>
  * 
- * x86/util.c - Utility library implementation.
+ * mppa/util.c - Utility library implementation.
  */
 
+#include <arch.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <sys/time.h>
+#include <mppa/osconfig.h>
 
 /*
  * Prints an error message and exits.
@@ -16,22 +17,6 @@ void error(const char *msg)
 {
 	fprintf(stderr, "error: %s\n", msg);
 	exit(EXIT_FAILURE);
-}
-
-/*
- * Safe calloc().
- */
-void *scalloc(size_t nmemb, size_t size)
-{
-	void *p;
-	
-	p = calloc(nmemb, size);
-	
-	/* Failed to allocate memory. */
-	if (p == NULL)
-		error("cannot calloc()");
-	
-	return (p);
 }
 
 /*
@@ -51,6 +36,22 @@ void *smalloc(size_t size)
 }
 
 /*
+ * Safe malloc().
+ */
+void *scalloc(size_t nmemb, size_t size)
+{
+	void *p;
+	
+	p = calloc(nmemb, size);
+	
+	/* Failed to allocate memory. */
+	if (p == NULL)
+		error("cannot malloc()");
+	
+	return (p);
+}
+
+/*
  * Timer residual error.
  */
 uint64_t timer_error = 0;
@@ -60,14 +61,7 @@ uint64_t timer_error = 0;
  */
 uint64_t timer_get(void)
 {
-	uint64_t ret;
-	struct timeval t;
-
-	gettimeofday(&t, NULL);
-	ret = 1000000 * ((uint64_t) t.tv_sec);
-	ret += (uint64_t) t.tv_usec;
-
-	return ret;
+	return (__k1_io_read64((void *)0x70084040) / MPPA_FREQUENCY);
 }
 
 /*
