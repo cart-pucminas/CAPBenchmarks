@@ -72,7 +72,7 @@ int friendly_numbers(int start, int end)
 	balance(tasks, range, nthreads);
 	
 	/* Compute abundances. */
-	#pragma omp parallel private(i, j, tid) default(shared)
+	#pragma omp parallel private(i, j, tid, n) default(shared)
 	{
 		tid = omp_get_thread_num();
 		
@@ -84,12 +84,12 @@ int friendly_numbers(int start, int end)
 			if (tasks[j] != tid)
 				continue;
 				
-				num[j] = sumdiv(i);
-				den[j] = i;
+			num[j] = sumdiv(i);
+			den[j] = i;
 				
-				n = gcd(num[j], den[j]);
-				num[j] /= n;
-				den[j] /= n;
+			n = gcd(num[j], den[j]);
+			num[j] /= n;
+			den[j] /= n;
 		}
 	}
 

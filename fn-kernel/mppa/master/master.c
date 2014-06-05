@@ -7,6 +7,7 @@
  *
  */
 
+#include <arch.h>
 #include <assert.h>
 #include <global.h>
 #include <stdio.h>
@@ -22,8 +23,6 @@ typedef struct {
     long int denominator;
 } Item;
 
-#define MPPA_FREQUENCY 400
-#define NUM_CLUSTERS 16
 #define MAX_TASK_SIZE 65536
 
 static Item finishedTasks[MAX_TASK_SIZE*NUM_CLUSTERS];
@@ -86,19 +85,64 @@ static void syncNumbers(long int TASK_SIZE) {
     }
 }
 
-static int showResult(long int TASK_SIZE) {
-	int i,j, nfriends;
+/*
+ * Thread data.
+ */
+static struct tdata;
+{
+	int i0;
+	int in;
+	int nfriends;
+} tdata[4];
+
+/*
+ * Thread's main.
+ */
+static void *thread_main(void *arg)
+{
+	int i, j;
+	struct tdata *t;
 	
-	nfriends = 0;
-    for (i = 0; i < TASK_SIZE*nthreads; i++) {
-        for (j = i + 1; j < TASK_SIZE*nthreads; j++) {
-            if ((finishedTasks[i].numerator == finishedTasks[j].numerator) && (finishedTasks[i].denominator == finishedTasks[j].denominator))
-				nfriends++;
+	t = arg;
+	
+	t->nfriends = 0;
+    for (i = t->i0; i < t->n; i++) {
+        for (j = 0; j < t->n; j++) {
+            if ((finishedTasks[i].numerator == finishedTasks[j].numerator) && 
+            (finishedTasks[i].denominator == finishedTasks[j].denominator))
+				t->nfriends++;
         }
     }
+	
+	pthread_exit(NULL);
+	return (NULL);
+}
+
+
+static int showResult(long int TASK_SIZE)
+{
+	int i;             /* Loop index. */
+	pthread_t tids[4]; /* Thread IDs. */
+	
+	/* Spawn threads. */
+	for (i = 0; i < 4; i++)
+	{
+		tdata[i].i0 = i*TASK_SIZE;
+		tdata[i].in = (i + 1)*TASK_SIZE;
+		pthread_create(&tids[i], NULL, thread_main, (void *)&tdata[i]);
+	}
+    
+    for (i = 0; i < 4; i++)
+		pthread_join(tid[i], NULL);
+    
+    /* Reduct. */
+    nfriends = 0;
+    for (i = 0; i < 4; i++)
+		nfriends += tdata[i].nfriends;
     
     return (nfriends);
 }
+
 
 static void initTasks(long int *PROBLEM_SIZE, long int *TASK_SIZE, long int *middle) {
 	long int r, pSizeCheck;
@@ -140,9 +184,7 @@ int friendly_numbers(int _start, int _end)
 	initTasks(&PROBLEM_SIZE, &TASK_SIZE, &middle);
 
     open_noc_connectors();
-
 	spawn_slaves(TASK_SIZE);
-
     sync_slaves();
 	
 	sendWork(TASK_SIZE, middle);

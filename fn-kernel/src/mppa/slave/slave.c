@@ -52,43 +52,66 @@ static void getwork() {
 	//printf("Slave %d got %d bytes of work!\n",rank, n);
 }
 
-static int gcd_iter(int u, int v) {
-	int t;
-	while(v) {
-		t=u;
-		u=v;
-		v=t%v;
+/*
+ * Computes the Greatest Common Divisor of two numbers.
+ */
+static int gcd(int a, int b)
+{
+  int c;
+  
+  /* Compute greatest common divisor. */
+  while (a != 0)
+  {
+     c = a;
+     a = b%a;
+     b = c;
+  }
+  
+  return (b);
+}
+
+/*
+ * Some of divisors.
+ */
+static int sumdiv(int n)
+{
+	int sum;    /* Sum of divisors. */
+	int factor; /* Working factor.  */
+	
+	sum = 1 + n;
+	
+	/* Compute sum of divisors. */
+	for (factor = 2; factor < n; factor++)
+	{
+		/* Divisor found. */
+		if ((n%factor) == 0)
+			sum += factor;
 	}
-	return u<0 ? -u : u;
+	
+	return (sum);
 }
 
-static void friendlyNumbers(long int TASK_SIZE) {
-#pragma omp parallel 
-    {
-        long int i, factor, sum, done, n;
-
-#pragma omp for schedule (static)
-        for (i = 0; i < TASK_SIZE; i++) {
-            long int number = task[i].number;
-            sum = 1 + number;
-            done = number;
-            factor = 2;
-            while (factor < done) {
-                if ((number % factor) == 0) {
-                    sum += (factor + (number / factor));
-                    if ((done = number / factor) == factor)
-                        sum -= factor;
-                }
-                factor++;
-            }
-            task[i].numerator = sum;
-            task[i].denominator = number;
-            n = gcd_iter(task[i].numerator, task[i].denominator);
-            task[i].numerator /= n;
-            task[i].denominator /= n;
-        }
-    }
+/*
+ * Computes friendly numbers.
+ */
+void friendly_numbers(long int TASK_SIZE) 
+{
+	int n; /* Divisor.      */
+	int i; /* Loop indexes. */
+	
+	/* Compute abundances. */
+	#pragma omp parallel for private(i, n) default(shared)
+	for (i = 0; i < TASK_SIZE; i++) 
+	{		
+		task[i].numerator = sumdiv(task[i].number);
+		task[i].denominator = i;
+				
+		n = gcd(task[i].numerator, task[i].denominator);
+		task[i].numerator /= n;
+		task[i].denominator /= n;
+	}
 }
+
 
 int main(int argc, char **argv) {
     char path[35];
@@ -119,7 +142,7 @@ int main(int argc, char **argv) {
 	
     getwork();
 
-    friendlyNumbers(TASK_SIZE);
+    friendly_numbers(TASK_SIZE);
 
     syncNumbers(TASK_SIZE);
 
