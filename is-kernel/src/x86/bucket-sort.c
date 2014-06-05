@@ -68,7 +68,6 @@ void bucketsort(int *array, int n)
 		darray_append(buckets[j], array[i]);
 	}
 	
-	
 	/* Sort Each bucket. */
 	#pragma omp parallel for private(i) default(shared)
 	for (i = 0; i < NBUCKETS; i++)
