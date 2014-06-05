@@ -20,7 +20,7 @@ void gauss_filter(void)
 {
 	int i, j;
 	int half;
-	double new_element;
+	double pixel;
 	int imgI, imgJ, maskI, maskJ;
 	
 	#define MASK(i, j) \
@@ -32,25 +32,27 @@ void gauss_filter(void)
 	i = 0; j = 0;
 	half = CHUNK_SIZE >> 1;
 	
-	#pragma omp parallel for  default(shared) \
-	private(imgI, imgJ, maskI, maskJ, new_element)
-	for (imgI = 0; imgI < CHUNK_SIZE; imgI++)
-	{		
-		for (imgJ = 0; imgJ < CHUNK_SIZE; imgJ++)
-		{
-			new_element = 0.0;
-			for (maskI = 0; maskI < masksize; maskI++)
-			{	
-				for (maskJ = 0; maskJ < masksize; maskJ++)
-				{
-					i = (imgI - half < 0) ? CHUNK_SIZE-1 - maskI : imgI - half;
-					j = (imgJ - half < 0) ? CHUNK_SIZE-1 - maskJ : imgJ - half;
+	#pragma omp parallel default(shared) private(imgI,imgJ,maskI,maskJ,pixel,i,j)
+	{
+		#pragma omp for
+		for (imgI = 0; imgI < CHUNK_SIZE; imgI++)
+		{			
+			for (imgJ = 0; imgJ < CHUNK_SIZE; imgJ++)
+			{
+				pixel = 0.0;
+				for (maskI = 0; maskI < masksize; maskI++)
+				{	
+					for (maskJ = 0; maskJ < masksize; maskJ++)
+					{
+						i = (imgI - half < 0) ? CHUNK_SIZE-1 - maskI : imgI - half;
+						j = (imgJ - half < 0) ? CHUNK_SIZE-1 - maskJ : imgJ - half;
 
-					new_element += CHUNK(i, j)*MASK(maskI, maskJ);
+						pixel += CHUNK(i, j)*MASK(maskI, maskJ);
+					}
 				}
+				   
+				CHUNK(imgI, imgJ) = (pixel > 255) ? 255 : (int)pixel;
 			}
-               
-			CHUNK(imgI, imgJ) = (new_element > 255) ? 255 : (int)new_element;
 		}
 	}
 }

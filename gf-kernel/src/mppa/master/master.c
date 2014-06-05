@@ -58,7 +58,7 @@ void gauss_filter(unsigned char *img, int imgsize, double *mask, int masksize)
 	
 	/* Receive remaining results. */
 	for (/* NOOP */ ; j > 0; j--)
-		data_receive(infd[j - 1], &img[(nchunks - j - 1)*CHUNK_SIZE*CHUNK_SIZE], n);
+		data_receive(infd[j - 1], &img[(nchunks - j)*CHUNK_SIZE*CHUNK_SIZE], n);
 	
 	/* House keeping. */
 	msg = MSG_DIE;
