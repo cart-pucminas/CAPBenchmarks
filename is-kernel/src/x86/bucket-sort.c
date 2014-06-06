@@ -5,11 +5,11 @@
 #include <darray.h>
 #include <global.h>
 #include <limits.h>
-#include <list.h>
 #include <omp.h>
 #include <util.h>
 
-#define NBUCKETS 8192
+/* Number of buckets. */
+#define NUM_BUCKETS 8192
 
 /*
  * Sorts an array of numbers.
@@ -17,20 +17,13 @@
 extern void sort(struct darray *da);
 
 /*
- * Bucket sort algorithm.
+ * Finds the maximum element in an array.
  */
-void bucketsort(int *array, int n)
+static int findmax(int *array, int n)
 {
-	int max;                 /* Max number in array. */
-	int maxp;                /* Max private.         */
-	int range;               /* Bucket range.        */
-	int i, j, k;             /* Loop indexes.        */
-	struct darray **buckets; /* Buckets.             */
-
-	/* Create buckets. */
-	buckets = smalloc(NBUCKETS*sizeof(struct darray *));
-	for (i = 0; i < NBUCKETS; i++)
-		buckets[i] = darray_create(n/NBUCKETS);
+	int i;    /* Loop index.          */
+	int max;  /* Max number in array. */
+	int maxp; /* Max private.         */
 	
 	/* Find max number in the array. */
 	max = INT_MIN;
@@ -57,36 +50,55 @@ void bucketsort(int *array, int n)
 		}
 	}
 	
+	return (max);
+}
+
+/*
+ * Bucket sort algorithm.
+ */
+void bucketsort(int *array, int n)
+{
+	int max;                 /* Max number in array. */
+	int range;               /* Bucket range.        */
+	int i, j, k;             /* Loop indexes.        */
+	struct darray **buckets; /* Buckets.             */
+
+	/* Create buckets. */
+	buckets = smalloc(NUM_BUCKETS*sizeof(struct darray *));
+	for (i = 0; i < NUM_BUCKETS; i++)
+		buckets[i] = darray_create(n/NUM_BUCKETS);
+	
+	max = findmax(array, n);
+	
 	/* Distribute numbers into buckets. */
-	range = max/NBUCKETS;
+	range = max/NUM_BUCKETS;
 	for (i = 0; i < n; i++)
 	{
 		j = array[i]/range;
-		if (j >= NBUCKETS)
-			j = NBUCKETS - 1;
+		if (j >= NUM_BUCKETS)
+			j = NUM_BUCKETS - 1;
 		
 		darray_append(buckets[j], array[i]);
 	}
 	
 	/* Sort Each bucket. */
 	#pragma omp parallel for private(i) default(shared)
-	for (i = 0; i < NBUCKETS; i++)
+	for (i = 0; i < NUM_BUCKETS; i++)
 	{
 		if (darray_size(buckets[i]) > 0)
 			sort(buckets[i]);
 	}
 	
-	
 	/* Rebuild array. */
 	k = 0;
-	for (i = 0; i < NBUCKETS; i++)
+	for (i = 0; i < NUM_BUCKETS; i++)
 	{
 		for (j = 0; j < darray_size(buckets[i]); j++)
 			array[k] = darray_get(buckets[i], j);
 	}
 	
 	/* House keeping. */
-	for (i = 0; i < NBUCKETS; i++)
+	for (i = 0; i < NUM_BUCKETS; i++)
 		darray_destroy(buckets[i]);
 	free(buckets);
 }
