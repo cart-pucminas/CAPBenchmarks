@@ -61,7 +61,10 @@ void bucketsort(int *array, int n)
 	int max;                 /* Max number in array. */
 	int range;               /* Bucket range.        */
 	int i, j, k;             /* Loop indexes.        */
-	struct darray **buckets; /* Buckets.             */
+	int *indexes;            /* Index for buckets.   */
+	struct darray **buckets; /* Buckets.            */
+
+	indexes = smalloc(NUM_BUCKETS*sizeof(int));
 
 	/* Create buckets. */
 	buckets = smalloc(NUM_BUCKETS*sizeof(struct darray *));
@@ -89,16 +92,24 @@ void bucketsort(int *array, int n)
 			sort(buckets[i]);
 	}
 	
+	/* Build indexes. */
+	indexes[0] = 0;
+	for (i = 1; i < NUM_BUCKETS; i++)
+		indexes[i] = indexes[0] + darray_size(buckets[i]);
+	
 	/* Rebuild array. */
-	k = 0;
+	# pragma omp parallel for private(i, k, j) default(shared)
 	for (i = 0; i < NUM_BUCKETS; i++)
 	{
+		k = indexes[i];
+			
 		for (j = 0; j < darray_size(buckets[i]); j++)
-			array[k] = darray_get(buckets[i], j);
+			array[k + j] = darray_get(buckets[i], j);
 	}
 	
 	/* House keeping. */
 	for (i = 0; i < NUM_BUCKETS; i++)
 		darray_destroy(buckets[i]);
 	free(buckets);
+	free(indexes);
 }
