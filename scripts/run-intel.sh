@@ -19,7 +19,7 @@ for it in {1..$ITERATIONS}; do
 		# Number of clusters.
 		for kernel in fn gf is km lu; do
 			# Classes.
-			for nprocs in 1 2 4 8; do
+			for nprocs in 8; do
 				likwid-powermeter $BINDIR/$kernel.intel --verbose --class $class --nthreads $nprocs &>> $RESULTSDIR/$kernel-$class-$nprocs.intel
 			done 
 		done

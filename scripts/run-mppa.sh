@@ -20,7 +20,7 @@ for it in {1..$ITERATIONS}; do
 		# Number of clusters.
 		for kernel in fn gf is km lu; do
 			# Classes.
-			for nprocs in 1 2 4 8 16; do
+			for nprocs in 16; do
 				$MPPADIR/bin/k1-power -- $MPPADIR/bin/k1-jtag-runner --multibinary=$BINDIR/$kernel.mppa.mpk --exec-multibin=IODDR0:$kernel.master -- --verbose --class $class --nthreads $nprocs &>> $RESULTSDIR/$kernel-$class-$nprocs.mppa
 			done 
 		done
