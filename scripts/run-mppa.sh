@@ -3,7 +3,6 @@
 #
 
 # Parameters.
-export ITERATIONS=5
 export ROOTDIR=$PWD
 export RESULTSDIR=$ROOTDIR/results
 export BINDIR=$ROOTDIR/bin
@@ -14,7 +13,7 @@ rm -f $RESULTSDIR/*
 mkdir -p $RESULTSDIR
 
 # Iterations.
-for it in {1..$ITERATIONS}; do
+for it in {1..10}; do
 	# Kernels.
 	for class in tiny small workstation standard large; do
 		# Number of clusters.
