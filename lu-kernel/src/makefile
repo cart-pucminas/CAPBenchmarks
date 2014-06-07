@@ -38,4 +38,4 @@ slave: $(MPPA_SRC_SLAVE)
 # Cleans compilation files.
 clean:
 	rm -f $(BINDIR)/$(EXEC).intel
-	rm -f $(BINDIR)/$(EXEC).mppa
+	rm -f $(BINDIR)/$(EXEC).mppa.mpk
