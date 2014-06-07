@@ -8,6 +8,7 @@
 #include <assert.h>
 #include <global.h>
 #include <matrix.h>
+#include <pthread.h>
 #include <util.h>
 #include "master.h"
 
@@ -30,12 +31,70 @@ extern float find_pivot(struct matrix *m, int i0, int j0);
 extern void row_reduction(struct matrix *m, int i0);
 
 /*
+ * Thread's data.
+ */
+struct tdata
+{
+	/* Thread ID. */
+	pthread_t tid;
+	
+	/* Arguments. */
+	struct 
+	{
+		int i0;           /* Start row.      */
+		int in;           /* End row.        */
+		struct matrix *m; /* Reduced matrix. */
+		struct matrix *l; /* Lower matrix.   */
+		struct matrix *u; /* Upper matrix.   */
+	} args;
+} tdata[NUM_IO_CORES];
+
+/*
+ * Threads's main.
+ */
+extern void *thread_main(void *args)
+{
+	int i, j;        /* Loop index.    */
+	struct tdata *t; /* Thread's data. */
+	
+	t = args;
+	
+	/* Build upper and lower matrixes.  */
+	for (i = t->args.i0; i < t->args.in; i++)
+	{
+		for (j = 0; j < t->args.m->width; j++)
+		{
+			if (i > j)
+			{
+				MATRIX(t->args.l, i, j) = 0.0;
+				MATRIX(t->args.u, i, j) = MATRIX(t->args.m, i, j);
+			}
+			
+			else if (i < j)
+			{	
+				MATRIX(t->args.l, i, j) = MATRIX(t->args.m, i, j);
+				MATRIX(t->args.u, i, j) = 0.0;
+			}
+			
+			else
+			{
+				MATRIX(t->args.l, i, j) = 1.0;
+				MATRIX(t->args.u, i, j) = 1.0;
+			}
+		}
+	}
+	
+	pthread_exit(NULL);
+	return (NULL);
+}
+
+/*
  * Performs LU factorization in a matrix.
  */
 int matrix_lu(struct matrix *m, struct matrix *l, struct matrix *u)
 {
-	int i, j;    /* Loop indexes. */
-	float pivot; /* Pivot.        */
+	int i;       /* Loop index. */
+	float pivot; /* Pivot.      */
 	
 	/* Setup slaves. */
 	open_noc_connectors();
@@ -57,31 +116,21 @@ int matrix_lu(struct matrix *m, struct matrix *l, struct matrix *u)
 		row_reduction(m, i);
 	}
 
-	/* Build upper and lower matrixes.  */
-	for (i = 0; i < m->height; i++)
+	/* Spawn threads. */
+	for (i = 0; i < NUM_IO_CORES; i++)
 	{
-		for (j = 0; j < m->width; j++)
-		{
-			if (i > j)
-			{
-				MATRIX(l, i, j) = 0.0;
-				MATRIX(u, i, j) = MATRIX(m, i, j);
-			}
-			
-			else if (i < j)
-			{	
-				MATRIX(l, i, j) = MATRIX(m, i, j);
-				MATRIX(u, i, j) = 0.0;
-			}
-			
-			else
-			{
-				MATRIX(l, i, j) = 1.0;
-				MATRIX(u, i, j) = 1.0;
-			}
-		}
+		tdata[i].args.i0 = i*(m->height >> 2);
+		tdata[i].args.in = (i + 1)*(m->height >> 2);
+		tdata[i].args.m = m;
+		tdata[i].args.l = l;
+		tdata[i].args.u = u;
+		pthread_create(&tdata[i].tid, NULL, thread_main, (void *)&tdata[i]);
 	}
 	
+	/* Join threads. */
+	for (i = 0; i < NUM_IO_CORES; i++)
+		pthread_join(tdata[i].tid, NULL);
+		
 	/* House keeping. */
 	join_slaves();
 	close_noc_connectors();

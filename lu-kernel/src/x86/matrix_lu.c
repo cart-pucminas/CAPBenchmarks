@@ -25,28 +25,17 @@
  */
 static void _swap_rows(struct matrix *m, int i1, int i2)
 {
-	int j; /* Loop index. */
-
-#if (_SLOW_SWAP_ == 1)
-
+	int j;     /* Loop index.      */
 	float tmp; /* Temporary value. */
 	
 	/* Swap columns. */
-	#pragma omp parallel for private(j, tmp) shared(m, i1, i2)
+	#pragma omp parallel for private(j, tmp) default(shared)
 	for (j = 0; j < m->width; j++)
 	{
 		tmp = MATRIX(m, i1, j);
 		MATRIX(m, i1, j) = MATRIX(m, i2, j);
 		MATRIX(m, i2, j) = tmp;
 	}
-
-#else
-
-	j = m->i_idx[i1];
-	m->i_idx[i1] = m->i_idx[i2];
-	m->i_idx[i2] = j;
-
-#endif
 }
 
 /*
@@ -54,28 +43,17 @@ static void _swap_rows(struct matrix *m, int i1, int i2)
  */
 static void _swap_columns(struct matrix *m, int j1, int j2)
 {
-	int i; /* Loop index. */
-
-#if _SLOW_SWAP_ == 1
-
+	int i;     /* Loop index.      */
 	float tmp; /* Temporary value. */
 
 	/* Swap columns. */
-	#pragma omp parallel for private(i, tmp) shared(m, j1, j2)
+	#pragma omp parallel for private(i, tmp) default(shared)
 	for (i = 0; i < m->height; i++)
 	{
 		tmp = MATRIX(m, i, j1);
 		MATRIX(m, i, j1) = MATRIX(m, i, j2);
 		MATRIX(m, i, j2) = tmp;
 	}
-	
-#else
-
-	i = m->j_idx[j1];
-	m->j_idx[j1] = m->j_idx[j2];
-	m->j_idx[j2] = i;
-
-#endif
 }
 
 /*
@@ -83,18 +61,18 @@ static void _swap_columns(struct matrix *m, int j1, int j2)
  */
 static float _find_pivot(struct matrix *m, int i0, int j0)
 {
-	int tid;             /* Thread ID.        */
-	int i, j;            /* Loop indexes.     */
-	int ipvt[NUM_CORES]; /* Index i of pivot. */
-	int jpvt[NUM_CORES]; /* Index j of pivot. */
+	int i, j;         /* Loop indexes.          */
+	int ipvt, jpvt;   /* Pivot indexes.         */
+	int pipvt, pjpvt; /* Private pivot indexes. */
 	
-	#pragma omp parallel private(i, j, tid) shared(m, i0, j0, ipvt, jpvt)
+	ipvt = i0;
+	jpvt = j0;
+	
+	#pragma omp parallel private(i, j, pipvt, pjpvt) shared(m, i0, j0)
 	{
-		tid = omp_get_thread_num();
-	
-		ipvt[tid] = i0;
-		jpvt[tid] = j0;
-	
+		pipvt = i0;
+		pjpvt = j0;
+		
 		/* Find pivot element. */
 		#pragma omp for
 		for (i = i0; i < m->height; i++)
@@ -102,30 +80,29 @@ static float _find_pivot(struct matrix *m, int i0, int j0)
 			for (j = j0; j < m->width; j++)
 			{
 				/* Found. */
-				if (fabs(MATRIX(m, i, j)) < fabs(MATRIX(m,ipvt[tid],jpvt[tid])))
+				if (fabs(MATRIX(m, i, j)) > fabs(MATRIX(m,pipvt,pjpvt)))
 				{
-					ipvt[tid] = i;
-					jpvt[tid] = j;
+					pipvt = i;
+					pjpvt = j;
 				}
+			}
+		}
+		
+		/* Reduct. */
+		#pragma omp critical
+		{
+			if (fabs(MATRIX(m, pipvt, pjpvt) > fabs(MATRIX(m, ipvt, jpvt))))
+			{
+				ipvt = pipvt;
+				jpvt = pjpvt;
 			}
 		}
 	}
 	
-	/* Min reduction of pivot. */
-	for (i = 1; i < nthreads; i++)
-	{
-		/* Smaller found. */
-		if (fabs(MATRIX(m, ipvt[i], jpvt[i])) < fabs(MATRIX(m,ipvt[0],jpvt[0])))
-		{
-			ipvt[0] = ipvt[i];
-			jpvt[0] = jpvt[i];
-		}
-	}
+	_swap_rows(m, i0, ipvt);
+	_swap_columns(m, j0, jpvt);
 	
-	_swap_rows(m, i0, ipvt[0]);
-	_swap_columns(m, j0, jpvt[0]);
-	
-	return (MATRIX(m, ipvt[0], jpvt[0]));
+	return (MATRIX(m, ipvt, jpvt));
 }
 
 /*
@@ -140,7 +117,7 @@ static void _row_reduction(struct matrix *m, int i0, float pivot)
 	j0 = i0;
 	
 	/* Apply row redution in some lines. */
-	#pragma omp parallel for private(i, j, mult) shared(m, i0, pivot, j0)
+	#pragma omp parallel for private(i, j, mult) default(shared)
 	for (i = i0 + 1; i < m->height; i++)
 	{
 		mult = MATRIX(m, i, j0)/pivot;
@@ -178,7 +155,7 @@ int matrix_lu(struct matrix *m, struct matrix *l, struct matrix *u)
 	}
 	
 	/* Build upper and lower matrixes.  */
-	#pragma omp parallel for private(i, j) shared(m, l, u)
+	#pragma omp parallel for private(i, j) default(shared)
 	for (i = 0; i < m->height; i++)
 	{
 		for (j = 0; j < m->width; j++)

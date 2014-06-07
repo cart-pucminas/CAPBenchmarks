@@ -23,13 +23,6 @@ void matrix_destroy(struct matrix *m)
 	SANITY_CHECK();
 	
 	free(m->elements);
-	
-#if _SLOW_SWAP_ == 0
-
-	free(m->i_idx);
-	free(m->j_idx);
-	
-#endif 
 
 	free(m);
 }

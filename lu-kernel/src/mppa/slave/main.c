@@ -61,7 +61,7 @@ static void _find_pivot(int *ipvt, int *jpvt)
 			for (j = 0; j < block.width; j++)
 			{
 				/* Found. */
-				if (fabs(BLOCK(i, j)) < fabs(BLOCK(_ipvt[tid],_jpvt[tid])))
+				if (fabs(BLOCK(i, j)) > fabs(BLOCK(_ipvt[tid],_jpvt[tid])))
 				{
 					_ipvt[tid] = i;
 					_jpvt[tid] = j;
@@ -74,7 +74,7 @@ static void _find_pivot(int *ipvt, int *jpvt)
 	for (i = 1; i < (NUM_CORES/NUM_CLUSTERS); i++)
 	{
 		/* Smaller found. */
-		if (fabs(BLOCK(_ipvt[i], _jpvt[i])) < fabs(BLOCK(_ipvt[0],_jpvt[0])))
+		if (fabs(BLOCK(_ipvt[i], _jpvt[i])) > fabs(BLOCK(_ipvt[0],_jpvt[0])))
 		{
 			_ipvt[0] = _ipvt[i];
 			_jpvt[0] = _jpvt[i];

@@ -133,6 +133,11 @@
 	 * Number of cores on a MPPA-256 processor.
 	 */
 	#define NUM_CORES 256
+
+	/*
+	 * Number of IO cores per IO cluster.
+	 */
+	#define NUM_IO_CORES 4
 	
 	/*
 	 * Frequency of cores.
