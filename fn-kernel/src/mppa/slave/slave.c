@@ -28,28 +28,22 @@ static int channel_out_fd; /* Output channel. */
 
 static Item task[65536];
 
-static void syncNumbers(long int TASK_SIZE) {
-    ssize_t n, nOfN;
+static int tasksize;
+
+static void syncNumbers(void)
+{
     ssize_t count;
-	nOfN = sizeof (long int);
-	
-    n = TASK_SIZE * sizeof (Item);
-    count = mppa_write(channel_out_fd, &n, nOfN);
-    assert(count != -1);
-    count = mppa_write(channel_out_fd, &task, n);
+
+    count = mppa_write(channel_out_fd, &task, tasksize*sizeof(Item));
     assert(count != -1);
 }
 
-static void getwork() {
-    ssize_t n;
+static void getwork(void)
+{
     ssize_t count;
 
-    count = mppa_read(channel_in_fd, &n, sizeof(ssize_t));
+	count = mppa_read(channel_in_fd, &task, tasksize*sizeof(Item));
     assert(count != -1);
-	//printf("Size n: %d - Rank: %d\n", n, rank);
-	count = mppa_read(channel_in_fd, &task, n);
-    assert(count != -1);
-	//printf("Slave %d got %d bytes of work!\n",rank, n);
 }
 
 /*
@@ -94,14 +88,14 @@ static int sumdiv(int n)
 /*
  * Computes friendly numbers.
  */
-void friendly_numbers(long int TASK_SIZE) 
+void friendly_numbers(void) 
 {
 	int n; /* Divisor.      */
 	int i; /* Loop indexes. */
 	
 	/* Compute abundances. */
 	#pragma omp parallel for private(i, n) default(shared)
-	for (i = 0; i < TASK_SIZE; i++) 
+	for (i = 0; i < tasksize; i++) 
 	{		
 		task[i].numerator = sumdiv(task[i].number);
 		task[i].denominator = i;
@@ -113,16 +107,16 @@ void friendly_numbers(long int TASK_SIZE)
 }
 
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     char path[35];
     uint64_t mask; /* Mask for sync.        */
-    int sync_fd; /* Sync file descriptor. */
-	long int TASK_SIZE;
+    int sync_fd;   /* Sync file descriptor. */
 
     ((void) argc);
 
     rank = atoi(argv[0]);
-	TASK_SIZE = atoi(argv[1]);
+	tasksize = atoi(argv[1]);
 
     sync_fd = mppa_open("/mppa/sync/128:64", O_WRONLY);
     assert(sync_fd != -1);
@@ -142,9 +136,9 @@ int main(int argc, char **argv) {
 	
     getwork();
 
-    friendly_numbers(TASK_SIZE);
+    friendly_numbers();
 
-    syncNumbers(TASK_SIZE);
+    syncNumbers();
 
     /* Close channels. */
     mppa_close(channel_in_fd);

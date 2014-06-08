@@ -33,7 +33,7 @@ static struct problem large       =  { 2048, 2048 };
 
 /* Benchmark parameters. */
 int verbose = 0;                  /* Be verbose?        */
-static int seed = 0;              /* Seed value.        */
+static int seed = 1;              /* Seed value.        */
 int nthreads = 1;                 /* Number of threads. */
 static struct problem *p = &tiny; /* Problem.           */
 

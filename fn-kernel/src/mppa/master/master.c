@@ -9,6 +9,7 @@
 
 #include <assert.h>
 #include <global.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -17,142 +18,161 @@
 #include "master.h"
 
 typedef struct {
-    long int number;
-    long int numerator;
-    long int denominator;
+    int number;
+    int num;
+    int den;
 } Item;
 
-#define MPPA_FREQUENCY 400
-#define NUM_CLUSTERS 16
 #define MAX_TASK_SIZE 65536
 
 static Item finishedTasks[MAX_TASK_SIZE*NUM_CLUSTERS];
 static Item task[MAX_TASK_SIZE];
-static int NEW_END;
 
-int start, end;
+/* Parameters.*/
+static int end;         /* Start number. */
+static int start;       /* End number.   */
+static int tasksize;    /* Task size.    */
+static int problemsize; /* Problem size. */
 
-static void sendWork(long int TASK_SIZE, long int middle) {
-    int i, j, cont;
-    long int lowerNumber, upperNumber;
-	ssize_t n;
-    ssize_t count;    
+/*
+ * Sends works to slaves.
+ */
+static void sendWork(void)
+{
+    int i, j;               /* Loop indexes.            */
+    ssize_t count;          /* Bytes actually sent.     */
+    int lowernum, uppernum; /* Lower and upper numbers. */
 
-    // Distribute numbers in a "balanced way".
-    for (i = 0; i < nthreads; i++) {
-		cont = 0;
-        lowerNumber = (i * TASK_SIZE / 2) + start;
-        for (j = 0; (j < TASK_SIZE / 2) && (lowerNumber < middle); j++) {
-            Item item;
-            item.number = lowerNumber;
-            task[cont] = item;
-            lowerNumber++;
-            cont++;
-        }
+    /* Distribute tasks to slaves. */
+    lowernum = start; uppernum = end;
+    for (i = 0; i < nthreads; i++)
+    {
+		/* Build pool of tasks. */
+		for (j = 0; j < tasksize; j += 2)
+		{
+			task[j].number = lowernum++;
+			task[j + 1].number = uppernum--;
+		}
 
-        upperNumber = NEW_END - (i * TASK_SIZE / 2);
-        for (j = 0; (j < TASK_SIZE / 2) && (upperNumber >= middle); j++) {
-            Item item;
-            item.number = upperNumber;
-            task[cont] = item;
-            upperNumber--;
-            cont++;
-        }
-
-		n = TASK_SIZE * sizeof (Item);
-
-        count = mppa_write(outfd[i], &n, sizeof(ssize_t));
-        assert(count != -1);
-        count = mppa_write(outfd[i], &task, n);
+        count = mppa_write(outfd[i], task, tasksize*sizeof(Item));
         assert(count != -1);
     }
+    
 }
 
-static void syncNumbers(long int TASK_SIZE) {
-    ssize_t n, nOfN;
-    ssize_t count;
-	int i,j;
+static void syncNumbers(int tasksize)
+{
+	int i;         /* Loop index.          */
+    ssize_t count; /* Bytes actually read. */
 
-    nOfN = sizeof (long int);
-
-    for (i = 0; i < nthreads; i++) {
-        count = mppa_read(infd[i], &n, nOfN);
-        assert(count != -1);
-        count = mppa_read(infd[i], &task, n);
-        assert(count != -1);
-
-		for(j=0;j<TASK_SIZE; j++) 
-			finishedTasks[TASK_SIZE*i+j]=task[j];
-    }
+	for (i = 0; i < nthreads; i++)
+	{
+        count = mppa_read(infd[i], &finishedTasks[i*tasksize], tasksize*sizeof(Item));
+        assert(count != -1);	
+	}
 }
 
-static int showResult(long int TASK_SIZE) {
-	int i,j, nfriends;
+/*
+ * Thread's data.
+ */
+struct tdata
+{
+	/* Thread ID. */
+	pthread_t tid; 
+	 
+	struct
+	{
+		int i0;
+		int in;
+	} args;
 	
+	struct
+	{
+		int nfriends;
+	} result;
+} tdata[NUM_IO_CORES];
+
+/*
+ * Thread's main.
+ */
+static void *thread_main(void *args)
+{
+	int i, j;        /* Loop indexes.      */
+	int nfriends;    /* Number of friends. */
+	struct tdata *t; /* Thread data.       */
+	
+	t = args;
+	
+	/* Count number of friends. */
 	nfriends = 0;
-    for (i = 0; i < TASK_SIZE*nthreads; i++) {
-        for (j = i + 1; j < TASK_SIZE*nthreads; j++) {
-            if ((finishedTasks[i].numerator == finishedTasks[j].numerator) && (finishedTasks[i].denominator == finishedTasks[j].denominator))
+	for (i = t->args.i0; i < t->args.in; i++)
+	{
+		for (j = 0; j < i; j++)
+		{
+			/* Friends. */
+			if ((finishedTasks[i].num == finishedTasks[j].num) && 
+			(finishedTasks[i].den == finishedTasks[j].den))
 				nfriends++;
-        }
-    }
+		}	
+	}
+	
+	t->result.nfriends = nfriends;
+	
+	pthread_exit(NULL);
+	return (NULL);
+}
+
+/*
+ * Counts friendly numbers.
+ */
+static int count_friends(void)
+{
+	int i;        /* Loop index.     */
+	int nfriends; /* Number friends. */
+	
+	/* Spwan slave threads. */
+	for (i = 0; i < NUM_IO_CORES; i++)
+	{
+		tdata[i].args.i0 = (i == 0) ? 1 : i*tasksize;
+		tdata[i].args.in = (i + 1)*tasksize;
+		pthread_create(&tdata[i].tid, NULL, thread_main, (void *)&tdata[i]);
+	}
+	
+	/* Join threads. */
+	for (i = 0; i < NUM_IO_CORES; i++)
+		pthread_join(tdata[i].tid, NULL);	
+	
+	/* Reduce. */
+	nfriends = 0;
+    for (i = 0; i < NUM_IO_CORES; i++)
+		nfriends += tdata[i].result.nfriends;
     
     return (nfriends);
 }
 
-static void initTasks(long int *PROBLEM_SIZE, long int *TASK_SIZE, long int *middle) {
-	long int r, pSizeCheck;
-	
-    *PROBLEM_SIZE = end - start + 1; // "Problem size"
-	
-    if((*PROBLEM_SIZE) > (MAX_TASK_SIZE*nthreads)) {
-		printf("The Problem Size is too big... The maximum size is %d using %d Clusters.\n", MAX_TASK_SIZE, NUM_CLUSTERS);
-		exit(0);
-	}
-	
-	if(nthreads > 8) {
-		pSizeCheck = 32;
-	} else {
-		pSizeCheck = 16;
-	}
-	r = *PROBLEM_SIZE % pSizeCheck;
-	
-    if (r > 0) {
-        NEW_END = end + (pSizeCheck - r);
-		*PROBLEM_SIZE = NEW_END - start + 1;
-        printf("The problem size must be multiple of %ld. Using %d to %d.\n",pSizeCheck, start, NEW_END);
-		printf("New problem size: %ld\n\n",*PROBLEM_SIZE);
-    }
-	*middle = *PROBLEM_SIZE / 2 + start;	
-	
-    // Calculate the TASK_SIZE, based on nthreads and PROBLEM_SIZE
-    *TASK_SIZE = *PROBLEM_SIZE / nthreads;
-}
-
+/*
+ * Counts the number of friendly numbers in a range.
+ */
 int friendly_numbers(int _start, int _end) 
 {
-    int nfriends;
-	long int middle, PROBLEM_SIZE, TASK_SIZE;
-	
 	start = _start;
 	end = _end;
 	
-	initTasks(&PROBLEM_SIZE, &TASK_SIZE, &middle);
-
-    open_noc_connectors();
-
-	spawn_slaves(TASK_SIZE);
-
-    sync_slaves();
+    /* */
+	problemsize = end - start + 1;
+	tasksize = problemsize / nthreads;
 	
-	sendWork(TASK_SIZE, middle);
-    syncNumbers(TASK_SIZE);
+	/* Setup slaves. */
+    open_noc_connectors();
+	spawn_slaves(tasksize);
+    sync_slaves();
+    
+	sendWork();
+    syncNumbers(tasksize);
 	
 	/* House keeping. */
 	join_slaves();
 	close_noc_connectors();
 
-	nfriends = showResult(TASK_SIZE);
-
-    return (nfriends);
+    return (count_friends());
 }

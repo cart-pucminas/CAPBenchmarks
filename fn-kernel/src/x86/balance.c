@@ -17,7 +17,7 @@ void balance(int *work, int n, int k)
 	if (n & 1)
 	{
 		work[0] = 0;
-		for (i = 1; i <= (n >> 2); i++)
+		for (i = 1; i <= (n >> 1); i++)
 		{
 			work[i] = j;
 			work[n - i] = j;
@@ -26,7 +26,7 @@ void balance(int *work, int n, int k)
 				j = 0;
 		}
 	} else {
-		for (i = 0; i < (n >> 2); i++)
+		for (i = 0; i < (n >> 1); i++)
 		{
 			work[i] = j;
 			work[n - i - 1] = j;
