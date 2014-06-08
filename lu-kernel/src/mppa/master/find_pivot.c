@@ -131,7 +131,7 @@ float find_pivot(struct matrix *m, int i0, int j0)
 		i = msg->u.findresult.ipvt + msg->u.findresult.i0;
 		j = msg->u.findresult.jpvt;
 		
-		if (fabs(MATRIX(m, i, j)) < fabs(MATRIX(m, ipvt, jpvt)))
+		if (fabs(MATRIX(m, i, j)) > fabs(MATRIX(m, ipvt, jpvt)))
 		{
 			ipvt = i;
 			jpvt = j;
