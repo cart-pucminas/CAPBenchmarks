@@ -80,7 +80,7 @@ static float _find_pivot(struct matrix *m, int i0, int j0)
 			for (j = j0; j < m->width; j++)
 			{
 				/* Found. */
-				if (fabs(MATRIX(m, i, j)) > fabs(MATRIX(m,pipvt,pjpvt)))
+				if (fabs(MATRIX(m, i, j)) < fabs(MATRIX(m,pipvt,pjpvt)))
 				{
 					pipvt = i;
 					pjpvt = j;
