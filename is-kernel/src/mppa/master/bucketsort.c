@@ -5,11 +5,82 @@
 #include <global.h>
 #include <limits.h>
 #include <message.h>
+#include <pthread.h>
 #include <util.h>
 #include "master.h"
 
 /* Number of buckets. */
 #define NUM_BUCKETS 256
+
+/*
+ * Thread's data.
+ */
+static struct tdata
+{
+	/* Thread's ID. */
+	pthread_t tid;
+	
+	/* Arguments. */
+	struct
+	{
+		int i0;               /* Start bucket.        */
+		int in;               /* End bucket.          */
+		int j0;               /* Start array's index. */
+		struct bucket **done; /* Buckets.             */
+		int *array;           /* Array.               */
+	} args;
+} tdata[NUM_IO_CORES]
+
+/*
+ * Thread's main.
+ */
+static void *thread_main(void *args)
+{
+	int i, j;        /* Loop indexes.  */
+	struct tdata *t; /* Thread's data. */
+		
+	t = args;
+	
+	/* Rebuild array. */
+	j = t->args.j0;
+	for (i = t->args.i0; i < t->args.in; i++)
+	{
+		bucket_merge(done[i], &array[j]);
+		j += bucket_size(done[i]);
+	}
+	
+	pthread_exit(NULL);
+	exit(NULL);
+}
+
+/*
+ * Rebuilds array.
+ */
+static void rebuild_array(struct bucket **done, int *array)
+{
+	int j;    /* array[] offset. */
+	int i, k; /* Loop index.     */
+	
+	#define BUCKETS_PER_CORE (NUM_BUCKETS/NUM_IO_CORES)
+	
+	/* Spawn threads. */
+	j = 0
+	for (i = 0; i < NUM_IO_CORES; i++)
+	{
+		tdata[i].args.i0 = i*BUCKETS_PER_CORE;
+		tdata[i].args.in = (i + 1)*BUCKETS_PER_CORE;
+		tdata[i].args.done = done;
+		tdata[i].args.array = array;
+		pthread_create(&tdata[i].tid, NULL, thread_main, (void *)&tdata[i]);
+		
+		for (k = i*BUCKETS_PER_CORE; k < (i + 1)*BUCKETS_PER_CORE; k++)
+			j += bucket_size(done[k]);
+	}
+	
+	/* Join threads. */
+	for (i = 0; i < NUM_IO_CORES; i++)
+		pthread_join(tdata[i].tid, NULL);
+}
 
 /*
  * Bucket-sort algorithm.
@@ -118,14 +189,7 @@ extern void bucketsort(int *array, int n)
 					
 		bucket_push(done[msg->u.sortresult.id], minib);
 	}
-	
-	/* Rebuild array. */
-	j = 0;
-	for (i = 0; i < NUM_BUCKETS; i++)
-	{
-		bucket_merge(done[i], &array[j]);
-		j += bucket_size(done[i]);
-	}
+
 	
 	/* House keeping. */
 	for (i = 0; i < NUM_BUCKETS; i++)
