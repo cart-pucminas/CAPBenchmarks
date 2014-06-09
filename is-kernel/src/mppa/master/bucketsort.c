@@ -29,7 +29,7 @@ static struct tdata
 		struct bucket **done; /* Buckets.             */
 		int *array;           /* Array.               */
 	} args;
-} tdata[NUM_IO_CORES]
+} tdata[NUM_IO_CORES];
 
 /*
  * Thread's main.
@@ -45,12 +45,12 @@ static void *thread_main(void *args)
 	j = t->args.j0;
 	for (i = t->args.i0; i < t->args.in; i++)
 	{
-		bucket_merge(done[i], &array[j]);
-		j += bucket_size(done[i]);
+		bucket_merge(t->args.done[i], &t->args.array[j]);
+		j += bucket_size(t->args.done[i]);
 	}
 	
 	pthread_exit(NULL);
-	exit(NULL);
+	return (NULL);
 }
 
 /*
@@ -64,7 +64,7 @@ static void rebuild_array(struct bucket **done, int *array)
 	#define BUCKETS_PER_CORE (NUM_BUCKETS/NUM_IO_CORES)
 	
 	/* Spawn threads. */
-	j = 0
+	j = 0;
 	for (i = 0; i < NUM_IO_CORES; i++)
 	{
 		tdata[i].args.i0 = i*BUCKETS_PER_CORE;
@@ -189,7 +189,8 @@ extern void bucketsort(int *array, int n)
 					
 		bucket_push(done[msg->u.sortresult.id], minib);
 	}
-
+	
+	rebuild_array(done, array);
 	
 	/* House keeping. */
 	for (i = 0; i < NUM_BUCKETS; i++)
