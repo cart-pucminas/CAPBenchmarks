@@ -25,11 +25,11 @@ struct problem
 };
 
 /* Problem sizes. */
-static struct problem tiny        =  {  512,  512 };
-static struct problem small       =  { 1024, 1024 };
-static struct problem workstation =  { 2048, 2048 };
-static struct problem standard    =  { 4096, 4096 };
-static struct problem large       =  { 8192, 8192 };
+static struct problem tiny        =  {  256,  256 };
+static struct problem small       =  {  512,  512 };
+static struct problem workstation =  { 1024, 1024 };
+static struct problem standard    =  { 2048, 2048 };
+static struct problem large       =  { 4096, 4096 };
 
 /* Benchmark parameters. */
 int verbose = 0;                  /* Be verbose?        */
