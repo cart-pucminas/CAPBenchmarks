@@ -14,6 +14,7 @@
 #include <omp.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <util.h>
 
 typedef struct {
     long int number;
@@ -23,8 +24,8 @@ typedef struct {
 
 /* Inter process communication. */
 static int rank; /* Process rank.   */
-static int channel_in_fd; /* Input channel.  */
-static int channel_out_fd; /* Output channel. */
+static int infd; /* Input channel.  */
+static int outfd; /* Output channel. */
 
 static Item task[65536];
 
@@ -32,18 +33,13 @@ static int tasksize;
 
 static void syncNumbers(void)
 {
-    ssize_t count;
-
-    count = mppa_write(channel_out_fd, &task, tasksize*sizeof(Item));
-    assert(count != -1);
+    data_send(outfd, &task, tasksize*sizeof(Item));
 }
 
 static void getwork(void)
 {
-    ssize_t count;
-
-	count = mppa_read(channel_in_fd, &task, tasksize*sizeof(Item));
-    assert(count != -1);
+	data_receive(infd, &tasksize, sizeof(int));
+	data_receive(infd, &task, tasksize*sizeof(Item));
 }
 
 /*
@@ -110,24 +106,25 @@ void friendly_numbers(void)
 int main(int argc, char **argv)
 {
     char path[35];
-    uint64_t mask; /* Mask for sync.        */
-    int sync_fd;   /* Sync file descriptor. */
+    uint64_t mask;       /* Mask for sync.        */
+    int sync_fd;         /* Sync file descriptor. */
+	uint64_t total;      /* Total time.           */
+	uint64_t start, end; /* Timing statistics.    */
 
     ((void) argc);
-
+    
     rank = atoi(argv[0]);
-	tasksize = atoi(argv[1]);
 
     sync_fd = mppa_open("/mppa/sync/128:64", O_WRONLY);
     assert(sync_fd != -1);
 
     /* Open channels. */
     sprintf(path, "/mppa/channel/%d:%d/128:%d", rank, rank + 1, rank + 1);
-    channel_in_fd = mppa_open(path, O_RDONLY);
-    assert(channel_in_fd != -1);
+    infd = mppa_open(path, O_RDONLY);
+    assert(infd != -1);
     sprintf(path, "/mppa/channel/128:%d/%d:%d", rank + 33, rank, rank + 33);
-    channel_out_fd = mppa_open(path, O_WRONLY);
-    assert(channel_out_fd != -1);
+    outfd = mppa_open(path, O_WRONLY);
+    assert(outfd != -1);
     
     // Synchronize with master.
     mask = 1 << rank;
@@ -136,13 +133,18 @@ int main(int argc, char **argv)
 	
     getwork();
 
+	start = timer_get();
     friendly_numbers();
+	end = timer_get();
 
     syncNumbers();
 
+	total = timer_diff(start, end);
+	data_send(outfd, &total, sizeof(uint64_t));
+
     /* Close channels. */
-    mppa_close(channel_in_fd);
-    mppa_close(channel_out_fd);
+    mppa_close(infd);
+    mppa_close(outfd);
 
     mppa_exit(0);
     return (0);

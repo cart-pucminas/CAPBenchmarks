@@ -5,9 +5,11 @@
  */
 
 #include <arch.h>
+#include <assert.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <mppa/osconfig.h>
 
 /*
@@ -67,4 +69,36 @@ void timer_init(void)
 uint64_t timer_diff(uint64_t t1, uint64_t t2)
 {
 	return (t2 - t1 - timer_error);
+}
+
+/*
+ * Sends data.
+ */
+uint64_t data_send(int outfd, void *data, size_t n)
+{	
+	ssize_t count;
+	uint64_t start, end;
+	
+	start = timer_get();
+	count = mppa_write(outfd, data, n);
+	end = timer_get();
+	assert(count != -1);
+	
+	return (timer_diff(start, end));
+}
+
+/*
+ * Receives data.
+ */
+uint64_t data_receive(int infd, void *data, size_t n)
+{	
+	ssize_t count;
+	uint64_t start, end;
+	
+	start = timer_get();
+	count = mppa_read(infd, data, n);
+	end = timer_get();
+	assert(count != -1);
+	
+	return (timer_diff(start, end));
 }

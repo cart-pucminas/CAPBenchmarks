@@ -15,6 +15,7 @@
 #include <stdint.h>
 #include <inttypes.h>
 #include <mppaipc.h>
+#include <util.h>
 #include "master.h"
 
 typedef struct {
@@ -29,10 +30,10 @@ static Item finishedTasks[MAX_TASK_SIZE*NUM_CLUSTERS];
 static Item task[MAX_TASK_SIZE];
 
 /* Parameters.*/
-static int end;         /* Start number. */
-static int start;       /* End number.   */
-static int tasksize;    /* Task size.    */
-static int problemsize; /* Problem size. */
+static int endnum;      /* Start number.      */
+static int startnum;    /* End number.        */
+static int *tasksize;   /* Task size.         */
+static int avgtasksize; /* Average task size. */
 
 /*
  * Sends works to slaves.
@@ -40,36 +41,43 @@ static int problemsize; /* Problem size. */
 static void sendWork(void)
 {
     int i, j;               /* Loop indexes.            */
-    ssize_t count;          /* Bytes actually sent.     */
+	uint64_t start, end;    /* Timers.                  */
     int lowernum, uppernum; /* Lower and upper numbers. */
 
     /* Distribute tasks to slaves. */
-    lowernum = start; uppernum = end;
+    lowernum = startnum; uppernum = endnum;
     for (i = 0; i < nthreads; i++)
     {
+		start = timer_get();
+		
 		/* Build pool of tasks. */
-		for (j = 0; j < tasksize; j += 2)
+		for (j = 0; j < tasksize[i]; j += 2)
 		{
 			task[j].number = lowernum++;
 			task[j + 1].number = uppernum--;
 		}
+		
+		end = timer_get();
+		master += timer_diff(start, end);
 
-        count = mppa_write(outfd[i], task, tasksize*sizeof(Item));
-        assert(count != -1);
+		communication += data_send(outfd[i], &tasksize[i], sizeof(int));
+		communication += data_send(outfd[i], task, tasksize[i]*sizeof(Item));
     }
     
 }
 
-static void syncNumbers(int tasksize)
+static void syncNumbers(void)
 {
-	int i;         /* Loop index.          */
-    ssize_t count; /* Bytes actually read. */
+	int i;
 
-	for (i = 0; i < nthreads; i++)
+	for (i = 0; i < nthreads - 1; i++)
 	{
-        count = mppa_read(infd[i], &finishedTasks[i*tasksize], tasksize*sizeof(Item));
-        assert(count != -1);	
+        communication += data_receive(infd[i], &finishedTasks[i*avgtasksize], 
+													avgtasksize*sizeof(Item));
 	}
+	
+	communication += data_receive(infd[i], &finishedTasks[i*avgtasksize], 
+													tasksize[i]*sizeof(Item));
 }
 
 /*
@@ -127,14 +135,20 @@ static void *thread_main(void *args)
  */
 static int count_friends(void)
 {
-	int i;        /* Loop index.     */
-	int nfriends; /* Number friends. */
+	int i;               /* Loop index.       */
+	int nfriends;        /* Number friends.   */
+	uint64_t start, end; /* Timers.           */
+	int chunksize;       /* Thread work size. */
+	
+	start = timer_get();
 	
 	/* Spwan slave threads. */
+	chunksize = (endnum - startnum + 1)/NUM_IO_CORES;
 	for (i = 0; i < NUM_IO_CORES; i++)
 	{
-		tdata[i].args.i0 = (i == 0) ? 1 : i*tasksize;
-		tdata[i].args.in = (i + 1)*tasksize;
+		tdata[i].args.i0 = (i == 0) ? 1 : i*chunksize;
+		tdata[i].args.in = (i + 1 < NUM_IO_CORES) ? (i + 1)*chunksize :
+													(endnum - startnum + 1);
 		pthread_create(&tdata[i].tid, NULL, thread_main, (void *)&tdata[i]);
 	}
 	
@@ -146,33 +160,45 @@ static int count_friends(void)
 	nfriends = 0;
     for (i = 0; i < NUM_IO_CORES; i++)
 		nfriends += tdata[i].result.nfriends;
+		
+	end = timer_get();
+	master += timer_diff(start, end);
     
     return (nfriends);
 }
+
 
 /*
  * Counts the number of friendly numbers in a range.
  */
 int friendly_numbers(int _start, int _end) 
 {
-	start = _start;
-	end = _end;
+	int i;           /* Loop index.   */
+	int problemsize; /* Problem size. */
 	
-    /* */
-	problemsize = end - start + 1;
-	tasksize = problemsize / nthreads;
+	startnum = _start;
+	endnum = _end;
+	
+	tasksize = smalloc(nthreads*sizeof(int));
+	
+    /* Distribute task sizes. */
+    problemsize = (_end - _start + 1);
+    avgtasksize = problemsize/nthreads;
+	for (i = 0; i < nthreads; i++)
+		tasksize[i] = (i + 1 < nthreads)?avgtasksize:problemsize-i*avgtasksize;
 	
 	/* Setup slaves. */
     open_noc_connectors();
-	spawn_slaves(tasksize);
+	spawn_slaves();
     sync_slaves();
     
 	sendWork();
-    syncNumbers(tasksize);
+    syncNumbers();
 	
 	/* House keeping. */
 	join_slaves();
 	close_noc_connectors();
+	free(tasksize);
 
     return (count_friends());
 }

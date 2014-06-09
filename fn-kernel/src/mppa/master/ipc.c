@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <util.h>
 
 /* Interprocess communication. */
 int infd[NUM_CLUSTERS];               /* Input channels.       */
@@ -18,21 +19,18 @@ static int sync_fd;                   /* Sync file descriptor. */
 /*
  * Spwans slave processes.
  */
-void spawn_slaves(int TASK_SIZE)
+void spawn_slaves(void)
 {
 	int i;          /* Loop index. */
 	char arg0[4];   /* Argument 0. */
-	char arg1[6];   /* Argulent 1. */
 	char *args[3];  /* Arguments.  */
 
 	/* Spawn slaves. */
-	args[2] = NULL;
+	args[1] = NULL;
 	for (i = 0; i < nthreads; i++)
 	{	
 		sprintf(arg0, "%d", i);
 		args[0] = arg0;
-		sprintf(arg1, "%d", TASK_SIZE);
-        args[1] = arg1;
 		pids[i] = mppa_spawn(i, NULL, "fn.slave", (const char **)args, NULL);
 		assert(pids[i] != -1);
 	}
@@ -47,7 +45,10 @@ void join_slaves(void)
 	
 	/* Join slaves. */
 	for (i = 0; i < nthreads; i++)
+	{
+		data_receive(infd[i], &slave[i], sizeof(uint64_t));
 		mppa_waitpid(pids[i], NULL, 0);
+	}
 	
 }
 

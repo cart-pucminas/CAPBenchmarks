@@ -30,7 +30,7 @@
 	/*
 	 * Spawns slave processes.
 	 */
-	extern void spawn_slaves(int TASK_SIZE);
+	extern void spawn_slaves(void);
 	
 	/*
 	 * Waits for slaves to be ready.
