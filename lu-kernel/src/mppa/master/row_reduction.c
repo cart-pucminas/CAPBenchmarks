@@ -5,12 +5,19 @@
  */
  
 #include <arch.h>
+#include <global.h>
 #include <math.h>
 #include <matrix.h>
+#include <stdint.h>
+#include <util.h>
 #include "master.h"
 
-/* Lists. */
-static struct message *works = NULL; /* Work list.   */
+/* Work list. */
+static struct message *works = NULL; 
+
+/* Timing statistics. */
+uint64_t end;
+uint64_t start;
 
 /*
  * Populates work list.
@@ -44,7 +51,10 @@ void row_reduction(struct matrix *m, int i0)
 	size_t n;            /* Bytes to send/receive. */
 	struct message *msg; /* Message.               */
 	
+	start = timer_get();
 	works_populate(m, i0, i0);
+	end = timer_get();
+	master += timer_diff(start, end);
 	
 	/* Send work. */
 	i = 0;
@@ -57,10 +67,12 @@ void row_reduction(struct matrix *m, int i0)
 		
 		/* Send pivot line. */
 		n = (msg->u.reductwork.width)*sizeof(float);
+		communication += 
 		data_send(outfd[i], &MATRIX(m, msg->u.reductwork.ipvt, msg->u.reductwork.j0), n);
 		
 		/* Send matrix block. */
 		n = (msg->u.reductwork.height)*(msg->u.reductwork.width)*sizeof(float);
+		communication += 
 		data_send(outfd[i], &MATRIX(m,msg->u.reductwork.i0, msg->u.reductwork.j0), n);
 		
 		i++;
@@ -79,7 +91,7 @@ void row_reduction(struct matrix *m, int i0)
 				
 				/* Receive matrix block. */
 				n = (msg->u.reductresult.height)*(msg->u.reductresult.width)*sizeof(float);
-				data_receive(infd[nthreads - i], &MATRIX(m,msg->u.reductresult.i0, msg->u.reductresult.j0), n);
+				communication += data_receive(infd[nthreads - i], &MATRIX(m,msg->u.reductresult.i0, msg->u.reductresult.j0), n);
 				
 				message_destroy(msg);
 			}
@@ -93,7 +105,7 @@ void row_reduction(struct matrix *m, int i0)
 				
 		/* Receive matrix block. */
 		n = (msg->u.reductresult.height)*(msg->u.reductresult.width)*sizeof(float);
-		data_receive(infd[i - 1], &MATRIX(m,msg->u.reductresult.i0, msg->u.reductresult.j0), n);
+		communication += data_receive(infd[i - 1], &MATRIX(m,msg->u.reductresult.i0, msg->u.reductresult.j0), n);
 				
 		message_destroy(msg);
 	}

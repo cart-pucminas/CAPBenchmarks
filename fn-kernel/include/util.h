@@ -17,6 +17,16 @@
 	 * Balances workload.
 	 */
 	void balance(int *work, int n, int k);
+	
+	/*
+	 * Sends data.
+	 */
+	extern uint64_t data_send(int outfd, void *data, size_t n);
+	
+	/*
+	 * Receives data.
+	 */
+	extern uint64_t data_receive(int infd, void *data, size_t n);
 
 	/*
 	 * Prints an error message and exits.
@@ -47,15 +57,5 @@
 	 * Initializes the timer.
 	 */
 	extern void timer_init(void);
-	
-	/*
-	 * Sends data.
-	 */
-	extern uint64_t data_send(int outfd, void *data, size_t n);
-	
-	/*
-	 * Receives data.
-	 */
-	extern uint64_t data_receive(int infd, void *data, size_t n);
 
 #endif /* UTIL_H_ */

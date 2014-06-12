@@ -59,10 +59,6 @@ is-mppa256:
 km-mppa256:
 	cd km-kernel/ && $(MAKE) mppa256 LIBS=$(MPPA_LIBS)
 
-# Builds KM kernel for MPPA-256.
-km-mppa256:
-	cd km-kernel/ && $(MAKE) mppa256 LIBS=$(MPPA_LIBS)
-
 # Builds LU kernel for MPPA-256.
 lu-mppa256:
 	cd lu-kernel && $(MAKE) mppa256 LIBS=$(MPPA_LIBS)

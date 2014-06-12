@@ -9,6 +9,7 @@
 #include <global.h>
 #include <matrix.h>
 #include <pthread.h>
+#include <stdint.h>
 #include <util.h>
 #include "master.h"
 
@@ -93,8 +94,9 @@ extern void *thread_main(void *args)
  */
 int matrix_lu(struct matrix *m, struct matrix *l, struct matrix *u)
 {
-	int i;       /* Loop index. */
-	float pivot; /* Pivot.      */
+	int i;               /* Loop index. */
+	float pivot;         /* Pivot.      */
+	uint64_t start, end; /* Timer.      */
 	
 	/* Setup slaves. */
 	open_noc_connectors();
@@ -115,12 +117,15 @@ int matrix_lu(struct matrix *m, struct matrix *l, struct matrix *u)
 
 		row_reduction(m, i);
 	}
+	
+	start = timer_get();
 
 	/* Spawn threads. */
 	for (i = 0; i < NUM_IO_CORES; i++)
 	{
 		tdata[i].args.i0 = i*(m->height >> 2);
-		tdata[i].args.in = (i + 1)*(m->height >> 2);
+		tdata[i].args.in = (i + 1 < NUM_IO_CORES) ? (i + 1)*(m->height >> 2) :
+													 m->height;
 		tdata[i].args.m = m;
 		tdata[i].args.l = l;
 		tdata[i].args.u = u;
@@ -130,6 +135,9 @@ int matrix_lu(struct matrix *m, struct matrix *l, struct matrix *u)
 	/* Join threads. */
 	for (i = 0; i < NUM_IO_CORES; i++)
 		pthread_join(tdata[i].tid, NULL);
+		
+	end = timer_get();
+	master += timer_diff(start, end);
 		
 	/* House keeping. */
 	join_slaves();

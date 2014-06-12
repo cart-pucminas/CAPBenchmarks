@@ -4,6 +4,7 @@
  * Kmeans Benchmark Kernel.
  */
 
+#include <arch.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -19,6 +20,14 @@
  */
 extern int *kmeans(vector_t *_points, int _npoints, int _ncentroids, float _mindistance);
 
+/* Timing statistics. */
+#ifdef _MPPA_256_
+uint64_t master = 0;          /* Time spent on master.        */
+uint64_t slave[NUM_CLUSTERS]; /* Time spent on slaves.        */
+uint64_t communication = 0;   /* Time spent on communication. */
+#endif
+uint64_t total = 0;
+
 /*
  * Problem.
  */
@@ -31,11 +40,11 @@ struct problem
 };
 
 /* Problem sizes. */
-static struct problem tiny        = {  16384, 16, 1024, 0.0 };
-static struct problem small       = {  32768, 16, 1024, 0.0 };
-static struct problem workstation = {  65536, 16, 1024, 0.0 };
-static struct problem standard    = { 131072, 16, 1024, 0.0 };
-static struct problem large       = { 262144, 16, 1024, 0.0 };
+static struct problem tiny     = {  4096, 16,  256, 0.0 };
+static struct problem small    = {  8192, 16,  512, 0.0 };
+static struct problem standard = { 16384, 16, 1024, 0.0 };
+static struct problem large    = { 32768, 16, 1024, 0.0 };
+static struct problem huge     = { 65536, 16, 1024, 0.0 };
 
 /* Benchmark parameters. */
 int verbose = 0;                  /* Be verbose?        */
@@ -55,9 +64,9 @@ static void usage(void)
 	printf("  --nthreads <value> Set number of threads\n");
 	printf("  --class <name>     Set problem class:\n");
 	printf("                       - small\n");
-	printf("                       - workstation\n");
 	printf("                       - standard\n");
 	printf("                       - large\n");
+	printf("                       - huge\n");
 	printf("  --verbose          Be verbose\n");
 	exit(0);
 }
@@ -94,12 +103,12 @@ static void readargs(int argc, char **argv)
 						p = &tiny;
 					else if (!strcmp(argv[i], "small"))
 						p = &small;
-					else if (!strcmp(argv[i], "workstation"))
-						p = &workstation;
 					else if (!strcmp(argv[i], "standard"))
 						p = &standard;
 					else if (!strcmp(argv[i], "large"))
 						p = &large;
+					else if (!strcmp(argv[i], "huge"))
+						p = &huge;
 					else 
 						usage();
 					state = READ_ARG;
@@ -139,11 +148,12 @@ static void readargs(int argc, char **argv)
  */
 int main(int argc, char **argv)
 {
-	int i;          /* Loop index.      */
-	uint64_t end;   /* End time.        */
-	uint64_t start; /* Start time.      */
-	vector_t *data; /* Data points.     */
-	int *map;       /* Map of clusters. */
+	int i;             /* Loop index.         */
+	int *map;          /* Map of clusters.    */
+	uint64_t end;      /* End time.           */
+	uint64_t start;    /* Start time.         */
+	vector_t *data;    /* Data points.        */
+	uint64_t avgslave; /* Average slave time. */
 	
 	readargs(argc, argv);
 	
@@ -173,9 +183,18 @@ int main(int argc, char **argv)
 	start = timer_get();
 	map = kmeans(data, p->npoints, p->ncentroids, p->mindistance);
 	end = timer_get();
-	if (verbose)
-		printf("  time spent: ");
-	printf("%f\n", timer_diff(start, end)*MICROSEC);
+	total = timer_diff(start, end);
+
+	printf("timing statistics:\n");
+#ifdef _MPPA_256_	
+	printf("  master:        %f\n", master*MICROSEC);
+	avgslave = 0;
+	for (i = 0; i < nthreads; i++)
+		avgslave += slave[i];
+	printf("  slave:         %f\n", (avgslave*MICROSEC)/nthreads);
+	printf("  communication: %f\n", communication*MICROSEC);
+#endif
+	printf("  total time:    %f\n", total*MICROSEC);
 	
 	/* House keeping. */
 	free(map);

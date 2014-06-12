@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <util.h>
 
 /* Interprocess communication. */
 int infd[NUM_CLUSTERS];               /* Input channels.       */
@@ -44,8 +45,10 @@ void join_slaves(void)
 	
 	/* Join slaves. */
 	for (i = 0; i < nthreads; i++)
+	{
+		data_receive(infd[i], &slave[i], sizeof(uint64_t));
 		mppa_waitpid(pids[i], NULL, 0);
-	
+	}
 }
 
 /*
@@ -100,26 +103,4 @@ void close_noc_connectors(void)
 	
 	/* Close sync. */
 	mppa_close(sync_fd);
-}
-
-/*
- * Sends data.
- */
-void data_send(int outfd, void *data, size_t n)
-{	
-	ssize_t count;
-	
-	count = mppa_write(outfd, data, n);
-	assert(count != -1);
-}
-
-/*
- * Receives data.
- */
-void data_receive(int infd, void *data, size_t n)
-{	
-	ssize_t count;
-	
-	count = mppa_read(infd, data, n);
-	assert(count != -1);
 }

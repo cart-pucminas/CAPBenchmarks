@@ -49,7 +49,6 @@ void join_slaves(void)
 		data_receive(infd[i], &slave[i], sizeof(uint64_t));
 		mppa_waitpid(pids[i], NULL, 0);
 	}
-	
 }
 
 /*

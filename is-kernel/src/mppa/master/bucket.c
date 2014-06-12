@@ -85,6 +85,7 @@ void bucket_insert(struct bucket **b, int x)
 		(*b)->head = minib;
 	}
 	
+	(*b)->size++;
 	minibucket_push(minib, x);
 }
 

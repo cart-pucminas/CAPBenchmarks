@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <util.h>
 
 /* Interprocess communication. */
 int infd[NUM_CLUSTERS];               /* Input channels.       */
@@ -63,8 +64,10 @@ void join_slaves(void)
 	
 	/* Join slaves. */
 	for (i = 0; i < nthreads; i++)
+	{
+		data_receive(infd[i], &slave[i], sizeof(uint64_t));
 		mppa_waitpid(pids[i], NULL, 0);
-	
+	}
 }
 
 /*

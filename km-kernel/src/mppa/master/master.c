@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <vector.h>
 #include <string.h>
+#include <stdint.h>
 #include <util.h>
 #include "master.h"
 
@@ -64,28 +65,31 @@ static void sendwork(void)
 	/* Send work to slave processes. */
 	for (i = 0; i < nthreads; i++)
 	{
-		data_send(outfd[i], &lnpoints[i], sizeof(int));
+		communication += data_send(outfd[i], &lnpoints[i], sizeof(int));
 		
-		data_send(outfd[i], &nthreads, sizeof(int));
+		communication += data_send(outfd[i], &nthreads, sizeof(int));
 		
-		data_send(outfd[i], &ncentroids, sizeof(int));
+		communication += data_send(outfd[i], &ncentroids, sizeof(int));
 		
-		data_send(outfd[i], &mindistance, sizeof(float));
+		communication += data_send(outfd[i], &mindistance, sizeof(float));
 
-		data_send(outfd[i], &dimension, sizeof(int));
+		communication += data_send(outfd[i], &dimension, sizeof(int));
 		
 		n = nthreads*sizeof(int);
-		data_send(outfd[i], lncentroids, n);
+		communication += data_send(outfd[i], lncentroids, n);
 		
 		n = dimension*sizeof(float);
 		for (j = 0; j < lnpoints[i]; j++)
-			data_send(outfd[i], data[i*(npoints/nthreads) + j]->elements, n);
+		{
+			communication += 
+				data_send(outfd[i], data[i*(npoints/nthreads)+j]->elements, n);
+		}
 		
 		n = ncentroids*dimension*sizeof(float);
-		data_send(outfd[i], centroids, n);
+		communication += data_send(outfd[i], centroids, n);
 		
 		n = lnpoints[i]*sizeof(int);
-		data_send(outfd[i], &map[i*(npoints/nthreads)], n);
+		communication += data_send(outfd[i], &map[i*(npoints/nthreads)], n);
 	}
 }
 
@@ -100,13 +104,14 @@ static void sendwork(void)
  */
 static void sync_pcentroids(void)
 {
-	int i, j;  /* Loop indexes.          */
-	ssize_t n; /* Bytes to send/receive. */
+	int i, j;            /* Loop indexes.          */
+	ssize_t n;           /* Bytes to send/receive. */
+	uint64_t start, end; /* Timer.                 */
 	
 	/* Receive partial centroids. */
 	n = ncentroids*dimension*sizeof(float);
 	for (i = 0; i < nthreads; i++)
-		data_receive(infd[i], PCENTROID(i, 0), n);
+		communication += data_receive(infd[i], PCENTROID(i, 0), n);
 
 	/* 
 	 * Send partial centroids to the
@@ -115,12 +120,18 @@ static void sync_pcentroids(void)
 	for (i = 0; i < nthreads; i++)
 	{
 		/* Build partial centroid. */
+		start = timer_get();
 		n = lncentroids[i]*dimension*sizeof(float);
 		for (j = 0; j < nthreads; j++)
-			memcpy(CENTROID(j*lncentroids[i]), PCENTROID(j, i*(ncentroids/nthreads)), n);
+		{
+			memcpy(CENTROID(j*lncentroids[i]), 
+									PCENTROID(j, i*(ncentroids/nthreads)), n);
+		}
+		end = timer_get();
+		master += timer_diff(start, end);
 
 		n = nthreads*lncentroids[i]*dimension*sizeof(float);
-		data_send(outfd[i], centroids, n);
+		communication += data_send(outfd[i], centroids, n);
 	}
 }
 
@@ -129,13 +140,14 @@ static void sync_pcentroids(void)
  */
 static void sync_ppopulation(void)
 {
-	int i, j;  /* Loop indexes.          */
-	ssize_t n; /* Bytes to send/receive. */
+	int i, j;            /* Loop indexes.          */
+	ssize_t n;           /* Bytes to send/receive. */
+	uint64_t start, end; /* Timer.                 */
 
 	/* Receive temporary population. */
 	n = ncentroids*sizeof(int);
 	for (i = 0; i < nthreads; i++)
-		data_receive(infd[i], PPOPULATION(i, 0), n);
+		communication += data_receive(infd[i], PPOPULATION(i, 0), n);
 
 	/* 
 	 * Send partial population to the
@@ -144,12 +156,18 @@ static void sync_ppopulation(void)
 	for (i = 0; i < nthreads; i++)
 	{
 		/* Build partial population. */
+		start = timer_get();
 		n = lncentroids[i]*sizeof(int);
 		for (j = 0; j < nthreads; j++)
-			memcpy(&population[j*lncentroids[i]], PPOPULATION(j, i*(ncentroids/nthreads)), n);
+		{
+			memcpy(&population[j*lncentroids[i]], 
+								  PPOPULATION(j, i*(ncentroids/nthreads)), n);
+		}
+		end = timer_get();
+		master += timer_diff(start, end);
 
 		n = nthreads*lncentroids[i]*sizeof(int);
-		data_send(outfd[i], population, n);
+		communication += data_send(outfd[i], population, n);
 	}
 }
 
@@ -165,13 +183,14 @@ static void sync_centroids(void)
 	for (i = 0; i < nthreads; i++)
 	{
 		n = lncentroids[i]*dimension*sizeof(float);
-		data_receive(infd[i], CENTROID(i*(ncentroids/nthreads)), n);
+		communication += 
+					data_receive(infd[i], CENTROID(i*(ncentroids/nthreads)), n);
 	}
 
 	/* Broadcast centroids. */
 	n = ncentroids*dimension*sizeof(float);
 	for (i = 0; i < nthreads; i++)
-		data_send(outfd[i], centroids, n);
+		communication += data_send(outfd[i], centroids, n);
 }
 
 /*
@@ -186,16 +205,16 @@ static void sync_status(void)
 	n = NUM_THREADS*sizeof(int);
 	for (i = 0; i < nthreads; i++)
 	{
-		data_receive(infd[i], &has_changed[i*NUM_THREADS], n);
-		data_receive(infd[i], &too_far[i*NUM_THREADS], n);
+		communication += data_receive(infd[i], &has_changed[i*NUM_THREADS], n);
+		communication += data_receive(infd[i], &too_far[i*NUM_THREADS], n);
 	}
 
 	/* Broadcast data to slaves. */
 	n = nthreads*NUM_THREADS*sizeof(int);
 	for (i = 0; i < nthreads; i++)
 	{
-		data_send(outfd[i], has_changed, n);
-		data_send(outfd[i], too_far, n);
+		communication += data_send(outfd[i], has_changed, n);
+		communication += data_send(outfd[i], too_far, n);
 	}
 }
 
@@ -204,13 +223,21 @@ static void sync_status(void)
  */
 static int again(void)
 {
-	int i;
+	int i;               /* Loop index. */
+	uint64_t start, end; /* Timer.      */
 	
+	start = timer_get();
 	for (i = 0; i < nthreads*NUM_THREADS; i++)
 	{
 		if (has_changed[i] && too_far[i])
+		{
+			end = timer_get();
+			master += timer_diff(start, end);
 			return (1);
+		}
 	}
+	end = timer_get();
+	master += timer_diff(start, end);
 	
 	return (0);
 }
@@ -220,7 +247,8 @@ static int again(void)
  */
 static void _kmeans(void)
 {
-	int i, j;
+	int i, j;            /* Loop indexes. */
+	uint64_t start, end; /* Timer.        */
 	
 	/* Create auxiliary structures. */
 	map = scalloc(npoints, sizeof(int));
@@ -233,6 +261,7 @@ static void _kmeans(void)
 	lnpoints = smalloc(nthreads*sizeof(int));
 	lncentroids = smalloc(nthreads*sizeof(int));
 	
+	start = timer_get();
 	/* Initialize mapping. */
 	for (i = 0; i < npoints; i++)
 		map[i] = -1;
@@ -251,6 +280,8 @@ static void _kmeans(void)
 		if (map[i] < 0)
 			map[i] = randnum()%ncentroids;
 	}
+	end = timer_get();
+	master += timer_diff(start, end);
 	
 	sendwork();
 	
@@ -292,8 +323,8 @@ int *kmeans(vector_t *_data, int _npoints, int _ncentroids, float _mindistance)
 
 	_kmeans();
 
-	close_noc_connectors();
 	join_slaves();
+	close_noc_connectors();
 	
 	return (map);
 }

@@ -6,6 +6,7 @@
 #include <global.h>
 #include <mppaipc.h>
 #include <omp.h>
+#include <util.h>
 #include "slave.h"
 
 /* Gaussian filter parameters. */
@@ -60,9 +61,15 @@ void gauss_filter(void)
 
 int main(int argc, char **argv)
 {
-	int msg;
+	int msg;             /* Message.           */
+	uint64_t total;      /* Total time.        */
+	uint64_t start, end; /* Timing statistics. */
+	
+	timer_init();
 
 	((void)argc);
+	
+    total = 0;
 
 	rank = atoi(argv[0]);	
 	
@@ -84,7 +91,10 @@ int main(int argc, char **argv)
 		{
 			case MSG_CHUNK:
 				data_receive(infd, chunk, CHUNK_SIZE*CHUNK_SIZE);
+				start = timer_get();
 				gauss_filter();
+				end = timer_get();
+				total += timer_diff(start, end);
 				data_send(outfd, chunk, CHUNK_SIZE*CHUNK_SIZE);
 				break;
 			
@@ -95,8 +105,9 @@ int main(int argc, char **argv)
 
 out:
 	
-	close_noc_connectors();
+	data_send(outfd, &total, sizeof(uint64_t));
 	
+	close_noc_connectors();
 	mppa_exit(0);
 	return (0);
 }

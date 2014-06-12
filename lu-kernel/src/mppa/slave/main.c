@@ -10,6 +10,8 @@
 #include <math.h>
 #include <omp.h>
 #include <stdlib.h>
+#include <stdint.h>
+#include <util.h>
 #include "slave.h"
 
 /* 
@@ -30,6 +32,12 @@ struct
 	int width;                                          /* Pivot line width. */ 
 	float elements[CLUSTER_WORKLOAD/(4*sizeof(float))]; /* Elements.         */
 } pvtline;
+
+/* Timing statistics. */
+uint64_t start;
+uint64_t end;
+uint64_t communication = 0;
+uint64_t total = 0;
 
 /*
  * Returns the element [i][j] of the block.
@@ -124,6 +132,8 @@ int main(int argc, char **argv)
 	
 	((void)argc);
 	
+	timer_init();
+	
 	rank = atoi(argv[0]);
 	open_noc_connectors();
 	sync_master();
@@ -148,7 +158,10 @@ int main(int argc, char **argv)
 				j0 = msg->u.findwork.j0;
 				message_destroy(msg);
 				
+				start = timer_get();
 				_find_pivot(&ipvt, &jpvt);
+				end = timer_get();
+				total += timer_diff(start, end);
 				
 				/* Send message back.*/
 				msg = message_create(FINDRESULT, i0, j0, ipvt, jpvt);
@@ -175,7 +188,10 @@ int main(int argc, char **argv)
 				j0 = msg->u.reductwork.j0;
 				message_destroy(msg);
 			
+				start = timer_get();
 				row_reduction();
+				end = timer_get();
+				total += timer_diff(start, end);
 				
 				/* Send message back.*/
 				msg = message_create(REDUCTRESULT, i0, j0, block.height, block.width);
@@ -197,6 +213,7 @@ int main(int argc, char **argv)
 
 out:
 
+	data_send(outfd, &total, sizeof(uint64_t));
 	close_noc_connectors();
 	mppa_exit(0);
 	return (0);

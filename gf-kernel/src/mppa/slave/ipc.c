@@ -56,25 +56,3 @@ void close_noc_connectors(void)
 	mppa_close(infd);
 	mppa_close(outfd);
 }
-
-/*
- * Sends data.
- */
-void data_send(int outfd, void *data, size_t n)
-{	
-	ssize_t count;
-	
-	count = mppa_write(outfd, data, n);
-	assert(count != -1);
-}
-
-/*
- * Receives data.
- */
-void data_receive(int infd, void *data, size_t n)
-{	
-	ssize_t count;
-	
-	count = mppa_read(infd, data, n);
-	assert(count != -1);
-}

@@ -7,10 +7,16 @@
 #include <arch.h>
 #include <assert.h>
 #include <global.h>
+#include <limits.h>
 #include <message.h>
 #include <omp.h>
 #include <stdlib.h>
+#include <stdint.h>
+#include <util.h>
 #include "slave.h"
+
+/* Unused. */
+uint64_t communication = 0;
 
 /* 
  * Array block.
@@ -24,15 +30,26 @@ struct
 /*
  * Sorts an array of numbers.
  */
-extern void sort(int *a, int n);
+extern void sort2power(int *array, int size, int chunksize);
 
 /*
  * Obeys master.
  */
 int main(int argc, char **argv)
 {
-	int id;              /* Bucket ID.        */
-	struct message *msg; /* Message.          */
+	int i;               /* Loop index. */
+	int id;              /* Bucket ID.  */
+	struct message *msg; /* Message.    */
+	uint64_t total;      /* Total time. */
+	uint64_t start, end; /* Timers.     */
+	
+	#define NUM_THREADS 4
+	
+	omp_set_num_threads(NUM_THREADS);
+	
+	timer_init();
+	
+	total = 0;
 	
 	((void)argc);
 	
@@ -57,7 +74,12 @@ int main(int argc, char **argv)
 				id = msg->u.sortwork.id;
 				message_destroy(msg);
 				
-				sort(block.elements, block.size);
+				start = timer_get();
+				for (i = block.size; i < (int)(CLUSTER_WORKLOAD/sizeof(int)); i++)
+					block.elements[i] = INT_MAX;
+				sort2power(block.elements, CLUSTER_WORKLOAD/sizeof(int), CLUSTER_WORKLOAD/NUM_THREADS);
+				end = timer_get();
+				total += timer_diff(start, end);
 				
 				/* Send message back.*/
 				msg = message_create(SORTRESULT, id, block.size);
@@ -76,6 +98,7 @@ int main(int argc, char **argv)
 
 out:
 
+	data_send(outfd, &total, sizeof(uint64_t));
 	close_noc_connectors();
 	mppa_exit(0);
 	return (0);

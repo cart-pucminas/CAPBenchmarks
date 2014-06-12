@@ -15,6 +15,15 @@
 #include <omp.h>
 #endif
 
+
+/* Timing statistics. */
+#ifdef _MPPA_256_
+uint64_t master = 0;          /* Time spent on master.        */
+uint64_t slave[NUM_CLUSTERS]; /* Time spent on slaves.        */
+uint64_t communication = 0;   /* Time spent on communication. */
+#endif
+uint64_t total = 0;
+
 /*
  * Problem.
  */
@@ -25,11 +34,11 @@ struct problem
 };
 
 /* Problem sizes. */
-static struct problem tiny        =  {  256,  256 };
-static struct problem small       =  {  512,  512 };
-static struct problem workstation =  { 1024, 1024 };
-static struct problem standard    =  { 2048, 2048 };
-static struct problem large       =  { 4096, 4096 };
+static struct problem tiny     =  {  512,  512 };
+static struct problem small    =  { 1024, 1024 };
+static struct problem standard =  { 1536, 1536 };
+static struct problem large    =  { 2048, 2048 };
+static struct problem huge     =  { 2560, 2560 };
 
 /* Benchmark parameters. */
 int verbose = 0;                  /* Be verbose?        */
@@ -49,9 +58,9 @@ static void usage(void)
 	printf("  --nthreads <value> Set number of threads\n");
 	printf("  --class <name>     Set problem class:\n");
 	printf("                       - small\n");
-	printf("                       - workstation\n");
 	printf("                       - standard\n");
 	printf("                       - large\n");
+	printf("                       - huge\n");
 	printf("  --verbose          Be verbose\n");
 	exit(0);
 }
@@ -88,12 +97,12 @@ static void readargs(int argc, char **argv)
 						p = &tiny;
 					else if (!strcmp(argv[i], "small"))
 						p = &small;
-					else if (!strcmp(argv[i], "workstation"))
-						p = &workstation;
 					else if (!strcmp(argv[i], "standard"))
 						p = &standard;
 					else if (!strcmp(argv[i], "large"))
 						p = &large;
+					else if (!strcmp(argv[i], "huge"))
+						p = &huge;
 					else 
 						usage();
 					state = READ_ARG;
@@ -133,11 +142,13 @@ static void readargs(int argc, char **argv)
  */
 int main(int argc, char **argv)
 {
-	matrix_t m;     /* Matrix.       */
-	matrix_t l;     /* Lower matrix. */
-	matrix_t u;     /* Upper matrix. */
-	uint64_t end;   /* End time.     */
-	uint64_t start; /* Start time.   */
+	int i;             /* Loop index.         */
+	matrix_t m;        /* Matrix.             */
+	matrix_t l;        /* Lower matrix.       */
+	matrix_t u;        /* Upper matrix.       */
+	uint64_t end;      /* End time.           */
+	uint64_t start;    /* Start time.         */
+	uint64_t avgslave; /* Average slave time. */
 	
 	readargs(argc, argv);
 	
@@ -165,9 +176,18 @@ int main(int argc, char **argv)
 	start = timer_get();
 	matrix_lu(m, l, u);
 	end = timer_get();
-	if (verbose)
-		printf("  time spent: ");
-	printf("%f\n", timer_diff(start, end)*MICROSEC);
+	total = timer_diff(start, end);
+
+	printf("timing statistics:\n");
+#ifdef _MPPA_256_	
+	printf("  master:        %f\n", master*MICROSEC);
+	avgslave = 0;
+	for (i = 0; i < nthreads; i++)
+		avgslave += slave[i];
+	printf("  slave:         %f\n", (avgslave*MICROSEC)/nthreads);
+	printf("  communication: %f\n", communication*MICROSEC);
+#endif
+	printf("  total time:    %f\n", total*MICROSEC);
 	
 	/* House keeping. */
 	matrix_destroy(u);

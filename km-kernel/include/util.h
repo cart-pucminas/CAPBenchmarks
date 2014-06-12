@@ -12,6 +12,16 @@
 	
 	/* Timing units. */
 	#define MICROSEC 0.000001 /* Micro seconds. */
+	
+	/*
+	 * Sends data.
+	 */
+	extern uint64_t data_send(int outfd, void *data, size_t n);
+	
+	/*
+	 * Receives data.
+	 */
+	extern uint64_t data_receive(int infd, void *data, size_t n);
 
 	/*
 	 * Prints an error message and exits.

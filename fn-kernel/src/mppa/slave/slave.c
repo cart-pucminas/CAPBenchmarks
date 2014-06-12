@@ -110,8 +110,12 @@ int main(int argc, char **argv)
     int sync_fd;         /* Sync file descriptor. */
 	uint64_t total;      /* Total time.           */
 	uint64_t start, end; /* Timing statistics.    */
+	
+	timer_init();
 
     ((void) argc);
+    
+    total = 0;
     
     rank = atoi(argv[0]);
 

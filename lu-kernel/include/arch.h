@@ -74,16 +74,6 @@
 	};
 	
 	/*
-	 * Receives data.
-	 */
-	extern void data_receive(int infd, void *data, size_t n);
-	
-	/*
-	 * Sends data.
-	 */
-	extern void data_send(int outfd, void *data, size_t n);
-	
-	/*
 	 * Creates a message.
 	 */
 	extern struct message *message_create(int type, ...);

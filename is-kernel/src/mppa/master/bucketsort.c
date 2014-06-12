@@ -7,6 +7,7 @@
 #include <message.h>
 #include <pthread.h>
 #include <util.h>
+#include <stdio.h>
 #include "master.h"
 
 /* Number of buckets. */
@@ -94,6 +95,7 @@ extern void bucketsort(int *array, int n)
 	struct message *msg;      /* Working message.     */
 	struct bucket **todo;     /* Todo buckets.        */
 	struct bucket **done;     /* Done buckets.        */
+	uint64_t start, end;      /* Timers.              */
 	
 	/* Setup slaves. */
 	open_noc_connectors();
@@ -107,9 +109,9 @@ extern void bucketsort(int *array, int n)
 		done[i] = bucket_create();
 		todo[i] = bucket_create();
 	}
-	
-	
+
 	/* Find max number in the array. */
+	start = timer_get();
 	max = INT_MIN;
 	for (i = 0; i < n; i++)
 	{
@@ -117,7 +119,7 @@ extern void bucketsort(int *array, int n)
 		if (array[i] > max)
 			max = array[i];
 	}
-	
+
 	/* Distribute numbers. */
 	range = max/NUM_BUCKETS;
 	for (i = 0; i < n; i++)
@@ -128,11 +130,13 @@ extern void bucketsort(int *array, int n)
 		
 		bucket_insert(&todo[j], array[i]);
 	}
-	
+	end = timer_get();
+	master += timer_diff(start, end);
+
 	/* Sort buckets. */
 	j = 0;
 	for (i = 0; i < NUM_BUCKETS; i++)
-	{
+	{	
 		while (bucket_size(todo[i]) > 0)
 		{
 			minib = bucket_pop(todo[i]);
@@ -143,7 +147,8 @@ extern void bucketsort(int *array, int n)
 			message_destroy(msg);
 			
 			/* Send data. */
-			data_send(outfd[j], minib->elements, minib->size*sizeof(int));
+			communication += 
+				data_send(outfd[j], minib->elements, minib->size*sizeof(int));
 			minibucket_destroy(minib);
 			
 			j++;
@@ -153,7 +158,7 @@ extern void bucketsort(int *array, int n)
 			 * So let's wait for results.
 			 */
 			if (j == nthreads)
-			{
+			{	
 				/* Receive results. */
 				for (/* NOOP */ ; j > 0; j--)
 				{					
@@ -163,17 +168,17 @@ extern void bucketsort(int *array, int n)
 					/* Receive mini-bucket. */
 					minib = minibucket_create();
 					minib->size = msg->u.sortresult.size;
-					data_receive(infd[nthreads -j], minib->elements, 
+					communication += data_receive(infd[nthreads -j], minib->elements, 
 													minib->size*sizeof(int));
 					
-					message_destroy(msg);
-					
 					bucket_push(done[msg->u.sortresult.id], minib);
+					
+					message_destroy(msg);
 				}
 			}
 		}
 	}
-	
+
 	/* Receive results. */
 	for (/* NOOP */ ; j > 0; j--)
 	{						
@@ -183,14 +188,18 @@ extern void bucketsort(int *array, int n)
 		/* Receive bucket. */
 		minib = minibucket_create();
 		minib->size = msg->u.sortresult.size;
-		data_receive(infd[j - 1], minib->elements, minib->size*sizeof(int));
-					
-		message_destroy(msg);
+		communication += 
+			data_receive(infd[j - 1], minib->elements, minib->size*sizeof(int));
 					
 		bucket_push(done[msg->u.sortresult.id], minib);
+					
+		message_destroy(msg);
 	}
-	
+
+	start = timer_get();
 	rebuild_array(done, array);
+	end = timer_get();
+	master += timer_diff(start, end);
 	
 	/* House keeping. */
 	for (i = 0; i < NUM_BUCKETS; i++)

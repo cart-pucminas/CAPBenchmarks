@@ -163,7 +163,6 @@ int main(int argc, char **argv)
 	start = timer_get();
 	friendly_numbers(p->start, p->end);
 	end = timer_get();
-
 	total = timer_diff(start, end);
 
 	printf("timing statistics:\n");

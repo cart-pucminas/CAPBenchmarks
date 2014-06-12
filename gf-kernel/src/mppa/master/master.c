@@ -11,6 +11,7 @@
 #include <mppaipc.h>
 #include <stdlib.h>
 #include <string.h>
+#include <util.h>
 #include "master.h"
 
 /*
@@ -18,10 +19,10 @@
  */
 void gauss_filter(unsigned char *img, int imgsize, double *mask, int masksize)
 {	
-	int i,j;     /* Loop indexes.     */ 
-	size_t n;    /* Bytes to send.    */
-	int msg;     /* Message.          */
-	int nchunks; /* Number of chunks. */
+	int i,j;             /* Loop indexes.     */ 
+	size_t n;            /* Bytes to send.    */
+	int msg;             /* Message.          */
+	int nchunks;         /* Number of chunks. */
 	
 	open_noc_connectors();
 	spawn_slaves();
@@ -31,8 +32,8 @@ void gauss_filter(unsigned char *img, int imgsize, double *mask, int masksize)
     n = sizeof(double)*masksize*masksize;	
 	for (i = 0; i < nthreads; i++)
 	{
-		data_send(outfd[i], &masksize, sizeof(int));
-		data_send(outfd[i], mask, n);
+		communication += data_send(outfd[i], &masksize, sizeof(int));
+		communication += data_send(outfd[i], mask, n);
 	}
     
     /* Process image in chunks. */
@@ -40,8 +41,8 @@ void gauss_filter(unsigned char *img, int imgsize, double *mask, int masksize)
     nchunks = (imgsize*imgsize)/(CHUNK_SIZE*CHUNK_SIZE);
     for (i = 0; i < nchunks; i++)
     {		
-		data_send(outfd[j], &msg, sizeof(int));
-		data_send(outfd[j], &img[i*(CHUNK_SIZE*CHUNK_SIZE)], n);
+		communication += data_send(outfd[j], &msg, sizeof(int));
+		communication += data_send(outfd[j], &img[i*(CHUNK_SIZE*CHUNK_SIZE)],n);
 		
 		j++;
 		
@@ -52,18 +53,24 @@ void gauss_filter(unsigned char *img, int imgsize, double *mask, int masksize)
 		if (j == nthreads)
 		{
 			for (/* NOOP */ ; j > 0; j--)
-				data_receive(infd[nthreads-j],&img[(nthreads-j)*CHUNK_SIZE*CHUNK_SIZE], n);
+			{
+				communication += data_receive(infd[nthreads-j],
+								   &img[(nthreads-j)*CHUNK_SIZE*CHUNK_SIZE], n);
+			}
 		}
 	}
 	
 	/* Receive remaining results. */
 	for (/* NOOP */ ; j > 0; j--)
-		data_receive(infd[j - 1], &img[(nchunks - j)*CHUNK_SIZE*CHUNK_SIZE], n);
+	{
+		communication += data_receive(infd[j - 1], 
+								&img[(nchunks - j)*CHUNK_SIZE*CHUNK_SIZE], n);
+	}
 	
 	/* House keeping. */
 	msg = MSG_DIE;
 	for (i = 0; i < nthreads; i++)
 		data_send(outfd[i], &msg, sizeof(int));
-	close_noc_connectors();
 	join_slaves();
+	close_noc_connectors();
 }

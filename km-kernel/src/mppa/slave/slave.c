@@ -6,8 +6,10 @@
 
 #include <arch.h>
 #include <assert.h>
-#include <string.h>
 #include <omp.h>
+#include <stdint.h>
+#include <string.h>
+#include <util.h>
 #include "slave.h"
 
 #define NUM_THREADS (NUM_CORES/NUM_CLUSTERS)
@@ -56,6 +58,11 @@ static float lcentroids[LCENTROIDS_SIZE + DELTA*DIMENSION];            /* Local 
 /* Thread communication. */
 static omp_lock_t lock[NUM_THREADS];
 
+/* Timing statistics. */
+static uint64_t end;
+static uint64_t total = 0;
+static uint64_t start;
+
 /*============================================================================*
  *                                populate()                                 *
  *============================================================================*/
@@ -69,7 +76,8 @@ static void populate(void)
 	float tmp;      /* Auxiliary variable. */
 	float distance; /* Smallest distance.  */
 
-	memset(&too_far[rank*NUM_THREADS], 0, NUM_THREADS*sizeof(int));
+	start = timer_get();
+	memset(&too_far[rank*NUM_THREADS], 0, NUM_THREADS*sizeof(int)); 
 	
 	/* Iterate over data points. */
 	#pragma omp parallel for schedule(static) default(shared) private(i, j, tmp, distance)
@@ -98,6 +106,8 @@ static void populate(void)
 		if (distance > mindistance)
 			too_far[rank*NUM_THREADS + omp_get_thread_num()] = 1;
 	}
+	end = timer_get();
+	total += timer_diff(start, end);
 	
 }
 
@@ -135,7 +145,6 @@ static void sync_pcentroids(void)
 	n = ncentroids*dimension*sizeof(float);
 	count = mppa_write(outfd, centroids, n);
 	assert(n == count);
-	
 	
 	/* Receive partial centroids. */
 	n = nprocs*lncentroids[rank]*dimension*sizeof(float);
@@ -208,6 +217,8 @@ static void compute_centroids(void)
 	int i, j;       /* Loop indexes.        */
 	int population; /* Centroid population. */
 
+	start = timer_get();
+	
 	memcpy(lcentroids, CENTROID(rank*(ncentroids/nprocs)), lncentroids[rank]*dimension*sizeof(float));
 	memset(&has_changed[rank*NUM_THREADS], 0, NUM_THREADS*sizeof(int));
 	memset(centroids, 0, (ncentroids + DELTA*nprocs)*dimension*sizeof(float));
@@ -228,9 +239,14 @@ static void compute_centroids(void)
 		omp_unset_lock(&lock[j]);
 	}
 	
+	end = timer_get();
+	total += timer_diff(start, end);
+	
 	sync_pcentroids();
 
 	sync_ppopulation();
+	
+	start = timer_get();
 
 	/* Compute centroids. */
 	#pragma omp parallel for schedule(static) default(shared) private(i, j, population)
@@ -261,6 +277,9 @@ static void compute_centroids(void)
 			vector_assign(LCENTROID(j), PCENTROID(rank, j));
 		}
 	}
+	
+	end = timer_get();
+	total += timer_diff(start, end);
 		
 	sync_centroids();
 		
@@ -278,12 +297,21 @@ static int again(void)
 {
 	int i;
 	
+	start = timer_get();
+	
 	/* Checks if another iteration is needed. */	
 	for (i = 0; i < nprocs*NUM_THREADS; i++)
 	{
 		if (has_changed[i] && too_far[i])
+		{
+			end = timer_get();
+			total += timer_diff(start, end);
 			return (1);
+		}
 	}
+	
+	end = timer_get();
+	total += timer_diff(start, end);
 			
 	return (0);
 }
@@ -324,6 +352,8 @@ static void getwork(void)
 	
 	ssize_t n;     /* Bytes to send/receive.        */
 	ssize_t count; /* Bytes actually sent/received. */
+	
+	timer_init();
 	
 	n = sizeof(int);
 	count = mppa_read(infd, &lnpoints, n);
@@ -375,8 +405,8 @@ int main(int argc, char **argv)
 	
 	kmeans();
 	
+	data_send(outfd, &total, sizeof(uint64_t));
 	close_noc_connectors();
-	
 	mppa_exit(0);
 	return (0);
 }

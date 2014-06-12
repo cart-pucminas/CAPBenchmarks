@@ -34,16 +34,6 @@
 	 * Close NoC connectors.
 	 */
 	extern void close_noc_connectors(void);
-	
-	/*
-	 * Sends data.
-	 */
-	extern void data_send(int outfd, void *data, size_t n);
-	
-	/*
-	 * Receives data.
-	 */
-	extern void data_receive(int infd, void *data, size_t n);
 
 	/* Interprocess communication. */
 	extern int infd[NUM_CLUSTERS];  /* Input channels.  */

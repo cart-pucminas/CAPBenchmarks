@@ -21,6 +21,14 @@
 extern void gauss_filter
 (unsigned char *img, int imgsize, double *mask, int masksize);
 
+/* Timing statistics. */
+#ifdef _MPPA_256_
+uint64_t master = 0;          /* Time spent on master.        */
+uint64_t slave[NUM_CLUSTERS]; /* Time spent on slaves.        */
+uint64_t communication = 0;   /* Time spent on communication. */
+#endif
+uint64_t total = 0;
+
 /*
  * Problem.
  */
@@ -31,11 +39,11 @@ struct problem
 };
 
 /* Problem sizes. */
-static struct problem tiny        = {  7,  2048 };
-static struct problem small       = {  7,  4096 };
-static struct problem workstation = { 11,  8192 };
-static struct problem standard    = { 11, 16384 };
-static struct problem large       = { 15, 32768 };
+static struct problem tiny     = {  7,  2048 };
+static struct problem small    = {  7,  4096 };
+static struct problem standard = { 11,  8192 };
+static struct problem large    = { 11, 16384 };
+static struct problem huge     = { 15, 32768 };
 
 /* Benchmark parameters. */
 int verbose = 0;                  /* Be verbose?        */
@@ -55,9 +63,9 @@ static void usage(void)
 	printf("  --nthreads <value> Set number of threads\n");
 	printf("  --class <name>     Set problem class:\n");
 	printf("                       - small\n");
-	printf("                       - workstation\n");
 	printf("                       - standard\n");
 	printf("                       - large\n");
+	printf("                       - huge\n");
 	printf("  --verbose          Be verbose\n");
 	exit(0);
 }
@@ -94,12 +102,12 @@ static void readargs(int argc, char **argv)
 						p = &tiny;
 					else if (!strcmp(argv[i], "small"))
 						p = &small;
-					else if (!strcmp(argv[i], "workstation"))
-						p = &workstation;
 					else if (!strcmp(argv[i], "standard"))
 						p = &standard;
 					else if (!strcmp(argv[i], "large"))
 						p = &large;
+					else if (!strcmp(argv[i], "huge"))
+						p = &huge;
 					else 
 						usage();
 					state = READ_ARG;
@@ -176,11 +184,12 @@ static void generate_mask(double *mask)
  */
 int main(int argc, char **argv)
 {
-	int i;              /* Loop index. */
-	double *mask;       /* Mask.       */
-	uint64_t end;       /* End time.   */
-	uint64_t start;     /* Start time. */
-	unsigned char *img; /* Image.      */
+	int i;              /* Loop index.         */
+	double *mask;       /* Mask.               */
+	uint64_t end;       /* End time.           */
+	uint64_t start;     /* Start time.         */
+	unsigned char *img; /* Image.              */
+	uint64_t avgslave;  /* Average slave time. */
 	
 	readargs(argc, argv);
 	
@@ -209,9 +218,19 @@ int main(int argc, char **argv)
 	start = timer_get();
 	gauss_filter(img, p->imgsize, mask, p->masksize);
 	end = timer_get();
-	if (verbose)
-		printf("  time spent: ");
-	printf("%f\n", timer_diff(start, end)*MICROSEC);
+	
+	total = timer_diff(start, end);
+
+	printf("timing statistics:\n");
+#ifdef _MPPA_256_	
+	printf("  master:        %f\n", master*MICROSEC);
+	avgslave = 0;
+	for (i = 0; i < nthreads; i++)
+		avgslave += slave[i];
+	printf("  slave:         %f\n", (avgslave*MICROSEC)/nthreads);
+	printf("  communication: %f\n", communication*MICROSEC);
+#endif
+	printf("  total time:    %f\n", total*MICROSEC);
 	
 	/* House keeping. */
 	free(mask);

@@ -23,16 +23,6 @@
 	 * Closes NoC connectors.
 	 */
 	extern void close_noc_connectors(void);
-	
-	/*
-	 * Sends data.
-	 */
-	extern void data_send(int outfd, void *data, size_t n);
-	
-	/*
-	 * Receives data.
-	 */
-	extern void data_receive(int infd, void *data, size_t n);
 
 	/* Inter process communication. */
 	extern int rank;  /* Process rank.   */

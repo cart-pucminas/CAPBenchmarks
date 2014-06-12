@@ -6,6 +6,7 @@
 
 #include <arch.h>
 #include <assert.h>
+#include <global.h>
 #include <stdarg.h>
 #include <util.h>
 
@@ -88,10 +89,7 @@ void message_destroy(struct message *msg)
  */
 void message_send(int outfd, struct message *msg)
 {
-	ssize_t count;
-	
-	count = mppa_write(outfd, msg, sizeof(struct message));
-	assert(count != -1);
+	communication += data_send(outfd, msg, sizeof(struct message));
 }
 
 /*
@@ -99,35 +97,12 @@ void message_send(int outfd, struct message *msg)
  */
 struct message *message_receive(int infd)
 {
-	ssize_t count;       /* Bytes read. */
-	struct message *msg; /* Message.    */
+	struct message *msg;
 	
 	msg = message_create(DIE);
 	
-	count = mppa_read(infd, msg, sizeof(struct message));
-	assert(count != -1);
+	communication += data_receive(infd, msg, sizeof(struct message));
 	
 	return (msg);
 }
 
-/*
- * Sends data.
- */
-void data_send(int outfd, void *data, size_t n)
-{	
-	ssize_t count;
-	
-	count = mppa_write(outfd, data, n);
-	assert(count != -1);
-}
-
-/*
- * Receives data.
- */
-void data_receive(int infd, void *data, size_t n)
-{	
-	ssize_t count;
-	
-	count = mppa_read(infd, data, n);
-	assert(count != -1);
-}

@@ -4,6 +4,7 @@
  * x86/sort.c - sort() implementation.
  */
 
+#include <stdio.h>
 #include <arch.h>
 
 /*
@@ -126,12 +127,19 @@ void merge(int *a, int *b, int size)
 	int tmp; /* Temporary value. */
 	int i, j;/* Loop indexes.    */
 	
-	for (i = 0, j = 0; i < size; i++)
+	
+	/* Merge. */
+	i = 0; j = 0;
+	while ((i < size) && (j < size))
 	{
 		if (b[j] < a[i])
 		{
 			exch(b[j], a[i], tmp)
 			j++;
+		}
+		else
+		{
+			i++;
 		}
 	}
 }
@@ -139,19 +147,16 @@ void merge(int *a, int *b, int size)
 /*
  * Mergesort algorithm.
  */
-void sort(int *array, int size)
+void sort2power(int *array, int size, int chunksize)
 {
-	int i;         /* Loop index.         */
-	int N;         /* Working array size. */
-	int chunksize; /* Chunk size.         */
-	
-	chunksize = size/(NUM_CORES/NUM_CLUSTERS);
-	
+	int i; /* Loop index.         */
+	int N; /* Working array size. */
+
 	/* Sort. */
 	#pragma omp parallel for private(i) default(shared)
 	for (i = 0; i < size; i += chunksize)
 		_sort(&array[i], (i + chunksize < size) ? chunksize : size - i);
-	
+
 	/* Merge. */
 	for (N = chunksize; N < size; N = N + N)
 	{
