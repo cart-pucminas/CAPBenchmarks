@@ -4,14 +4,6 @@
 #include <timer.h>
 #include "exec.h"
 
-struct main_pars {
-	int *nb_threads;
-	int *nb_towns;
-	int seed;
-	int *nb_clusters;
-	int nb_executions;	
-};
-
 typedef union { 
 	void *void_t;
 	int int_t;
@@ -28,10 +20,7 @@ struct execution_parameters {
 	tsp_t_pointer *tsp;
 };
 
-struct main_pars init_main_pars (int argc, char **argv);
 void *spawn_worker (void* params);
-void run_main (struct main_pars pars);
-void free_main (struct main_pars pars);
 
 extern pthread_t *spawn (tsp_t_pointer *tsp, int cluster_id, int nb_clusters, int nb_partitions, int nb_threads, int nb_towns, int seed);
 extern void run_tsp (int nb_threads, int nb_towns, int seed, int nb_clusters);

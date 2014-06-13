@@ -19,17 +19,131 @@ MUTEX_CREATE(main_lock, static);
 COND_VAR_CREATE(sync_barrier, static);
 static int running_count;
 
+/*
+ * Problem.
+ */
+struct problem {
+	int nb_towns;		/* Number of towns */
+};
 
+/* Problem sizes. */
+static struct problem tiny     =  { 10 };
+static struct problem small    =  { 12 };
+static struct problem standard =  { 14 };
+static struct problem large    =  { 18 };
+static struct problem huge     =  { 20 };
+
+/* Be verbose? */
+int verbose = 0;
+
+int nthreads = 1;	/* Number of threads */
+int seed = 12345;	/* Seed for random numbers generator */
+
+/* Problem. */           
+static struct problem *p = &tiny;
+
+/*
+ * Prints program usage and exits.
+ */
+static void usage(void)
+{
+	printf("Usage: tsp [options]\n");
+	printf("Brief: Traveler Salesman-problem.\n");
+	printf("Options:\n");
+	printf("  --help             Display this information and exit\n");
+	printf("  --nthreads <value> Set number of threads\n");
+	printf("  --class <name>     Set problem class:\n");
+	printf("                       - small\n");
+	printf("                       - standard\n");
+	printf("                       - large\n");
+	printf("                       - huge\n");
+	printf("  --verbose          Be verbose\n");
+	exit(0);
+}
+
+/*
+ * Reads command line arguments.
+ */
+static void readargs(int argc, char **argv)
+{
+	int i;     /* Loop index.       */
+	char *arg; /* Working argument. */
+	int state; /* Processing state. */
+	
+	/* State values. */
+	#define READ_ARG     0 /* Read argument.         */
+	#define SET_NTHREADS 1 /* Set number of threads. */
+	#define SET_CLASS    2 /* Set problem class.     */
+	
+	state = READ_ARG;
+	
+	/* Read command line arguments. */
+	for (i = 1; i < argc; i++)
+	{
+		arg = argv[i];
+		
+		/* Set value. */
+		if (state != READ_ARG)
+		{
+			switch (state)
+			{
+				/* Set problem class. */
+				case SET_CLASS :
+					if (!strcmp(argv[i], "tiny"))
+						p = &tiny;
+					else if (!strcmp(argv[i], "small"))
+						p = &small;
+					else if (!strcmp(argv[i], "standard"))
+						p = &standard;
+					else if (!strcmp(argv[i], "large"))
+						p = &large;
+					else if (!strcmp(argv[i], "huge"))
+						p = &huge;
+					else 
+						usage();
+					state = READ_ARG;
+					break;
+				
+				/* Set number of threads. */
+				case SET_NTHREADS :
+					nthreads = atoi(arg);
+					state = READ_ARG;
+					break;
+				
+				default:
+					usage();			
+			}
+			
+			continue;
+		}
+		
+		/* Parse argument. */
+		if (!strcmp(arg, "--verbose"))
+			verbose = 1;
+		else if (!strcmp(arg, "--nthreads"))
+			state = SET_NTHREADS;
+		else if (!strcmp(arg, "--class"))
+			state = SET_CLASS;
+		else
+			usage();
+	}
+	
+	/* Invalid argument(s). */
+	if (nthreads < 1)
+		usage();
+}
+
+/*
+ * Runs benchmark.
+ */
 int main (int argc, char **argv) {
 
-	struct main_pars pars = init_main_pars(argc, argv);
+	readargs(argc, argv);
 	
 	COND_VAR_INIT(sync_barrier);
 	MUTEX_INIT(main_lock);
 	
-	run_main(pars);	
-	
-	free_main(pars);
+	run_tsp(nthreads, p->nb_towns, seed, 1);
 
 	return 0;
 }
@@ -92,8 +206,9 @@ void run_tsp (int nb_threads, int nb_towns, int seed, int nb_clusters) {
 	start = timer_get();
 
 	int nb_partitions = get_number_of_partitions(nb_clusters);
-	LOG ("nb_clusters = %3d nb_partitions = %3d nb_threads = %3d nb_towns = %3d seed = %d \n", 
-		nb_clusters, nb_partitions, nb_threads, nb_towns, seed);
+	if (verbose)
+		printf ("nb_clusters = %3d nb_partitions = %3d nb_threads = %3d nb_towns = %3d seed = %d \n", 
+			nb_clusters, nb_partitions, nb_threads, nb_towns, seed);
 
 	min_distance = INT_MAX;
 	next_partition = 0;

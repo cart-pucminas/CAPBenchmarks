@@ -170,12 +170,4 @@ inline unsigned int simple_rng_next(struct rand_state_struct *current_state);
 
 #endif //DEF_RAND
 
-
-
-/*
- * ARGUMENT PARSING
- */
-
-int* par_parse(const char *str);
-
 #endif //__DEFS_H
