@@ -188,7 +188,7 @@ void run_tsp (int nb_threads, int nb_towns, int seed, int nb_clusters) {
 	LOG("Spawning nb_clusters.\n");
   	for (rank = 0; rank < nb_clusters; rank++) {
 	    sprintf(argv[4], "%d", rank);
-		pid = mppa_spawn(rank, NULL, "tsp_lock_mppa_slave", (const char **)argv, NULL);
+		pid = mppa_spawn(rank, NULL, "tsp.slave", (const char **)argv, NULL);
 		assert(pid >= 0);
 	}
 	
@@ -248,7 +248,7 @@ void run_tsp (int nb_threads, int nb_towns, int seed, int nb_clusters) {
    	uint64_t exec_time = mppa_diff_time(start, mppa_get_time());
 
 
-	printf("shortest path size = %5d towns\n", min_distance);
+	printf("shortest path size = %5d towns\n", min);
 	
 	printf("timing statistics:\n");
 	printf("  total time:    %f\n", exec_time/1000000.0);
@@ -269,8 +269,10 @@ partition_interval_t get_next_partition(tsp_t_pointer tsp) {
 void callback_master (mppa_sigval_t sigval) {	
 	int i;
 	LOG("Received a callback. Min vector: ");
-	for(i = 0; i < clusters; i++)
-		if(comm_buffer[i] != INT_MAX)
+	for(i = 0; i < clusters; i++) {
+	  if(comm_buffer[i] != INT_MAX) {
 			LOG("%d, ", comm_buffer[i]);
+	  }
+	}
 	LOG("\n");
 }

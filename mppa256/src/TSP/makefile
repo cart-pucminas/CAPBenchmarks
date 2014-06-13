@@ -3,8 +3,8 @@
 #
 
 # Source files.
+SRC_COMMON = $(wildcard *.c)
 SRC_MASTER = $(wildcard master/*.c)
-          
 SRC_SLAVE =  $(wildcard slave/*.c)
 
 # Executable.
@@ -19,14 +19,18 @@ all: master slave
 	rm -f $(EXEC).master
 	rm -f $(EXEC).slave
 
+# Builds common objects.
+common: $(SRC_COMMON)
+	$(CC) -Wno-unused-parameter -DMT -DNO_CACHE_COHERENCE -mos=rtems $(CFLAGS) $(SRC_COMMON) -c $(EXEC) $(LIBS)
+
 # Builds master.
-master: $(SRC_MASTER)
-	$(CC) -DMT -DNO_CACHE_COHERENCE -mos=rtems $(CFLAGS) $(SRC_MASTER) -o $(EXEC).master $(LIBS)
+master: $(SRC_COMMON) $(SRC_MASTER)
+	$(CC) -Wno-unused-parameter -DMT -DNO_CACHE_COHERENCE -mos=rtems $(CFLAGS) $(SRC_COMMON) $(SRC_MASTER) -o $(EXEC).master $(LIBS)
 
 # Builds slave.
-slave: $(SRC_SLAVE)
-	$(CC) -DMT -DNO_CACHE_COHERENCE -mos=nodeos $(CFLAGS) $(SRC_SLAVE) -o $(EXEC).slave $(LIBS)
-	
+slave: $(SRC_COMMON) $(SRC_SLAVE) 
+	$(CC) -Wno-unused-parameter -DMT -DNO_CACHE_COHERENCE -mos=nodeos $(CFLAGS) $(SRC_COMMON) $(SRC_SLAVE) -o $(EXEC).slave $(LIBS)
+
 # Cleans compilation files.
 clean:
 	rm -f $(BINDIR)/$(EXEC).mppa.mpk
