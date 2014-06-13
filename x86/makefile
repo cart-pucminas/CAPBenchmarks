@@ -15,14 +15,13 @@ export SRCDIR    = $(CURDIR)/src
 export CC = gcc
 export AR = ar
 
-# Library.
-export LIB = libcapb.a
-
 # Tool chain configuration.
 export CFLAGS = -fno-builtin -Wall -Wextra -Werror -O3
 export CFLAGS += -I $(INCDIR)
+export ARFLAGS = -vq
 
 # Libraries.
+export LIB = libcapb.a
 export LIBS = -lm -fopenmp $(LIBDIR)/$(LIB)
 
 .PHONY: lib

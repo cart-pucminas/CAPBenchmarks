@@ -13,8 +13,7 @@ all-x86:
 all-mppa256: 
 	cd mppa256 && $(MAKE) all BINDIR=$(BINDIR)
 
-
 # Cleans compilation files.
 clean:
-	cd x86 && $(MAKE) clean
-	cd mppa256 && $(MAKE) clean
+	cd x86 && $(MAKE) clean BINDIR=$(BINDIR)
+	cd mppa256 && $(MAKE) clean BINDIR=$(BINDIR)

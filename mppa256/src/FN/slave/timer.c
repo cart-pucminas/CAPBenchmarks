@@ -4,26 +4,22 @@
  * timer.c - Timer library implementation.
  */
 
-#include <sys/time.h>
+#include <mppa/osconfig.h>
+#include <arch.h>
+#include <mppaipc.h>
 #include <stdint.h>
-#include <stdlib.h>
 
-/* Timer residual error. */
-static uint64_t timer_error = 0;
+/*
+ * Timer residual error.
+ */
+uint64_t timer_error = 0;
 
 /*
  * Gets the current timer value.
  */
 uint64_t timer_get(void)
 {
-	uint64_t ret;
-	struct timeval t;
-
-	gettimeofday(&t, NULL);
-	ret = 1000000 * ((uint64_t) t.tv_sec);
-	ret += (uint64_t) t.tv_usec;
-
-	return ret;
+	return (__k1_io_read64((void *)0x70084040) / MPPA_FREQUENCY);
 }
 
 /*
