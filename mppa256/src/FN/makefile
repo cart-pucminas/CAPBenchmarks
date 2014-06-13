@@ -4,7 +4,6 @@
 
 # Source files.
 SRC_MASTER = $(wildcard master/*.c)
-          
 SRC_SLAVE =  $(wildcard slave/*.c)
 
 # Executable.
@@ -21,11 +20,11 @@ all: master slave
 
 # Builds master.
 master: $(SRC_MASTER)
-	$(CC) -mos=rtems $(CFLAGS) $(SRC_MASTER) -o $(EXEC).master $(LIBS)
+	$(CC) -mos=rtems $(CFLAGS) $(SRC_MASTER) $(LIBSRCDIR)/*.c -o $(EXEC).master $(LIBS)
 
 # Builds slave.
 slave: $(SRC_SLAVE)
-	$(CC) -mos=nodeos $(CFLAGS) $(SRC_SLAVE) -o $(EXEC).slave $(LIBS) -fopenmp
+	$(CC) -mos=nodeos $(CFLAGS) $(SRC_SLAVE) $(LIBSRCDIR)/*.c -o $(EXEC).slave $(LIBS) -fopenmp
 	
 # Cleans compilation files.
 clean:

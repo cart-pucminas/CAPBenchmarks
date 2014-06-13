@@ -28,6 +28,7 @@ export LIBS = -lm -fopenmp $(LIBDIR)/$(LIB)
 
 # Builds all kernels.
 all: lib
+	mkdir -p bin
 	cd $(SRCDIR) && $(MAKE) all
 	
 # Builds kernel library.
