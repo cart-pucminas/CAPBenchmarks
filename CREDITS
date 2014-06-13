@@ -5,6 +5,10 @@ Name:   Henrique C. Freitas
 E-Mail: cota@pucminas.br
 Brief:  Supervisor.
 
+Name:   Márcio Castro
+E-Mail: mbcastro@inf.ufrgs.br
+Brief:  Author of the TSP kernel.
+
 Name:   Matheus A. Souza
 E-Mail: matheusalcantarasouza@gmail.com
 Brief:  Author of the FN kernel.
@@ -14,6 +18,6 @@ E-Mail: matheus.miranda.queiroz@gmail.com
 Brief:  Author of the GF kernel.
 
 Name:   Pedro H. Penna
-E-mail: pedrohenriquepenna@gmail.com
-Brief:  Author of the KM, LU and IS Kernels.
+E-mail: pedro.penna@sga.pucminas.br
+Brief:  Author of the KM, LU and IS kernels.
 
