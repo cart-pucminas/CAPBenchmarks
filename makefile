@@ -7,10 +7,12 @@ export BINDIR  = $(CURDIR)/bin
 
 # Builds all kernels for Intel x86.
 all-x86:
+	mkdir -p bin
 	cd x86 && $(MAKE) all BINDIR=$(BINDIR)
 
 # Builds all kernels for MPPA-256.
 all-mppa256: 
+	mkdir -p bin
 	cd mppa256 && $(MAKE) all BINDIR=$(BINDIR)
 
 # Cleans compilation files.

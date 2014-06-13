@@ -29,6 +29,7 @@ export LIBS = -lm -lmppaipc
 
 # Builds all kernels.
 all:
+	mkdir -p bin
 	cd $(SRCDIR) && $(MAKE) all
 
 # Builds libraries.
