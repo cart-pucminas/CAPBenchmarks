@@ -1,4 +1,4 @@
-#include "tsp_mppa.h"
+#include "../tsp_mppa.h"
 
 static int nb_clusters;
 static int cluster_id;

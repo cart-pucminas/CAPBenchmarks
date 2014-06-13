@@ -1,7 +1,7 @@
 //#include <mppa/osconfig.h>
 
-#include "tsp_mppa.h"
-#include "common_main.h"
+#include "../tsp_mppa.h"
+#include "../common_main.h"
 
 static int *comm_buffer;
 static int clusters;
