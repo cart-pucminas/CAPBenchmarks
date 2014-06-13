@@ -11,7 +11,7 @@ export MPPADIR=/usr/local/k1tools
 # Create results directory.
 mkdir -p $RESULTSDIR
 
-for kernel in fn gf is km lu; do
+for kernel in fn gf is km lu tsp; do
 	for it in {1..10}; do
 		echo "running $kernel iteration $it"
 		# Weak scaling.
