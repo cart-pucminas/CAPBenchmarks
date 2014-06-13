@@ -29,7 +29,7 @@ struct problem {
 /* Problem sizes. */
 static struct problem tiny     =  { 10 };
 static struct problem small    =  { 12 };
-static struct problem standard =  { 14 };
+static struct problem standard =  { 16 };
 static struct problem large    =  { 18 };
 static struct problem huge     =  { 20 };
 
