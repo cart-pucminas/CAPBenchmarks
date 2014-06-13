@@ -1,7 +1,7 @@
 //#include <mppa/osconfig.h>
 
-#include "tsp_mppa.h"
-#include "common_main.h"
+#include "../tsp_mppa.h"
+#include "../common_main.h"
 
 static int *comm_buffer;
 static int clusters;
@@ -128,12 +128,10 @@ static void readargs(int argc, char **argv)
  * Runs benchmark.
  */
 int main (int argc, char **argv) {
-	// struct main_pars pars = init_main_pars(argc, argv);
-
+	
+	readargs(argc, argv);
+	
 	mppa_init_time();
-
-	// run_main(pars);	
-	// free_main(pars);
 
 	/* Always run with 16 thraeds per cluster by default */
 	run_tsp(16, p->nb_towns, seed, nclusters);
@@ -248,9 +246,12 @@ void run_tsp (int nb_threads, int nb_towns, int seed, int nb_clusters) {
 	free(argv);
 
    	uint64_t exec_time = mppa_diff_time(start, mppa_get_time());
-   	printf ("%15llu\t%5d\t%2d\t%2d\t%5d\t%2d\t%8d\n", 
-		exec_time, min, nb_threads, nb_towns, seed, nb_clusters, nb_partitions);
 
+
+	printf("shortest path size = %5d towns\n", min_distance);
+	
+	printf("timing statistics:\n");
+	printf("  total time:    %f\n", exec_time/1000000.0);
 }
 
 void new_minimun_distance_found(tsp_t_pointer tsp) {
