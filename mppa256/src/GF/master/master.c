@@ -31,7 +31,7 @@ void gauss_filter(unsigned char *img, int imgsize, double *mask, int masksize)
 	
 	 /* Send mask. */
     n = sizeof(double)*masksize*masksize;	
-	for (i = 0; i < nthreads; i++)
+	for (i = 0; i < nclusters; i++)
 	{
 		communication += data_send(outfd[i], &masksize, sizeof(int));
 		communication += data_send(outfd[i], mask, n);
@@ -51,12 +51,12 @@ void gauss_filter(unsigned char *img, int imgsize, double *mask, int masksize)
 		 * Slave processes are busy.
 		 * So let's wait for results.
 		 */
-		if (j == nthreads)
+		if (j == nclusters)
 		{
 			for (/* NOOP */ ; j > 0; j--)
 			{
-				communication += data_receive(infd[nthreads-j],
-								   &img[(nthreads-j)*CHUNK_SIZE*CHUNK_SIZE], n);
+				communication += data_receive(infd[nclusters-j],
+								   &img[(nclusters-j)*CHUNK_SIZE*CHUNK_SIZE], n);
 			}
 		}
 	}
@@ -70,7 +70,7 @@ void gauss_filter(unsigned char *img, int imgsize, double *mask, int masksize)
 	
 	/* House keeping. */
 	msg = MSG_DIE;
-	for (i = 0; i < nthreads; i++)
+	for (i = 0; i < nclusters; i++)
 		data_send(outfd[i], &msg, sizeof(int));
 	join_slaves();
 	close_noc_connectors();

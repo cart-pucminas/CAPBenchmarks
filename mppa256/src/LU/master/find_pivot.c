@@ -115,12 +115,12 @@ float find_pivot(struct matrix *m, int i0, int j0)
 		 * Slave processes are busy.
 		 * So let's wait for results.
 		 */
-		if (i == nthreads)
+		if (i == nclusters)
 		{
 			/* Receive results. */
 			for (/* NOOP */ ; i > 0; i--)
 			{
-				msg = message_receive(infd[nthreads - i]);
+				msg = message_receive(infd[nclusters - i]);
 				push(results, msg);
 			}
 		}

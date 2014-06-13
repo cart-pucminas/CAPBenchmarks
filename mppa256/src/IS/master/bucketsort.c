@@ -158,18 +158,18 @@ extern void bucketsort(int *array, int n)
 			 * Slave processes are busy.
 			 * So let's wait for results.
 			 */
-			if (j == nthreads)
+			if (j == nclusters)
 			{	
 				/* Receive results. */
 				for (/* NOOP */ ; j > 0; j--)
 				{					
 					/* Receive message. */
-					msg = message_receive(infd[nthreads - j]);
+					msg = message_receive(infd[nclusters - j]);
 					
 					/* Receive mini-bucket. */
 					minib = minibucket_create();
 					minib->size = msg->u.sortresult.size;
-					communication += data_receive(infd[nthreads -j], minib->elements, 
+					communication += data_receive(infd[nclusters -j], minib->elements, 
 													minib->size*sizeof(int));
 					
 					bucket_push(done[msg->u.sortresult.id], minib);

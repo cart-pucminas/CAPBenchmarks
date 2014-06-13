@@ -47,7 +47,7 @@ static void sendWork(void)
 
     /* Distribute tasks to slaves. */
     lowernum = startnum; uppernum = endnum;
-    for (i = 0; i < nthreads; i++)
+    for (i = 0; i < nclusters; i++)
     {
 		start = timer_get();
 		
@@ -71,7 +71,7 @@ static void syncNumbers(void)
 {
 	int i;
 
-	for (i = 0; i < nthreads - 1; i++)
+	for (i = 0; i < nclusters - 1; i++)
 	{
         communication += data_receive(infd[i], &finishedTasks[i*avgtasksize], 
 													avgtasksize*sizeof(Item));
@@ -180,13 +180,13 @@ int friendly_numbers(int _start, int _end)
 	startnum = _start;
 	endnum = _end;
 	
-	tasksize = smalloc(nthreads*sizeof(int));
+	tasksize = smalloc(nclusters*sizeof(int));
 	
     /* Distribute task sizes. */
     problemsize = (_end - _start + 1);
-    avgtasksize = problemsize/nthreads;
-	for (i = 0; i < nthreads; i++)
-		tasksize[i] = (i + 1 < nthreads)?avgtasksize:problemsize-i*avgtasksize;
+    avgtasksize = problemsize/nclusters;
+	for (i = 0; i < nclusters; i++)
+		tasksize[i] = (i + 1 < nclusters)?avgtasksize:problemsize-i*avgtasksize;
 	
 	/* Setup slaves. */
     open_noc_connectors();
