@@ -207,12 +207,8 @@ void run_tsp (int nb_threads, int nb_towns, int seed, int nb_clusters) {
 	
 	int nb_partitions = get_number_of_partitions(nb_clusters);
 	if (verbose)
-		printf ("Number of clusters..: %3d\n
-				 Number of partitions: %3d\n
-				 Number of threads...: %3d\n
-				 Number of Towns.....: %3d\n
-				 Seed................: %3d\n", 
-				 nb_clusters, nb_partitions, nb_threads, nb_towns, seed);
+		printf ("Number of clusters..: %3d\nNumber of partitions: %3d\nNumber of threads...: %3d\nNumber of Towns.....: %3d\nSeed................: %3d\n", 
+			nb_clusters, nb_partitions, nb_threads, nb_towns, seed);
 
 	min_distance = INT_MAX;
 	next_partition = 0;
