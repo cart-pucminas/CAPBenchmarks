@@ -29,7 +29,7 @@ void spawn_slaves(void)
 
 	/* Spawn slaves. */
 	args[1] = NULL;
-	for (i = 0; i < nthreads; i++)
+	for (i = 0; i < nclusters; i++)
 	{	
 		sprintf(arg0, "%d", i);
 		args[0] = arg0;
@@ -49,7 +49,7 @@ static void kill_slaves(void)
 	msg = message_create(DIE);
 	
 	/* Kill slave processes. */
-	for (i = 0; i < nthreads; i++)
+	for (i = 0; i < nclusters; i++)
 		message_send(outfd[i], msg);
 	
 	message_destroy(msg);
@@ -65,7 +65,7 @@ void join_slaves(void)
 	kill_slaves();
 	
 	/* Join slaves. */
-	for (i = 0; i < nthreads; i++)
+	for (i = 0; i < nclusters; i++)
 	{
 		data_receive(infd[i], &slave[i], sizeof(uint64_t));
 		mppa_waitpid(pids[i], NULL, 0);
@@ -91,12 +91,12 @@ void open_noc_connectors(void)
 	char path[35];  /* Connector path. */
 	uint64_t match; /* match value.    */
 	
-	match = -(1 << nthreads);
+	match = -(1 << nclusters);
 	assert((sync_fd = mppa_open("/mppa/sync/128:64", O_RDONLY)) != -1) ;
 	assert(mppa_ioctl(sync_fd, MPPA_RX_SET_MATCH, match) != -1);
 
 	/* Open channels. */
-	for (i = 0; i < nthreads; i++)
+	for (i = 0; i < nclusters; i++)
 	{		
 		sprintf(path, "/mppa/channel/%d:%d/128:%d", i, i + 1, i + 1);
 		outfd[i] = mppa_open(path, O_WRONLY);
@@ -116,7 +116,7 @@ void close_noc_connectors(void)
 	int i;
 	
 	/* Close channels. */
-	for (i = 0; i < nthreads; i++)
+	for (i = 0; i < nclusters; i++)
 	{
 		mppa_close(outfd[i]);
 		mppa_close(infd[i]);

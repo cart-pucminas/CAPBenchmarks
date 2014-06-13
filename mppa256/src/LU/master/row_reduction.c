@@ -83,16 +83,16 @@ void row_reduction(struct matrix *m, int i0)
 		 * Slave processes are busy.
 		 * So let's wait for results.
 		 */
-		if (i == nthreads)
+		if (i == nclusters)
 		{
 			/* Receive results. */
 			for (/* NOOP */ ; i > 0; i--)
 			{
-				msg = message_receive(infd[nthreads - i]);
+				msg = message_receive(infd[nclusters - i]);
 				
 				/* Receive matrix block. */
 				n = (msg->u.reductresult.height)*(msg->u.reductresult.width)*sizeof(float);
-				communication += data_receive(infd[nthreads - i], &MATRIX(m,msg->u.reductresult.i0, msg->u.reductresult.j0), n);
+				communication += data_receive(infd[nclusters - i], &MATRIX(m,msg->u.reductresult.i0, msg->u.reductresult.j0), n);
 				
 				message_destroy(msg);
 			}

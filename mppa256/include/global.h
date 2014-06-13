@@ -18,7 +18,7 @@
 	/*
 	 * Number of threads.
 	 */
-	extern int nthreads;
+	extern int nclusters;
 	
 	/* Timing statistics. */
 	extern uint64_t master;
