@@ -10,6 +10,9 @@ SRC_SLAVE =  $(wildcard slave/*.c)
 # Executable.
 EXEC = tsp
 
+# Debug mode? (use -DDEBUG to turn on debug mode or -UDEBUG to turn off debug mode)
+DEBUG = -UDEBUG
+
 .PHONY: master
 .PHONY: slave
 
@@ -21,15 +24,15 @@ all: master slave
 
 # Builds common objects.
 common: $(SRC_COMMON)
-	$(CC) -Wno-unused-parameter -DMT -DNO_CACHE_COHERENCE -mos=rtems $(CFLAGS) $(SRC_COMMON) -c $(EXEC) $(LIBS)
+	$(CC) -Wno-unused-parameter -DMT -DNO_CACHE_COHERENCE $(DEBUG) -mos=rtems $(CFLAGS) $(SRC_COMMON) -c $(EXEC) $(LIBS)
 
 # Builds master.
 master: $(SRC_COMMON) $(SRC_MASTER)
-	$(CC) -Wno-unused-parameter -DMT -DNO_CACHE_COHERENCE -mos=rtems $(CFLAGS) $(SRC_COMMON) $(SRC_MASTER) -o $(EXEC).master $(LIBS)
+	$(CC) -Wno-unused-parameter -DMT -DNO_CACHE_COHERENCE $(DEBUG) -mos=rtems $(CFLAGS) $(SRC_COMMON) $(SRC_MASTER) -o $(EXEC).master $(LIBS)
 
 # Builds slave.
 slave: $(SRC_COMMON) $(SRC_SLAVE) 
-	$(CC) -Wno-unused-parameter -DMT -DNO_CACHE_COHERENCE -mos=nodeos $(CFLAGS) $(SRC_COMMON) $(SRC_SLAVE) -o $(EXEC).slave $(LIBS)
+	$(CC) -Wno-unused-parameter -DMT -DNO_CACHE_COHERENCE $(DEBUG) -mos=nodeos $(CFLAGS) $(SRC_COMMON) $(SRC_SLAVE) -o $(EXEC).slave $(LIBS)
 
 # Cleans compilation files.
 clean:

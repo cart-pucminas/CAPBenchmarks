@@ -51,7 +51,6 @@ void run_tsp (int nb_threads, int nb_towns, int seed, int nb_clusters) {
 	// ------------------------------------------
 	// SOLUTION FOR ioctl along with rqueue BUG
  	// ------------------------------------------ 
-	LOG("Cluster starting (%d clusters).\n", nb_clusters);
 	tsp_instance = init_execution(cluster_id, nb_clusters, get_number_of_partitions(nb_clusters), nb_threads, nb_towns, seed);
 	wait_barrier (barrier);
 	mppa_init_read_rqueue(rqueue_partition_response, 1);
@@ -79,7 +78,6 @@ void callback_slave (mppa_sigval_t sigval) {
 		if (comm_buffer[i] < min) 
 			min = comm_buffer[i];
 	tsp_update_minimum_distance(tsp_instance, min);	
-	LOG("Slave: Received a callback. %d\n", min);
 }
 
 partition_interval_t get_next_partition(tsp_t_pointer tsp) {

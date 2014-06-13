@@ -19,7 +19,6 @@ void init_queue (job_queue_t *q, unsigned long max_size, int (*repopulate_queue)
 	reset_queue(q);
 	
 	q->buffer = (job_queue_node_t *) malloc(sizeof(job_queue_node_t) * q->max_size);
-	LOG("Trying to allocate %lu bytes for the queue (max_size = %lu)\n", sizeof(job_queue_node_t) * q->max_size, q->max_size);
 	assert(q->buffer != NULL);
 	COND_VAR_INIT(q->cond_var);
 }

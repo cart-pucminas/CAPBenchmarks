@@ -157,14 +157,15 @@ void run_tsp (int nb_threads, int nb_towns, int seed, int nb_clusters) {
 		printf ("Number of clusters..: %3d\nNumber of partitions: %3d\nNumber of threads...: %3d\nNumber of Towns.....: %3d\nSeed................: %3d\n", 
 			nb_clusters, nb_partitions, nb_threads, nb_towns, seed);
 
-    uint64_t start = mppa_get_time();
+	uint64_t start_comm_time, end_comm_time, comm_time = 0, master_time = 0;
+	uint64_t start = mppa_get_time();
+	end_comm_time = start;
 
 	int comm_buffer_size = (nb_clusters + 1) * sizeof (int);
 	comm_buffer = (int *) malloc(comm_buffer_size);
 	for (i = 0; i <= nb_clusters; i++) 
 		comm_buffer[i] = INT_MAX;
 
-	LOG("Creating communication portals\n");
 	barrier_t *sync_barrier = mppa_create_master_barrier (BARRIER_SYNC_MASTER, BARRIER_SYNC_SLAVE, nb_clusters);
 	barrier_par_t barrier;
 	barrier.void_t = sync_barrier;
@@ -187,7 +188,6 @@ void run_tsp (int nb_threads, int nb_towns, int seed, int nb_clusters) {
 	sprintf(argv[2], "%d", seed);
 	sprintf(argv[3], "%d", nb_clusters);
 
-	LOG("Spawning nb_clusters.\n");
   	for (rank = 0; rank < nb_clusters; rank++) {
 	    sprintf(argv[4], "%d", rank);
 		pid = mppa_spawn(rank, NULL, "tsp.slave", (const char **)argv, NULL);
@@ -197,27 +197,29 @@ void run_tsp (int nb_threads, int nb_towns, int seed, int nb_clusters) {
 	wait_barrier (barrier); //init barrier
 
 	//TO SOLVE THE BUG!!!
-	LOG("Init rqueue_partition\n");
 	mppa_init_read_rqueue(rqueue_partition_request, nb_clusters);
-	LOG("Init completed rqueue_partition\n");
 
 	//Manage partition requests
 	while(finished_clusters < nb_clusters) {
 		int from[2];
 		partition_interval_t partition_interval;
 
-		LOG("Waiting requests\n");
+		start_comm_time = mppa_get_time();
+		master_time += mppa_diff_time(end_comm_time, start_comm_time);
 		mppa_read_rqueue (rqueue_partition_request, &from, 2 * sizeof(int));
-		LOG("Request received\n");
-		
+		end_comm_time = mppa_get_time();
+		comm_time += mppa_diff_time(start_comm_time, end_comm_time);
+
 		partition_interval = get_next_partition_default_impl(nb_partitions, nb_clusters, &next_partition, from[1]);
 		
 		if(partition_interval.start == -1) 
 			finished_clusters++;
 
-		LOG("Sending partition to cluster %d\n", from[0]);
+		start_comm_time = mppa_get_time();
+		master_time += mppa_diff_time(end_comm_time, start_comm_time);
 		mppa_write_rqueue (rqueue_partition_response[from[0]], &partition_interval, sizeof(partition_interval_t));
-		LOG("Sent partition to cluster %d\n", from[0]);
+		end_comm_time = mppa_get_time();
+		comm_time += mppa_diff_time(start_comm_time, end_comm_time);
 	}
 
 	wait_barrier (barrier); //end barrier
@@ -249,11 +251,13 @@ void run_tsp (int nb_threads, int nb_towns, int seed, int nb_clusters) {
 
    	uint64_t exec_time = mppa_diff_time(start, mppa_get_time());
 
-
 	printf("shortest path size = %5d towns\n", min);
 	
 	printf("timing statistics:\n");
-	printf("  total time:    %f\n", exec_time/1000000.0);
+	LOG("  master time........: %f\n", master_time/1000000.0);
+	LOG("  comm time..........: %f\n", (exec_time - comm_time - master_time)/1000000.0);
+	LOG("  master blocked time: %f\n", comm_time/1000000.0);
+	printf("  total time: %f\n", exec_time/1000000.0);
 }
 
 void new_minimun_distance_found(tsp_t_pointer tsp) {
@@ -269,12 +273,4 @@ partition_interval_t get_next_partition(tsp_t_pointer tsp) {
 }
 
 void callback_master (mppa_sigval_t sigval) {	
-	int i;
-	LOG("Received a callback. Min vector: ");
-	for(i = 0; i < clusters; i++) {
-	  if(comm_buffer[i] != INT_MAX) {
-			LOG("%d, ", comm_buffer[i]);
-	  }
-	}
-	LOG("\n");
 }

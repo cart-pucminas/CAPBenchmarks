@@ -46,6 +46,5 @@ void start_execution(tsp_t_pointer tsp) {
 }
 
 void end_execution (tsp_t_pointer tsp) {
-	LOG("Cluster exiting (%d clusters). Partitions processed: %d. Min: %d\n", tsp->nb_clusters, tsp->processed_partitions, tsp->min_distance);
 	free_tsp(tsp);
 }

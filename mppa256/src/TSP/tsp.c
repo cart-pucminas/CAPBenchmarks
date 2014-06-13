@@ -44,16 +44,16 @@ void init_distance (tsp_t *tsp, int seed) {
 void print_distance_matrix (distance_matrix_t *distance) {
 	int i, j;
 
-	LOG ("distance.n_towns = %d\n", distance->nb_towns);
+	printf ("distance.n_towns = %d\n", distance->nb_towns);
 
 	for (i = 0; i<distance->nb_towns; i++) {
-		LOG ("distance.dst [%1d]",i);
+		printf ("distance.dst [%1d]",i);
 		for (j = 0; j<distance->nb_towns; j++) {
-			LOG (" [d:%2d, to:%2d] ", distance->info[i][j].dist, distance->info[i][j].to_city);
+			printf (" [d:%2d, to:%2d] ", distance->info[i][j].dist, distance->info[i][j].to_city);
 		}
-		LOG (";\n\n");
+		printf (";\n\n");
 	}
-	LOG ("done ...\n");
+	printf ("done ...\n");
 }
 
 static inline void intern_update_minimum_distance(tsp_t_pointer tsp, int new_distance) {
@@ -93,11 +93,6 @@ tsp_t_pointer init_tsp(int cluster_id, int nb_clusters, int nb_partitions, int n
 	init_distance(tsp, seed);
 	total = init_max_hops(tsp);
 
-	if (cluster_id == 0) {
-		LOG("MAX_HOPS %d\n", tsp->max_hops);
-		LOG("NB_TASKS %d\n", total);
-	}
-	
 	unsigned long queue_size = total / nb_clusters + total % nb_clusters + nb_clusters - 1;
 	init_queue(&tsp->queue, queue_size, repopulate_queue, tsp);
 
@@ -120,21 +115,11 @@ inline int present (int city, int hops, path_t *path) {
 void tsp (tsp_t_pointer tsp_par, int hops, int len, path_t *path, unsigned long *cuts, unsigned long long *path_cuts, int thread_id) {
 	int i;
 	if (len >= tsp_get_shortest_path(tsp_par)) {
-#ifdef DEBUG	
-		(*cuts)++;
-		unsigned long long height = tsp_par->distance->nb_towns - hops;
-		assert (height < 21);
-		(*path_cuts) += FACTORIAL_TABLE[height];
-#endif	
 		return;
 	}
 	if (hops == tsp_par->distance->nb_towns) {
 		if (tsp_update_minimum_distance(tsp_par, len)) {
 			new_minimun_distance_found(tsp_par);
-			LOG ("Cluster %d - Worker[%d] finds path len = %3d :", tsp_par->cluster_id, thread_id, len);
-			for (i = 0; i < tsp_par->distance->nb_towns; i++)
-				LOG ("%2d ", (*path)[i]);
-			LOG ("\n");
 		}
 	} else {
 		int city, me, dist;
@@ -180,9 +165,7 @@ void generate_jobs (tsp_t_pointer tsp, partition_interval_t partition_interval) 
 	int job_count = 0;
 	path_t path;	
 	path [0] = 0;
-	LOG("Cluster %d - Task generation %d-%d starting (queue %p)...\n", tsp->cluster_id, partition_interval.start, partition_interval.end, &tsp->queue);
 	distributor (tsp, partition_interval, 1, 0, &path, &job_count);
-	LOG("Cluster %d - Task generation for partition %d-%d complete.\n", tsp->cluster_id, partition_interval.start, partition_interval.end);
 }
 
 int repopulate_queue (void *tsp_par) {
@@ -204,16 +187,18 @@ void *worker (void *pars) {
 	unsigned long cuts = 0;
 	unsigned long long path_cuts = 0;
 	
+	uint64_t start_slave_time, slave_time = 0;
 
 	while (1) {
 		int found = get_job (&p->tsp->queue, &job);
 		if (!found) break;
 		jobcount++;
+		start_slave_time = mppa_get_time();
 		tsp (p->tsp, p->tsp->max_hops, job.len, &job.path, &cuts, &path_cuts, p->thread_id);
+		slave_time += mppa_diff_time(start_slave_time, mppa_get_time());
 	}
 
-	LOG ("Worker [%3d,%3d] terminates, %4d jobs done with %16lu cuts %20llu path cuts %10g cut efficiency.\n", 
-		p->tsp->cluster_id, p->thread_id, jobcount, cuts, path_cuts, 1.0 * path_cuts / cuts);
+	LOG("Cluster %3d / Thread %3d computing time: %f\n", p->tsp->cluster_id, p->thread_id, slave_time/1000000.0);
 
 	free(pars);
 	return NULL;
