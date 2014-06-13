@@ -17,9 +17,7 @@ void *spawn_worker(void* params) {
 
 struct main_pars init_main_pars (int argc, char **argv) {
 	struct main_pars ret;
-	
-	CHECK_PAGE_SIZE();
-	
+		
 	if (argc != 5 && argc != 6 && argc != 7) {
 		fprintf (stderr, "Usage: %s <nb_threads> <nb_towns> <seed> <nb_clusters> [nb_executions machine]\n", argv[0]);
 		exit(1);
