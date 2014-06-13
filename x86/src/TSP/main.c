@@ -56,8 +56,9 @@ void wait_barrier (barrier_par_t barrier_par) {
 	if (running_count == limit) {
 		running_count = 0;
 		COND_VAR_BROADCAST(sync_barrier);
-	} else 
+	} else  {
 		COND_VAR_WAIT(sync_barrier);
+	}
 	COND_VAR_MUTEX_UNLOCK(sync_barrier);
 } 
 
@@ -112,7 +113,6 @@ void run_tsp (int nb_threads, int nb_towns, int seed, int nb_clusters, char* mac
 	free(tsps);
 
 	end = timer_get();
-    uint64_t exec_time = diff_time(start, end);
 
 	LOG ("min distance = %5d\n", min_distance);
 	

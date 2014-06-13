@@ -34,8 +34,6 @@ struct main_pars init_main_pars (int argc, char **argv) {
 	assert(ret.nb_executions > 0);
 	ret.machine = (argc == 7) ? argv[6] : NULL;
 
-	init_time();
-
 	return ret;
 }
 

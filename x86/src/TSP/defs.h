@@ -20,21 +20,14 @@ extern const unsigned long long FACTORIAL_TABLE[];
 
 unsigned int get_number_of_partitions (int clusters);
 
-
-/*
- * MEMORY ALIGNEMENT ROUTINES
- */
-
-//#define CHECK_PAGE_SIZE() if (PAGE_SIZE != sysconf(_SC_PAGESIZE)) printf("WARNING: Page size is different from the compilation parameter\n")
-
 /*
  * We pad the structures to avoid false sharing 
  * during the execution. We combine this passing with the 
  * __attribute__ ((aligned (PAGE_SIZE))) directive on the 
  * variable declaration or posix_memalign for memory allocation
  */
-#define PADDING(struct_size) sysconf(_SC_PAGESIZE) - struct_size + (struct_size / sysconf(_SC_PAGESIZE) * sysconf(_SC_PAGESIZE))
-
+#define PAGE_SIZE 4096
+#define PADDING(struct_size) PAGE_SIZE - struct_size + (struct_size / PAGE_SIZE * PAGE_SIZE)
 
 /*
  * LOCKING PRIMITIVES

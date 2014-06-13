@@ -111,7 +111,7 @@ void free_tsp(tsp_t_pointer tsp) {
 }
 
 inline int present (int city, int hops, path_t *path) {
-	unsigned int i;
+	int i;
 	for (i = 0; i < hops; i++)
 		if ((*path)[i] == city) return 1;
 	return 0;

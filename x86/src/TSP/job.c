@@ -37,7 +37,7 @@ static void close_queue (job_queue_t *q) {
 
 void add_job (job_queue_t *q, job_t j) {
 	COND_VAR_MUTEX_LOCK(q->cond_var);
-	assert (q->end < q->max_size);
+	assert (q->end < (int)q->max_size);
 	q->buffer[q->end].tsp_job.len = j.len;
 	memcpy (&q->buffer[q->end].tsp_job.path, j.path, sizeof(path_t));
 	q->end++;

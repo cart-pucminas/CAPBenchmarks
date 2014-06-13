@@ -26,7 +26,7 @@ lu:
 	cd LU && $(MAKE) all
 
 # Builds TSP.
-lu:
+tsp:
 	cd TSP && $(MAKE) all
 
 # Cleans compilation files.

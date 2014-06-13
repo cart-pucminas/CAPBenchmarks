@@ -84,8 +84,8 @@ unsigned int get_number_of_partitions (int clusters) {
  * RANDOM NUMBER GENERATOR
  */
 
-const static unsigned int simple_rng_s_mw_default = 521288629;
-const static unsigned int simple_rng_s_mz_default = 362436069;
+static const unsigned int simple_rng_s_mw_default = 521288629;
+static const unsigned int simple_rng_s_mz_default = 362436069;
 
 struct rand_state_struct simple_rng_initialize(int seed) {
 	struct rand_state_struct ret;
