@@ -53,6 +53,7 @@ static void usage(void)
 	printf("  --help             Display this information and exit\n");
 	printf("  --nthreads <value> Set number of threads\n");
 	printf("  --class <name>     Set problem class:\n");
+	printf("                       - tiny\n");
 	printf("                       - small\n");
 	printf("                       - standard\n");
 	printf("                       - large\n");
@@ -203,12 +204,15 @@ void run_tsp (int nb_threads, int nb_towns, int seed, int nb_clusters) {
 	uint64_t start; /* Start time.   */
 
 	timer_init();
-	start = timer_get();
-
+	
 	int nb_partitions = get_number_of_partitions(nb_clusters);
 	if (verbose)
-		printf ("nb_clusters = %3d nb_partitions = %3d nb_threads = %3d nb_towns = %3d seed = %d \n", 
-			nb_clusters, nb_partitions, nb_threads, nb_towns, seed);
+		printf ("Number of clusters..: %3d\n
+				 Number of partitions: %3d\n
+				 Number of threads...: %3d\n
+				 Number of Towns.....: %3d\n
+				 Seed................: %3d\n", 
+				 nb_clusters, nb_partitions, nb_threads, nb_towns, seed);
 
 	min_distance = INT_MAX;
 	next_partition = 0;
@@ -217,6 +221,8 @@ void run_tsp (int nb_threads, int nb_towns, int seed, int nb_clusters) {
 	assert(tsps != NULL);
 	pthread_t **tids = (pthread_t **) malloc (sizeof(pthread_t *) * nb_clusters);
 	assert (tids != NULL);	
+	
+	start = timer_get();
 	for (i = 0; i < nb_clusters; i++)
 		tids[i] = spawn(&tsps[i], i, nb_clusters, nb_partitions, nb_threads, nb_towns, seed);
 	for (i = 0; i < nb_clusters; i++) {
