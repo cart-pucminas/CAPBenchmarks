@@ -114,7 +114,7 @@ void run_tsp (int nb_threads, int nb_towns, int seed, int nb_clusters) {
 
 	end = timer_get();
 
-	LOG ("min distance = %5d\n", min_distance);
+	printf("shortest path size = %5d towns\n", min_distance);
 	
 	printf("timing statistics:\n");
 	printf("  total time:    %f\n", timer_diff(start, end)*MICROSEC);
