@@ -2,7 +2,7 @@
 
  void do_work (tsp_t_pointer tsp) {
 #ifdef MT
-	unsigned long i;
+	int i;
 	pthread_t *tids = NULL;
 
 	if(tsp->nb_threads > 1) {

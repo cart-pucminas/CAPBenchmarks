@@ -10,7 +10,7 @@ EXEC = tsp
 
 # Builds kernel.
 all: $(SRC)
-	$(CC) -Wno-unused-parameter $(SRC) $(CFLAGS) -o $(BINDIR)/$(EXEC).intel $(LIBS)
+	$(CC) -Wno-unused-parameter -DMT $(SRC) $(CFLAGS) -o $(BINDIR)/$(EXEC).intel $(LIBS)
 
 # Cleans compilation files.
 clean:
