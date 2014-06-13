@@ -1,5 +1,3 @@
-//#include <mppa/osconfig.h>
-
 #include "../tsp_mppa.h"
 #include "../common_main.h"
 
@@ -12,22 +10,26 @@ void callback_master (mppa_sigval_t sigval);
 /*
  * Problem.
  */
-struct problem {
-	int nb_towns;		/* Number of towns */
+struct problem
+{
+	int nb_towns; /* Number of towns */
 };
 
 /* Problem sizes. */
-static struct problem tiny     =  { 10 };
-static struct problem small    =  { 12 };
-static struct problem standard =  { 16 };
-static struct problem large    =  { 18 };
+static struct problem tiny     =  { 14 };
+static struct problem small    =  { 15 };
+static struct problem standard =  { 17 };
+static struct problem large    =  { 19 };
 static struct problem huge     =  { 20 };
 
 /* Be verbose? */
 int verbose = 0;
 
-int nclusters = 16;	/* Number of clusters */
-int seed = 12345;	/* Seed for random numbers generator */
+/* Number of clusters */
+int nclusters = 1;
+	
+/* Seed for random numbers generator. */
+int seed = 122;
 
 /* Problem. */           
 static struct problem *p = &tiny;
