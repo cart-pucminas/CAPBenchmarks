@@ -47,7 +47,7 @@ void run_main (struct main_pars pars) {
 				assert (pars.nb_towns[town] <= MAX_TOWNS);
 				assert (pars.nb_clusters[cluster] > 0);
 				for (execution = 0; execution < pars.nb_executions; execution++)
-					run_tsp(pars.nb_threads[thread], pars.nb_towns[town], pars.seed, pars.nb_clusters[cluster], pars.machine);
+					run_tsp(pars.nb_threads[thread], pars.nb_towns[town], pars.seed, pars.nb_clusters[cluster]);
 				thread++;
 			}
 			cluster++;
