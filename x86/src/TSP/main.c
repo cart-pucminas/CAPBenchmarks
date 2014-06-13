@@ -63,7 +63,7 @@ void wait_barrier (barrier_par_t barrier_par) {
 } 
 
 
-pthread_t *spawn (tsp_t_pointer *tsp, int cluster_id, int nb_clusters, int nb_partitions, int nb_threads, int nb_towns, int seed, char* machine) {
+pthread_t *spawn (tsp_t_pointer *tsp, int cluster_id, int nb_clusters, int nb_partitions, int nb_threads, int nb_towns, int seed) {
 
 	pthread_t *tid = (pthread_t *)malloc (sizeof(pthread_t));
 	struct execution_parameters *params = (struct execution_parameters*) malloc (sizeof(struct execution_parameters));
@@ -82,7 +82,7 @@ pthread_t *spawn (tsp_t_pointer *tsp, int cluster_id, int nb_clusters, int nb_pa
 	return tid;	
 }
 
-void run_tsp (int nb_threads, int nb_towns, int seed, int nb_clusters, char* machine) {
+void run_tsp (int nb_threads, int nb_towns, int seed, int nb_clusters) {
 	int i;
 
 	uint64_t end;   /* End time.     */
@@ -103,7 +103,7 @@ void run_tsp (int nb_threads, int nb_towns, int seed, int nb_clusters, char* mac
 	pthread_t **tids = (pthread_t **) malloc (sizeof(pthread_t *) * nb_clusters);
 	assert (tids != NULL);	
 	for (i = 0; i < nb_clusters; i++)
-		tids[i] = spawn(&tsps[i], i, nb_clusters, nb_partitions, nb_threads, nb_towns, seed, machine);
+		tids[i] = spawn(&tsps[i], i, nb_clusters, nb_partitions, nb_threads, nb_towns, seed);
 	for (i = 0; i < nb_clusters; i++) {
 		pthread_join (*(tids[i]), NULL);
 		free(tids[i]);

@@ -18,8 +18,8 @@ void *spawn_worker(void* params) {
 struct main_pars init_main_pars (int argc, char **argv) {
 	struct main_pars ret;
 		
-	if (argc != 5 && argc != 6 && argc != 7) {
-		fprintf (stderr, "Usage: %s <nb_threads> <nb_towns> <seed> <nb_clusters> [nb_executions machine]\n", argv[0]);
+	if (argc != 5 && argc != 6) {
+		fprintf (stderr, "Usage: %s <nb_threads> <nb_towns> <seed> <nb_clusters> [nb_executions]\n", argv[0]);
 		exit(1);
 	}
 
@@ -31,8 +31,6 @@ struct main_pars init_main_pars (int argc, char **argv) {
 	ret.nb_clusters = par_parse (argv[4]);
 	assert(ret.nb_clusters);
 	ret.nb_executions = (argc == 6) ? atoi(argv[5]) : 1;
-	assert(ret.nb_executions > 0);
-	ret.machine = (argc == 7) ? argv[6] : NULL;
 
 	return ret;
 }
