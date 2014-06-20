@@ -143,12 +143,11 @@ static void readargs(int argc, char **argv)
  */
 int main(int argc, char **argv)
 {
-	int i;             /* Loop index.         */
-	int *map;          /* Map of clusters.    */
-	uint64_t end;      /* End time.           */
-	uint64_t start;    /* Start time.         */
-	vector_t *data;    /* Data points.        */
-	uint64_t avgslave; /* Average slave time. */
+	int i;          /* Loop index.      */
+	int *map;       /* Map of clusters. */
+	uint64_t end;   /* End time.        */
+	uint64_t start; /* Start time.      */
+	vector_t *data; /* Data points.     */
 	
 	readargs(argc, argv);
 	
@@ -177,13 +176,11 @@ int main(int argc, char **argv)
 	end = timer_get();
 	total = timer_diff(start, end);
 
-	/* Print tiing statistics. */
+	/* Print timing statistics. */
 	printf("timing statistics:\n");
 	printf("  master:        %f\n", master*MICROSEC);
-	avgslave = 0;
 	for (i = 0; i < nclusters; i++)
-		avgslave += slave[i];
-	printf("  slave:         %f\n", (avgslave*MICROSEC)/nclusters);
+		printf("  slave %d:      %f\n", i, slave[i]*MICROSEC);
 	printf("  communication: %f\n", communication*MICROSEC);
 	printf("  total time:    %f\n", total*MICROSEC);
 	

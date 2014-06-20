@@ -147,7 +147,7 @@ static int count_friends(void)
 	chunksize = (endnum - startnum + 1)/NUM_IO_CORES;
 	for (i = 0; i < NUM_IO_CORES; i++)
 	{
-		tdata[i].args.i0 = (i == 0) ? 1 : i*chunksize;
+		tdata[i].args.i0 = (i == 0) ? startnum + 1 : i*chunksize;
 		tdata[i].args.in = (i + 1 < NUM_IO_CORES) ? (i + 1)*chunksize :
 													(endnum - startnum + 1);
 		pthread_create(&tdata[i].tid, NULL, thread_main, (void *)&tdata[i]);

@@ -32,11 +32,11 @@ struct problem
 };
 
 /* Problem sizes. */
-static struct problem tiny     =  { 1,  4096 };
-static struct problem small    =  { 1,  8192 };
-static struct problem standard =  { 1, 16384 };
-static struct problem large    =  { 1, 32768 };
-static struct problem huge     =  { 1, 65536 }; 
+static struct problem tiny     =  { 8000001, 8004096 };
+static struct problem small    =  { 8000001, 8008192 };
+static struct problem standard =  { 8000001, 8016384 };
+static struct problem large    =  { 8000001, 8032768 };
+static struct problem huge     =  { 8000001, 8065536 }; 
 
 /* Benchmark parameters. */
 int verbose = 0;                  /* Be verbose?        */
@@ -140,10 +140,9 @@ static void readargs(int argc, char **argv)
  */
 int main(int argc, char **argv)
 {
-	int i;             /* Loop index.         */
-	uint64_t end;      /* End time.           */
-	uint64_t start;    /* Start time.         */
-	uint64_t avgslave; /* Average slave time. */
+	int i;          /* Loop index. */
+	uint64_t end;   /* End time.   */
+	uint64_t start; /* Start time. */
 	
 	readargs(argc, argv);
 	
@@ -157,13 +156,11 @@ int main(int argc, char **argv)
 	end = timer_get();
 	total = timer_diff(start, end);
 
-	/* Print tiing statistics. */
+	/* Print timing statistics. */
 	printf("timing statistics:\n");
 	printf("  master:        %f\n", master*MICROSEC);
-	avgslave = 0;
 	for (i = 0; i < nclusters; i++)
-		avgslave += slave[i];
-	printf("  slave:         %f\n", (avgslave*MICROSEC)/nclusters);
+		printf("  slave %d:      %f\n", i, slave[i]*MICROSEC);
 	printf("  communication: %f\n", communication*MICROSEC);
 	printf("  total time:    %f\n", total*MICROSEC);
 	
