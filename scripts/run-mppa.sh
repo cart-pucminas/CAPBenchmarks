@@ -11,17 +11,20 @@ export MPPADIR=/usr/local/k1tools
 # Create results directory.
 mkdir -p $RESULTSDIR
 
-for kernel in fn gf is km lu tsp; do
-	for it in {1..10}; do
-		echo "running $kernel iteration $it"
-		# Weak scaling.
-		$MPPADIR/bin/k1-power -- $MPPADIR/bin/k1-jtag-runner --multibinary=$BINDIR/$kernel.mppa.mpk --exec-multibin=IODDR0:$kernel.master -- --verbose --class tiny --nclusters 1 &>> $RESULTSDIR/$kernel-tiny-1.mppa
-		$MPPADIR/bin/k1-power -- $MPPADIR/bin/k1-jtag-runner --multibinary=$BINDIR/$kernel.mppa.mpk --exec-multibin=IODDR0:$kernel.master -- --verbose --class small --nclusters 2 &>> $RESULTSDIR/$kernel-small-2.mppa
-		$MPPADIR/bin/k1-power -- $MPPADIR/bin/k1-jtag-runner --multibinary=$BINDIR/$kernel.mppa.mpk --exec-multibin=IODDR0:$kernel.master -- --verbose --class standard --nclusters 4 &>> $RESULTSDIR/$kernel-standard-4.mppa
-		$MPPADIR/bin/k1-power -- $MPPADIR/bin/k1-jtag-runner --multibinary=$BINDIR/$kernel.mppa.mpk --exec-multibin=IODDR0:$kernel.master -- --verbose --class large --nclusters 8 &>> $RESULTSDIR/$kernel-large-8.mppa
-		$MPPADIR/bin/k1-power -- $MPPADIR/bin/k1-jtag-runner --multibinary=$BINDIR/$kernel.mppa.mpk --exec-multibin=IODDR0:$kernel.master -- --verbose --class huge --nclusters 16 &>> $RESULTSDIR/$kernel-huge-16.mppa
+for kernel in fast fn gf is km lu tsp; do
+	echo "running $kernel"
 	
-		# Strong scaling.
+	# Weak scaling
+	echo "running weak scaling test: iteration $it"
+	for nprocs in 1 2 4 8 16; do
+		for class in tiny small large huge; do
+			$MPPADIR/bin/k1-power -- $MPPADIR/bin/k1-jtag-runner --multibinary=$BINDIR/$kernel.mppa.mpk --exec-multibin=IODDR0:$kernel.master -- --verbose --class $class --nclusters $nprocs &>> $RESULTSDIR/$kernel-$class-$nprocs.mppa
+		done
+	done
+	
+	# Strong scaling.
+	for it in {1..10}; do
+		echo "running strong scaling test: iteration $it"
 		for nprocs in 1 2 3 5 6 7 8 9 10 11 12 13 14 15 16; do
 			$MPPADIR/bin/k1-power -- $MPPADIR/bin/k1-jtag-runner --multibinary=$BINDIR/$kernel.mppa.mpk --exec-multibin=IODDR0:$kernel.master -- --verbose --class standard --nclusters $nprocs &>> $RESULTSDIR/$kernel-standard-$nprocs.mppa
 		done
