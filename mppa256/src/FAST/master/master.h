@@ -19,7 +19,7 @@
 	/*
 	 * Maximum chunk size.
 	 */
-	#define CHUNK_SIZE (1024)
+	#define CHUNK_SIZE (512)
 	
 	/*
 	 * Maximum mask size.

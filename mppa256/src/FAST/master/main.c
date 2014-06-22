@@ -229,6 +229,7 @@ int main(int argc, char **argv)
 	uint64_t end;       /* End time.           */
 	uint64_t start;     /* Start time.         */
 	char *img; 			/* Image input.        */
+	char *output;		/* Image output.		*/
 	int numcorners=0;	/* Total corners detected */
 		
 	readargs(argc, argv);
@@ -241,11 +242,11 @@ int main(int argc, char **argv)
 		printf("initializing...\n");
 	start = timer_get();
 	img = smalloc(p->imgsize*p->imgsize*sizeof(char));
+	output = smalloc(p->imgsize*p->imgsize*sizeof(char));
 	for (i = 0; i < p->imgsize*p->imgsize; i++){
-		char val = randnum() & 0xff;
+		char val = ((char) normalnum(128.0,64.0)) & 0xff;
 		img[i] = (val>0) ? val : val*(-1);
 	}
-	
 	mask = smalloc(p->maskrows*p->maskcolumns*sizeof(int));
 	generate_mask(mask);
 	end = timer_get();
@@ -256,7 +257,7 @@ int main(int argc, char **argv)
 	if (verbose)
 		printf("Detecting corners...\n");
 	start = timer_get();
-	numcorners = fast(img, p->imgsize, mask, p->masksize);
+	numcorners = fast(img, output, p->imgsize, mask, p->masksize);
 	end = timer_get();
 	
 	total = timer_diff(start, end);

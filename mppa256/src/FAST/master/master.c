@@ -14,12 +14,13 @@
 #include <string.h>
 #include <timer.h>
 #include <util.h>
+#include <stdio.h>
 #include "master.h"
 
 /*
  * FAST corner detection.
  */
-int fast(char *img, int imgsize, int *mask, int masksize)
+int fast(char *img, char *output, int imgsize, int *mask, int masksize)
 {	
 	int i,j,k;             /* Loop indexes.     */ 
 	size_t n;
@@ -30,6 +31,7 @@ int fast(char *img, int imgsize, int *mask, int masksize)
 	//int points[MAX_THREADS] = {0};
 	int numcorners = 0;
 	int numpoints = 0;
+	
 	uint64_t start,end;
 	
 	open_noc_connectors();
@@ -88,16 +90,16 @@ int fast(char *img, int imgsize, int *mask, int masksize)
 			{
 				//communication += data_receive(infd[nclusters-j],&img[(nclusters-j)*CHUNK_SIZE*CHUNK_SIZE], n);
 				communication += data_receive(infd[nclusters-j],&corners,MAX_THREADS*sizeof(int));
+				communication += data_receive(infd[nclusters-j],&output[(nclusters - j)*CHUNK_SIZE*CHUNK_SIZE], CHUNK_SIZE*CHUNK_SIZE*sizeof(char));
 				
 				start=timer_get();
 				for(k=0;k<MAX_THREADS;k++){
-					printf("%d ", corners[k]);
 					numcorners += corners[k];
 				}
 				end=timer_get();
 				master += timer_diff(start,end);
 				
-				communication += data_receive(infd[nclusters-j],&points,MAX_THREADS*sizeof(int));
+				//communication += data_receive(infd[nclusters-j],&points,MAX_THREADS*sizeof(int));
 				/*
 				printf("Points result %d: ",nclusters-j);
 				for(k=0;k<MAX_THREADS;k++){
@@ -114,6 +116,7 @@ int fast(char *img, int imgsize, int *mask, int masksize)
 	for (/* NOOP */ ; j > 0; j--)
 	{
 		communication += data_receive(infd[j - 1],&corners,MAX_THREADS*sizeof(int));
+		communication += data_receive(infd[j - 1],&output[(nchunks - j)*CHUNK_SIZE*CHUNK_SIZE], CHUNK_SIZE*CHUNK_SIZE*sizeof(char)); 
 		
 		start=timer_get();
 		for(k=0;k<MAX_THREADS;k++){
@@ -131,7 +134,7 @@ int fast(char *img, int imgsize, int *mask, int masksize)
 			numpoints += points[k];
 		}
 		printf("\n\n");
-		* /
+		*/
 		
 	}
 	

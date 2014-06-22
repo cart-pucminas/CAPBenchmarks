@@ -8,6 +8,7 @@
 #include <omp.h>
 #include <timer.h>
 #include <util.h>
+#include <stdio.h>
 #include "slave.h"
 
 /* Timing statistics. */
@@ -20,7 +21,8 @@ uint64_t total = 0;
 static int masksize;
 static int mask[MASK_SIZE];
 static char chunk[(CHUNK_SIZE*CHUNK_SIZE)+IMG_SIZE*MASK_RADIUS];
-static int output[MAX_THREADS];
+static int corners[MAX_THREADS];
+static int output[CHUNK_SIZE*CHUNK_SIZE];
 //static int points[MAX_THREADS];
 /**
  * FAST corner detection.
@@ -56,7 +58,8 @@ void fast(int offset, int n)
 								accumBrighter++;
 							}
 							else{
-								goto not_a_corner;
+								//goto not_a_corner;
+								r= 9;
 							}
 						}
 						//else{
@@ -64,11 +67,12 @@ void fast(int offset, int n)
 						//}
 					}
 					if(accumBrighter == 9 || accumDarker == 9){
-						output[omp_get_thread_num()]++;
+						corners[omp_get_thread_num()]++;
+						output[(j-offset)*CHUNK_SIZE + i] = 1;
 						z = 16;
 						//printf("Corner detected\n");
 					}
-not_a_corner:		z=z+r;			
+/*not_a_corner:*/	z++;			
 				}
 			}
 		}
@@ -113,7 +117,8 @@ int main(int argc, char **argv)
 				data_receive(infd, chunk, n);				//Receives chunk
 				data_receive(infd, &offset, sizeof(int));	//Receive offset
 				
-				memset(output,0,MAX_THREADS*sizeof(int));
+				memset(corners,0,MAX_THREADS*sizeof(int));
+				memset(output,0,CHUNK_SIZE*CHUNK_SIZE*sizeof(char));
 				//memset(points,0,MAX_THREADS*sizeof(int));
 				
 				start = timer_get();
@@ -137,7 +142,8 @@ int main(int argc, char **argv)
 				
 				end = timer_get();
 				total += timer_diff(start, end);
-				data_send(outfd, output, MAX_THREADS*sizeof(int));
+				data_send(outfd, corners, MAX_THREADS*sizeof(int));
+				data_send(outfd, output, CHUNK_SIZE*CHUNK_SIZE*sizeof(char));
 				//data_send(outfd, points, MAX_THREADS*sizeof(int));
 				
 				break;
