@@ -27,18 +27,18 @@ int fast(char *img, int imgsize, int *mask)
 	#pragma omp parallel default(shared) private(imagePixel,centralPixel,i,j,r,x,y,accumBrighter,accumDarker)
 	{
 		#pragma omp for
-		for (i = 0; i< imgsize; i++){
-			for (j = 0; j< imgsize; j++){
+		for (j = 0; j< imgsize; j++){
+			for (i = 0; i< imgsize; i++){
 				centralPixel = img[j*imgsize + i];
 				z = 0;
 				while(z<16){
 					accumBrighter = 0;
 					accumDarker = 0;
 					for(r = 0;r<9;r++){
-						x = i + mask[(r+z) * 2 + 0];
-						y = j + mask[(r+z) * 2 + 1];
+						x = i + mask[((r+z) * 2) + 0];
+						y = j + mask[((r+z) * 2) + 1];
 
-						if(x >=0 && x < imgsize && y >=0 && y < imgsize){
+						if(x >=0 && y>=0 && ((y * imgsize + x) < (imgsize*imgsize))){
 							imagePixel = img[y * imgsize + x];
 							if(imagePixel >= (centralPixel+THRESHOLD) && accumBrighter == 0){
 								accumDarker++;

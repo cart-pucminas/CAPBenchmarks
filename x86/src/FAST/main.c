@@ -28,11 +28,11 @@ struct problem
 };
 
 /* Problem sizes. */
-static struct problem tiny     = { 2,25,50,  2048};
-static struct problem small    = { 2,25,50,  4096};
-static struct problem standard = { 2,25,50,  8192};
-static struct problem large    = { 2,25,50, 16384};
-static struct problem huge     = { 2,25,50, 32768};
+static struct problem tiny     = { 2,24,48,  2048};
+static struct problem small    = { 2,24,48,  4096};
+static struct problem standard = { 2,24,48,  8192};
+static struct problem large    = { 2,24,48, 16384};
+static struct problem huge     = { 2,24,48, 32768};
 
 /* Be verbose? */
 int verbose = 0;
@@ -41,7 +41,7 @@ int verbose = 0;
 int nthreads = 1;
 
 /* Seed number. */
-static int seed = 10;
+static int seed = 0;
 
 /* Problem. */           
 static struct problem *p = &tiny;
@@ -52,7 +52,7 @@ static struct problem *p = &tiny;
 static void usage(void)
 {
 	printf("Usage: gf [options]\n");
-	printf("Brief: Gaussian Filter Benchmark Kernel\n");
+	printf("Brief: FAST Corner Detection Kernel\n");
 	printf("Options:\n");
 	printf("  --help             Display this information and exit\n");
 	printf("  --nthreads <value> Set number of threads\n");
@@ -206,13 +206,13 @@ static void generate_mask(int *mask)
 	mask[20*p->maskcolumns + 1] = -1;
 
 	mask[21*p->maskcolumns + 0] = 3;
-	mask[22*p->maskcolumns + 1] = 0;
+	mask[21*p->maskcolumns + 1] = 0;
 
-	mask[23*p->maskcolumns + 0] = 3;
-	mask[23*p->maskcolumns + 1] = 1;
+	mask[22*p->maskcolumns + 0] = 3;
+	mask[22*p->maskcolumns + 1] = 1;
 
-	mask[24*p->maskcolumns + 0] = 2;
-	mask[24*p->maskcolumns + 1] = 2;	
+	mask[23*p->maskcolumns + 0] = 2;
+	mask[23*p->maskcolumns + 1] = 2;	
 }
 
 /*
@@ -238,8 +238,12 @@ int main(int argc, char **argv)
 		printf("initializing...\n");
 	start = timer_get();
 	img = smalloc(p->imgsize*p->imgsize*sizeof(char));
-	for (i = 0; i < p->imgsize*p->imgsize; i++)
-		img[i] = randnum() & 0xff;
+	for (i = 0; i < p->imgsize*p->imgsize; i++){
+		char val = randnum() & 0xff;
+		img[i] = (val>0) ? val : val*(-1);
+		//printf("%d ",img[i]);
+	}
+	//printf("\n");		
 	mask = smalloc(p->maskrows*p->maskcolumns*sizeof(int));
 	generate_mask(mask);
 	end = timer_get();
