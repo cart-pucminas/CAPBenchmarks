@@ -19,9 +19,9 @@ uint64_t total = 0;
 /* FAST parameters. */
 static int masksize;
 static int mask[MASK_SIZE];
-static char chunk[(CHUNK_SIZE+2*MASK_RADIUS)*(CHUNK_SIZE+2*MASK_RADIUS)];
+static char chunk[(CHUNK_SIZE*CHUNK_SIZE)+32768*MASK_RADIUS];
 static int output[MAX_THREADS];
-
+static int points[MAX_THREADS];
 /**
  * FAST corner detection.
  */
@@ -34,19 +34,20 @@ void fast(int offset, int n)
 	#pragma omp parallel default(shared) private(imagePixel,centralPixel,i,j,z,r,x,y,accumBrighter,accumDarker)
 	{
 		#pragma omp for
-		for (j = offset; j< CHUNK_SIZE; j++){
-			for (i = 0; i< CHUNK_SIZE; i++){
+		for (j = offset; j<CHUNK_SIZE+offset; j++){
+			for (i = 0; i<CHUNK_SIZE; i++){
 				centralPixel = chunk[j*CHUNK_SIZE + i];
+				points[omp_get_thread_num()]++;
 				z = 0;
 				while(z<16){
 					accumBrighter = 0;
 					accumDarker = 0;
 					for(r = 0;r<9;r++){
-						x = i + mask[((r+z) << 1) + 0];
-						y = j + mask[((r+z) << 1) + 1];
+						x = i + mask[((r+z) * 2) + 0];
+						y = j + mask[((r+z) * 2) + 1];
 
 						//if(x >=0 && x < (CHUNK_SIZE) && y >=0 && y < (CHUNK_SIZE-2*MASK_RADIUS)){
-						if ((y*CHUNK_SIZE + x) < n){
+						if (x >= 0 && y>=0 && ((y*CHUNK_SIZE + x) < n)){
 							imagePixel = chunk[y * (CHUNK_SIZE) + x];
 							if(imagePixel >= (centralPixel+THRESHOLD) && accumBrighter == 0){
 								accumDarker++;
@@ -58,6 +59,9 @@ void fast(int offset, int n)
 								goto not_a_corner;
 							}
 						}
+						//else{
+							//printf("Out of bound: %d %d %d %d %d\n",i,j,x,y,(y*CHUNK_SIZE + x));
+						//}
 					}
 					if(accumBrighter == 9 || accumDarker == 9){
 						output[omp_get_thread_num()]++;
@@ -108,26 +112,33 @@ int main(int argc, char **argv)
 				data_receive(infd, &n, sizeof(int)); 		//Receives size of chunk (includes halo)
 				data_receive(infd, chunk, n);				//Receives chunk
 				data_receive(infd, &offset, sizeof(int));	//Receive offset
+				
+				memset(output,0,MAX_THREADS*sizeof(int));
+				memset(points,0,MAX_THREADS*sizeof(int));
+				
 				start = timer_get();
 				printf("Processing...Offset = %d Size= %d\n", offset,n);
-				memset(output,0,MAX_THREADS*sizeof(int));
-				printf("Before\n");
-				for(k=0;k<MAX_THREADS;k++){
-					printf("%d ", output[k]);
-				}
-				printf("\n");
+
 				
 				fast(offset, n);
 				
-				printf("Slave result: ");
+				/*printf("Slave result: ");
 				for(k=0;k<MAX_THREADS;k++){
 					printf("%d ", output[k]);
 				}
-				printf("\n");
+				printf("\n\n");
+				
+				printf("Points Slave result: ");
+				for(k=0;k<MAX_THREADS;k++){
+					printf("%d ", points[k]);
+				}
+				printf("\n\n");
+				*/
 				
 				end = timer_get();
 				total += timer_diff(start, end);
 				data_send(outfd, output, MAX_THREADS*sizeof(int));
+				data_send(outfd, points, MAX_THREADS*sizeof(int));
 				
 				break;
 			

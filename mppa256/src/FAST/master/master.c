@@ -22,13 +22,14 @@ int fast(char *img, int imgsize, int *mask, int masksize)
 {	
 	int i,j,k;             /* Loop indexes.     */ 
 	size_t n;
-	int n1,n2;            /* Bytes to send.    */
+	int n1,n2=0;            /* Bytes to send.    */
 	int msg;             /* Message.          */
 	int offset;			
 	int nchunks;         /* Number of chunks. */
 	int corners[MAX_THREADS] = {0};
+	int points[MAX_THREADS] = {0};
 	int numcorners = 0;
-	
+	int numpoints = 0;
 	open_noc_connectors();
 	spawn_slaves();
 	sync_slaves();
@@ -44,23 +45,35 @@ int fast(char *img, int imgsize, int *mask, int masksize)
     /* Process image in chunks. */
     j = 0; 
     n1 = ((CHUNK_SIZE)*(CHUNK_SIZE+4*MASK_RADIUS))*sizeof(char);
-    n2 = ((CHUNK_SIZE)*(CHUNK_SIZE+2*MASK_RADIUS))*sizeof(char); //size of last chunk
+    //n2 = ((CHUNK_SIZE)*(CHUNK_SIZE*MASK_RADIUS))*sizeof(char); //size of last chunk
     msg = MSG_CHUNK;
     nchunks = (imgsize*imgsize)/(CHUNK_SIZE*CHUNK_SIZE);
-    printf("nchunks = %d\n",nchunks);
+    //printf("nchunks = %d\n",nchunks);
     for (i = 0; i < nchunks; i++)
     {		
 		communication += data_send(outfd[j], &msg, sizeof(int));
+		offset = (imgsize/CHUNK_SIZE)*MASK_RADIUS;
 		if(i == nchunks-1){
-			communication += data_send(outfd[j], &n2, sizeof(int));
-			communication += data_send(outfd[j], &img[i*(CHUNK_SIZE * (CHUNK_SIZE-2*MASK_RADIUS))],n2);
+			int start = i*(CHUNK_SIZE * CHUNK_SIZE)- offset*CHUNK_SIZE;
+			int end = (CHUNK_SIZE*CHUNK_SIZE)+(offset*CHUNK_SIZE);
+			communication += data_send(outfd[j], &end, sizeof(int));
+			communication += data_send(outfd[j], &img[start],end*sizeof(char));
+			//printf("START: %d\t END: %d\n", start/imgsize,(start+end)/imgsize);
 		}
 		else{
-			communication += data_send(outfd[j], &n1, sizeof(int));
-			communication += data_send(outfd[j], &img[i*(CHUNK_SIZE * (CHUNK_SIZE-2*MASK_RADIUS))],n1);
+			int start = i*(CHUNK_SIZE * CHUNK_SIZE)- offset*CHUNK_SIZE;
+			int end = (CHUNK_SIZE*CHUNK_SIZE)+(2*offset*CHUNK_SIZE);
+			communication += data_send(outfd[j], &end, sizeof(int));
+			communication += data_send(outfd[j], &img[start],end*sizeof(char));
+			//printf("START: %d\t END: %d\n", start/imgsize,(start+end)/imgsize);
 		}
-		offset = (i==0) ? 0 : 2*MASK_RADIUS;
-		communication += data_send(outfd[j], &offset, sizeof(int));
+		if(i == 0){
+			communication += data_send(outfd[j], &i, sizeof(int));
+		}
+		else{
+			communication += data_send(outfd[j], &offset, sizeof(int));
+		}
+		
 		j++;
 		
 		/* 
@@ -73,12 +86,24 @@ int fast(char *img, int imgsize, int *mask, int masksize)
 			{
 				//communication += data_receive(infd[nclusters-j],&img[(nclusters-j)*CHUNK_SIZE*CHUNK_SIZE], n);
 				communication += data_receive(infd[nclusters-j],&corners,MAX_THREADS*sizeof(int));
+				/*
 				printf("Master result: ");
 				for(k=0;k<MAX_THREADS;k++){
 					printf("%d ", corners[k]);
 					numcorners += corners[k];
 				}
 				printf("\n");
+				*/
+				
+				communication += data_receive(infd[nclusters-j],&points,MAX_THREADS*sizeof(int));
+				/*
+				printf("Points result %d: ",nclusters-j);
+				for(k=0;k<MAX_THREADS;k++){
+					printf("%d ", points[k]);
+					numpoints += points[k];
+				}
+				printf("\n\n");
+				*/
 			}
 		}
 	}
@@ -88,13 +113,27 @@ int fast(char *img, int imgsize, int *mask, int masksize)
 	{
 		//communication += data_receive(infd[j - 1],&img[(nchunks - j)*CHUNK_SIZE*CHUNK_SIZE], n);
 		communication += data_receive(infd[j - 1],&corners,MAX_THREADS*sizeof(int));
-		printf("Master result: ");
+		
+		//printf("Master result: ");
 		for(k=0;k<MAX_THREADS;k++){
-			printf("%d ", corners[k]);
+			//printf("%d ", corners[k]);
 			numcorners += corners[k];
 		}
-		printf("\n");
+		//printf("\n\n");
+		
+		
+		communication += data_receive(infd[j - 1],&points,MAX_THREADS*sizeof(int));
+		
+		//printf("Points result %d: ",j - 1);
+		//for(k=0;k<MAX_THREADS;k++){
+			//printf("%d ", points[k]);
+			//numpoints += points[k];
+		//}
+		//printf("\n\n");
+		
 	}
+	
+	//printf("Total points: %d\n",numpoints);
 	
 	/* House keeping. */
 	msg = MSG_DIE;
