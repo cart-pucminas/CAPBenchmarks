@@ -16,6 +16,11 @@
 	extern void error(const char *msg);
 	
 	/*
+	 * Generates a normal number.
+	 */
+	extern double normalnum(double mu, double sigma);
+	
+	/*
 	 * Generates a random number.
 	 */
 	extern unsigned randnum(void);
