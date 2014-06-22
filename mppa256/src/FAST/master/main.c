@@ -1,7 +1,8 @@
 /*
- * Copyright(C) 2014 Pedro H. Penna <pedrohenriquepenna@gmail.com>
+ * Copyright(C) 2014 Alyson D. Pereira <alyson.deives@outlook.com>, 
+ * 					 Pedro H. Penna <pedrohenriquepenna@gmail.com>
  * 
- * Gaussian Filter Benchmark Kernel.
+ * FAST Corner Detection Benchmark Kernel.
  */
 
 #include <global.h>
@@ -229,8 +230,7 @@ int main(int argc, char **argv)
 	uint64_t start;     /* Start time.         */
 	char *img; 			/* Image input.        */
 	int numcorners=0;	/* Total corners detected */
-	uint64_t avgslave;  /* Average slave time. */
-	
+		
 	readargs(argc, argv);
 	
 	timer_init();
@@ -244,9 +244,7 @@ int main(int argc, char **argv)
 	for (i = 0; i < p->imgsize*p->imgsize; i++){
 		char val = randnum() & 0xff;
 		img[i] = (val>0) ? val : val*(-1);
-		//printf("%d ",img[i]);
 	}
-	//printf("\n");
 	
 	mask = smalloc(p->maskrows*p->maskcolumns*sizeof(int));
 	generate_mask(mask);
@@ -266,10 +264,9 @@ int main(int argc, char **argv)
 	/* Print tiing statistics. */
 	printf("timing statistics:\n");
 	printf("  master:           %f\n", master*MICROSEC);
-	avgslave = 0;
-	for (i = 0; i < nclusters; i++)
-		avgslave += slave[i];
-	printf("  slave:            %f\n", (avgslave*MICROSEC)/nclusters);
+	for (i = 0; i < nclusters; i++){
+		printf("  slave %d:         %f",i,slave[i]*MICROSEC);
+	}
 	printf("  communication:    %f\n", communication*MICROSEC);
 	printf("  total time:       %f\n", total*MICROSEC);
 	printf("  corners detected: %d\n", numcorners);

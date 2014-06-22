@@ -7,6 +7,7 @@
 #include <assert.h>
 #include <global.h>
 #include <inttypes.h>
+#include <stdint.h>
 #include <math.h>
 #include <mppaipc.h>
 #include <stdlib.h>
@@ -22,14 +23,15 @@ int fast(char *img, int imgsize, int *mask, int masksize)
 {	
 	int i,j,k;             /* Loop indexes.     */ 
 	size_t n;
-	int n1,n2=0;            /* Bytes to send.    */
 	int msg;             /* Message.          */
 	int offset;			
 	int nchunks;         /* Number of chunks. */
 	int corners[MAX_THREADS] = {0};
-	int points[MAX_THREADS] = {0};
+	//int points[MAX_THREADS] = {0};
 	int numcorners = 0;
 	int numpoints = 0;
+	uint64_t start,end;
+	
 	open_noc_connectors();
 	spawn_slaves();
 	sync_slaves();
@@ -44,7 +46,7 @@ int fast(char *img, int imgsize, int *mask, int masksize)
     
     /* Process image in chunks. */
     j = 0; 
-    n1 = ((CHUNK_SIZE)*(CHUNK_SIZE+4*MASK_RADIUS))*sizeof(char);
+    //n1 = ((CHUNK_SIZE)*(CHUNK_SIZE+4*MASK_RADIUS))*sizeof(char);
     //n2 = ((CHUNK_SIZE)*(CHUNK_SIZE*MASK_RADIUS))*sizeof(char); //size of last chunk
     msg = MSG_CHUNK;
     nchunks = (imgsize*imgsize)/(CHUNK_SIZE*CHUNK_SIZE);
@@ -86,14 +88,14 @@ int fast(char *img, int imgsize, int *mask, int masksize)
 			{
 				//communication += data_receive(infd[nclusters-j],&img[(nclusters-j)*CHUNK_SIZE*CHUNK_SIZE], n);
 				communication += data_receive(infd[nclusters-j],&corners,MAX_THREADS*sizeof(int));
-				/*
-				printf("Master result: ");
+				
+				start=timer_get();
 				for(k=0;k<MAX_THREADS;k++){
 					printf("%d ", corners[k]);
 					numcorners += corners[k];
 				}
-				printf("\n");
-				*/
+				end=timer_get();
+				master += timer_diff(start,end);
 				
 				communication += data_receive(infd[nclusters-j],&points,MAX_THREADS*sizeof(int));
 				/*
@@ -111,25 +113,25 @@ int fast(char *img, int imgsize, int *mask, int masksize)
 	/* Receive remaining results. */
 	for (/* NOOP */ ; j > 0; j--)
 	{
-		//communication += data_receive(infd[j - 1],&img[(nchunks - j)*CHUNK_SIZE*CHUNK_SIZE], n);
 		communication += data_receive(infd[j - 1],&corners,MAX_THREADS*sizeof(int));
 		
-		//printf("Master result: ");
+		start=timer_get();
 		for(k=0;k<MAX_THREADS;k++){
-			//printf("%d ", corners[k]);
 			numcorners += corners[k];
 		}
-		//printf("\n\n");
+		end=timer_get();
+		master += timer_diff(start,end);
 		
-		
+		/*
 		communication += data_receive(infd[j - 1],&points,MAX_THREADS*sizeof(int));
 		
-		//printf("Points result %d: ",j - 1);
-		//for(k=0;k<MAX_THREADS;k++){
-			//printf("%d ", points[k]);
-			//numpoints += points[k];
-		//}
-		//printf("\n\n");
+		printf("Points result %d: ",j - 1);
+		for(k=0;k<MAX_THREADS;k++){
+			printf("%d ", points[k]);
+			numpoints += points[k];
+		}
+		printf("\n\n");
+		* /
 		
 	}
 	

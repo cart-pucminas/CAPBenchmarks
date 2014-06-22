@@ -19,9 +19,9 @@ uint64_t total = 0;
 /* FAST parameters. */
 static int masksize;
 static int mask[MASK_SIZE];
-static char chunk[(CHUNK_SIZE*CHUNK_SIZE)+32768*MASK_RADIUS];
+static char chunk[(CHUNK_SIZE*CHUNK_SIZE)+IMG_SIZE*MASK_RADIUS];
 static int output[MAX_THREADS];
-static int points[MAX_THREADS];
+//static int points[MAX_THREADS];
 /**
  * FAST corner detection.
  */
@@ -37,7 +37,7 @@ void fast(int offset, int n)
 		for (j = offset; j<CHUNK_SIZE+offset; j++){
 			for (i = 0; i<CHUNK_SIZE; i++){
 				centralPixel = chunk[j*CHUNK_SIZE + i];
-				points[omp_get_thread_num()]++;
+				//points[omp_get_thread_num()]++;
 				z = 0;
 				while(z<16){
 					accumBrighter = 0;
@@ -68,7 +68,7 @@ void fast(int offset, int n)
 						z = 16;
 						//printf("Corner detected\n");
 					}
-not_a_corner:		z++;			
+not_a_corner:		z=z+r;			
 				}
 			}
 		}
@@ -114,10 +114,10 @@ int main(int argc, char **argv)
 				data_receive(infd, &offset, sizeof(int));	//Receive offset
 				
 				memset(output,0,MAX_THREADS*sizeof(int));
-				memset(points,0,MAX_THREADS*sizeof(int));
+				//memset(points,0,MAX_THREADS*sizeof(int));
 				
 				start = timer_get();
-				printf("Processing...Offset = %d Size= %d\n", offset,n);
+				//printf("Processing...Offset = %d Size= %d\n", offset,n);
 
 				
 				fast(offset, n);
@@ -138,7 +138,7 @@ int main(int argc, char **argv)
 				end = timer_get();
 				total += timer_diff(start, end);
 				data_send(outfd, output, MAX_THREADS*sizeof(int));
-				data_send(outfd, points, MAX_THREADS*sizeof(int));
+				//data_send(outfd, points, MAX_THREADS*sizeof(int));
 				
 				break;
 			

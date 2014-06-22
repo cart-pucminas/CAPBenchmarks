@@ -1,5 +1,6 @@
 /*
- * Copyright(C) 2014 Pedro H. Penna <pedrohenriquepenna@gmail.com>
+ * Copyright(C) 2014 Alyson D. Pereira <alyson.deives@outlook.com>, 
+ * 					 Pedro H. Penna <pedrohenriquepenna@gmail.com>
  * 
  * slave.h -  Private slave library.
  */
@@ -28,11 +29,6 @@
 	 * Mask radius.
 	 */
 	#define MASK_RADIUS (3)
-	
-	/*
-	 * Halo size for chunk.
-	 */
-	#define HALO_SIZE ((2*CHUNK_SIZE*MASK_RADIUS) + (4*MASK_RADIUS*MASK_RADIUS))
 	
 	/*
 	 * Maximum image size.

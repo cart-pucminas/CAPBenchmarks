@@ -55,7 +55,7 @@ int fast(char *img, int imgsize, int *mask)
 						corners[omp_get_thread_num()]++;
 						z = 16;
 					}
-not_a_corner:		z++;
+not_a_corner:		z=z+r;
 				}
 			}
 		}

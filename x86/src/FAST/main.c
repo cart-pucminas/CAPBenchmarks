@@ -241,9 +241,7 @@ int main(int argc, char **argv)
 	for (i = 0; i < p->imgsize*p->imgsize; i++){
 		char val = randnum() & 0xff;
 		img[i] = (val>0) ? val : val*(-1);
-		//printf("%d ",img[i]);
-	}
-	//printf("\n");		
+	}	
 	mask = smalloc(p->maskrows*p->maskcolumns*sizeof(int));
 	generate_mask(mask);
 	end = timer_get();
