@@ -1,6 +1,6 @@
 /*
- * Copyright(C) 2014 Alyson D. Pereira <alyson.deives@outlook.com>, 
- * 					 Pedro H. Penna <pedrohenriquepenna@gmail.com>
+ * Copyright(C) 2014 	Alyson D. Pereira <alyson.deives@outlook.com>, 
+ * 			Pedro H. Penna <pedrohenriquepenna@gmail.com>
  * 
  * FAST Corner Detection Benchmark Kernel.
  */
@@ -18,7 +18,7 @@
  * FAST corner detection.
  */
 extern int fast
-(char *img, int imgsize, int *mask, int masksize);
+(char *img, char *output,int imgsize, int *mask, int masksize);
 
 /* Timing statistics. */
 uint64_t master = 0;          /* Time spent on master.        */
@@ -38,11 +38,11 @@ struct problem
 };
 
 /* Problem sizes. */
-static struct problem tiny     = { 2,24,48,  2048};
-static struct problem small    = { 2,24,48,  4096};
-static struct problem standard = { 2,24,48,  8192};
-static struct problem large    = { 2,24,48, 16384};
-static struct problem huge     = { 2,24,48, 32768};
+static struct problem tiny     = { 2,27,54,  2048};
+static struct problem small    = { 2,27,54,  4096};
+static struct problem standard = { 2,27,54,  8192};
+static struct problem large    = { 2,27,54, 16384};
+static struct problem huge     = { 2,27,54, 24576};
 
 /* Benchmark parameters. */
 int verbose = 0;                  /* Be verbose?        */
@@ -216,7 +216,16 @@ static void generate_mask(int *mask)
 	mask[22*p->maskcolumns + 1] = 1;
 
 	mask[23*p->maskcolumns + 0] = 2;
-	mask[23*p->maskcolumns + 1] = 2;	
+	mask[23*p->maskcolumns + 1] = 2;
+	
+	mask[24*p->maskcolumns + 0] = 1;
+	mask[24*p->maskcolumns + 1] = 3;
+
+	mask[25*p->maskcolumns + 0] = 0;
+	mask[25*p->maskcolumns + 1] = 3;
+
+	mask[26*p->maskcolumns + 0] = -1;
+	mask[26*p->maskcolumns + 1] = 3;
 }
 
 /*
@@ -242,9 +251,9 @@ int main(int argc, char **argv)
 		printf("initializing...\n");
 	start = timer_get();
 	img = smalloc(p->imgsize*p->imgsize*sizeof(char));
-	output = smalloc(p->imgsize*p->imgsize*sizeof(char));
+	output = scalloc(p->imgsize*p->imgsize,sizeof(char));
 	for (i = 0; i < p->imgsize*p->imgsize; i++){
-		char val = ((char) normalnum(128.0,64.0)) & 0xff;
+		char val = (char) (randnum() & 0xff);
 		img[i] = (val>0) ? val : val*(-1);
 	}
 	mask = smalloc(p->maskrows*p->maskcolumns*sizeof(int));
@@ -266,7 +275,7 @@ int main(int argc, char **argv)
 	printf("timing statistics:\n");
 	printf("  master:           %f\n", master*MICROSEC);
 	for (i = 0; i < nclusters; i++){
-		printf("  slave %d:         %f",i,slave[i]*MICROSEC);
+		printf("  slave %d:         %f\n",i,slave[i]*MICROSEC);
 	}
 	printf("  communication:    %f\n", communication*MICROSEC);
 	printf("  total time:       %f\n", total*MICROSEC);

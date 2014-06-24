@@ -1,7 +1,8 @@
 /*
- * Copyright(C) 2014 Pedro H. Penna <pedrohenriquepenna@gmail.com>
+ * Copyright(C) 2014 	Alyson Deives Pereira <alyson.deives@outlook.com>,
+ * 			Pedro H. Penna <pedrohenriquepenna@gmail.com>
  * 
- * gf.h - Gaussian Filter kernel library.
+ * fast.h - FAST Corner Detection  kernel library.
  */
 
 #ifndef _FAST_H_

@@ -34,28 +34,41 @@ int fast(char *img, int imgsize, int *mask)
 				while(z<16){
 					accumBrighter = 0;
 					accumDarker = 0;
-					for(r = 0;r<9;r++){
+					for(r = 0;r<12;r++){
 						x = i + mask[((r+z) * 2) + 0];
 						y = j + mask[((r+z) * 2) + 1];
 
 						if(x >=0 && y>=0 && ((y * imgsize + x) < (imgsize*imgsize))){
 							imagePixel = img[y * imgsize + x];
-							if(imagePixel >= (centralPixel+THRESHOLD) && accumBrighter == 0){
-								accumDarker++;
+							if(imagePixel >= (centralPixel+THRESHOLD)){
+								if(accumBrighter == 0){
+									accumDarker++;
+								}
+								else{
+									z += r - 1;
+									goto not_a_corner;
+								}
 							}
-							else if (imagePixel<=(centralPixel-THRESHOLD) && accumDarker == 0){
-								accumBrighter++;
+							else if (imagePixel<=(centralPixel-THRESHOLD)){
+								if(accumDarker == 0){
+									accumBrighter++;
+								}
+								else{
+									z += r - 1;
+									goto not_a_corner;
+								}
 							}
 							else{
+								z += r;
 								goto not_a_corner;
 							}
 						}
 					}
-					if(accumBrighter == 9 || accumDarker == 9){
+					if(accumBrighter == 12 || accumDarker == 12){
 						corners[omp_get_thread_num()]++;
 						z = 16;
 					}
-not_a_corner:		z=z+r;
+not_a_corner:			z++;
 				}
 			}
 		}

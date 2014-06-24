@@ -1,6 +1,6 @@
 /*
- * Copyright(C) 2014 Pedro H. Penna <pedrohenriquepenna@gmail.com>,
- *		     		 Alyson D. Pereira <alyson.deives@outlook.com>
+ * Copyright(C) 2014 	Alyson D. Pereira <alyson.deies@outlook.com>,
+ * 			Pedro H. Penna <pedrohenriquepenna@gmail.com>,
  * 
  * FAST corner detection Benchmark Kernel.
  */
@@ -28,11 +28,11 @@ struct problem
 };
 
 /* Problem sizes. */
-static struct problem tiny     = { 2,24,48,  2048};
-static struct problem small    = { 2,24,48,  4096};
-static struct problem standard = { 2,24,48,  8192};
-static struct problem large    = { 2,24,48, 16384};
-static struct problem huge     = { 2,24,48, 32768};
+static struct problem tiny     = { 2,28,56,  2048};
+static struct problem small    = { 2,28,56,  4096};
+static struct problem standard = { 2,28,56,  8192};
+static struct problem large    = { 2,28,56, 16384};
+static struct problem huge     = { 2,28,56, 24576};
 
 /* Be verbose? */
 int verbose = 0;
@@ -213,6 +213,15 @@ static void generate_mask(int *mask)
 
 	mask[23*p->maskcolumns + 0] = 2;
 	mask[23*p->maskcolumns + 1] = 2;	
+
+	mask[24*p->maskcolumns + 0] = 1;
+	mask[24*p->maskcolumns + 1] = 3;
+
+	mask[25*p->maskcolumns + 0] = 0;
+	mask[25*p->maskcolumns + 1] = 3;
+
+	mask[26*p->maskcolumns + 0] = -1;
+	mask[26*p->maskcolumns + 1] = 3;
 }
 
 /*
@@ -248,7 +257,7 @@ int main(int argc, char **argv)
 	if (verbose)
 		printf("  time spent: %f\n", timer_diff(start, end)*MICROSEC);
 		
-	/* Apply filter. */
+	/* Detect corners. */
 	if (verbose)
 		printf("detecting corners...\n");
 	start = timer_get();

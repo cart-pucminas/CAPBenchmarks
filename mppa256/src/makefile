@@ -3,7 +3,11 @@
 #
 
 # Builds all kernels.
-all: fn gf is km lu tsp
+all: fast fn gf is km lu tsp
+
+# Builds FAST kernel
+fast:
+	cd FAST && $(MAKE) all
 
 # Builds FN kernel.
 fn:
@@ -31,6 +35,7 @@ tsp:
 
 # Cleans compilation files.
 clean:
+	cd FAST && $(MAKE) clean
 	cd FN && $(MAKE) clean
 	cd GF && $(MAKE) clean
 	cd IS && $(MAKE) clean

@@ -9,6 +9,7 @@
 #include <timer.h>
 #include <util.h>
 #include <stdio.h>
+#include <string.h>
 #include "slave.h"
 
 /* Timing statistics. */
@@ -23,7 +24,7 @@ static int mask[MASK_SIZE];
 static char chunk[(CHUNK_SIZE*CHUNK_SIZE)+IMG_SIZE*MASK_RADIUS];
 static int corners[MAX_THREADS];
 static int output[CHUNK_SIZE*CHUNK_SIZE];
-//static int points[MAX_THREADS];
+
 /**
  * FAST corner detection.
  */
@@ -39,40 +40,47 @@ void fast(int offset, int n)
 		for (j = offset; j<CHUNK_SIZE+offset; j++){
 			for (i = 0; i<CHUNK_SIZE; i++){
 				centralPixel = chunk[j*CHUNK_SIZE + i];
-				//points[omp_get_thread_num()]++;
+				
 				z = 0;
 				while(z<16){
 					accumBrighter = 0;
 					accumDarker = 0;
-					for(r = 0;r<9;r++){
+					for(r = 0;r<12;r++){
 						x = i + mask[((r+z) * 2) + 0];
 						y = j + mask[((r+z) * 2) + 1];
-
-						//if(x >=0 && x < (CHUNK_SIZE) && y >=0 && y < (CHUNK_SIZE-2*MASK_RADIUS)){
+						
 						if (x >= 0 && y>=0 && ((y*CHUNK_SIZE + x) < n)){
 							imagePixel = chunk[y * (CHUNK_SIZE) + x];
-							if(imagePixel >= (centralPixel+THRESHOLD) && accumBrighter == 0){
-								accumDarker++;
+							if(imagePixel >= (centralPixel+THRESHOLD) ){
+								if( accumBrighter == 0){
+									accumDarker++;
+								}
+								else{ //Sequence is not contiguous
+									z += r - 1;
+									goto not_a_corner;
+								}
 							}
-							else if (imagePixel<=(centralPixel-THRESHOLD) && accumDarker == 0){
-								accumBrighter++;
+							else if (imagePixel<=(centralPixel-THRESHOLD) ){
+								if (accumDarker == 0){
+									accumBrighter++;
+								}
+								else{ //Sequence is not contiguous
+									z += r - 1;
+									goto not_a_corner;
+								}
 							}
-							else{
-								//goto not_a_corner;
-								r= 9;
+							else{ //Actual pixel is inside threshold interval 
+								z += r;								
+								goto not_a_corner;
 							}
 						}
-						//else{
-							//printf("Out of bound: %d %d %d %d %d\n",i,j,x,y,(y*CHUNK_SIZE + x));
-						//}
 					}
-					if(accumBrighter == 9 || accumDarker == 9){
+					if(accumBrighter == 12 || accumDarker == 12){
 						corners[omp_get_thread_num()]++;
 						output[(j-offset)*CHUNK_SIZE + i] = 1;
 						z = 16;
-						//printf("Corner detected\n");
 					}
-/*not_a_corner:*/	z++;			
+not_a_corner:				z++;			
 				}
 			}
 		}
@@ -83,13 +91,12 @@ void fast(int offset, int n)
 int main(int argc, char **argv)
 {
 	int msg,offset;
-	int k;
 	timer_init();
 	int n;
 
 	((void)argc);
 	
-    total = 0;
+    	total = 0;
 
 	rank = atoi(argv[0]);	
 	
@@ -101,11 +108,11 @@ int main(int argc, char **argv)
 	data_receive(infd, &masksize, sizeof(int));
 	data_receive(infd, mask, sizeof(int)*masksize);
     
-    omp_set_num_threads(16);
+    	omp_set_num_threads(16);
     
     
 	/* Process chunks. */
-    while (1)
+    	while (1)
 	{
 		data_receive(infd, &msg, sizeof(int));
 
@@ -114,37 +121,19 @@ int main(int argc, char **argv)
 		{
 			case MSG_CHUNK:
 				data_receive(infd, &n, sizeof(int)); 		//Receives size of chunk (includes halo)
-				data_receive(infd, chunk, n);				//Receives chunk
-				data_receive(infd, &offset, sizeof(int));	//Receive offset
+				data_receive(infd, chunk, n);			//Receives chunk
+				data_receive(infd, &offset, sizeof(int));	//Receives offset
 				
 				memset(corners,0,MAX_THREADS*sizeof(int));
 				memset(output,0,CHUNK_SIZE*CHUNK_SIZE*sizeof(char));
-				//memset(points,0,MAX_THREADS*sizeof(int));
 				
-				start = timer_get();
-				//printf("Processing...Offset = %d Size= %d\n", offset,n);
-
-				
-				fast(offset, n);
-				
-				/*printf("Slave result: ");
-				for(k=0;k<MAX_THREADS;k++){
-					printf("%d ", output[k]);
-				}
-				printf("\n\n");
-				
-				printf("Points Slave result: ");
-				for(k=0;k<MAX_THREADS;k++){
-					printf("%d ", points[k]);
-				}
-				printf("\n\n");
-				*/
-				
+				start = timer_get();						
+				fast(offset, n);	
 				end = timer_get();
+
 				total += timer_diff(start, end);
 				data_send(outfd, corners, MAX_THREADS*sizeof(int));
 				data_send(outfd, output, CHUNK_SIZE*CHUNK_SIZE*sizeof(char));
-				//data_send(outfd, points, MAX_THREADS*sizeof(int));
 				
 				break;
 			

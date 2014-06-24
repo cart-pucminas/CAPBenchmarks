@@ -1,6 +1,6 @@
 /*
- * Copyright(C) 2014 Alyson D. Pereira <alyson.deives@outlook.com>, 
- * 					 Pedro H. Penna <pedrohenriquepenna@gmail.com>
+ * Copyright(C) 2014 	Alyson D. Pereira <alyson.deives@outlook.com>, 
+ * 			Pedro H. Penna <pedrohenriquepenna@gmail.com>
  * 
  * slave.h -  Private slave library.
  */
@@ -23,7 +23,7 @@
 	/*
 	 * Maximum mask size.
 	 */
-	#define MASK_SIZE (48)
+	#define MASK_SIZE (54)
 	
 	/*
 	 * Mask radius.
@@ -33,7 +33,7 @@
 	/*
 	 * Maximum image size.
 	 */
-	#define IMG_SIZE (32768)
+	#define IMG_SIZE (24576)
 	
 	/*
 	 * Threshold value between central pixel and neighboor pixel.

@@ -1,6 +1,6 @@
 /*
- * Copyright(C) 2014 Alyson D. Pereira <alyson.deives@outlook.com>, 
- * 					 Pedro H. Penna <pedrohenriquepenna@gmail.com>
+ * Copyright(C) 2014	 Alyson D. Pereira <alyson.deives@outlook.com>, 
+ * 			 Pedro H. Penna <pedrohenriquepenna@gmail.com>
  * 
  * master.h -  Private master library.
  */
@@ -24,7 +24,7 @@
 	/*
 	 * Maximum mask size.
 	 */
-	#define MASK_SIZE (48)
+	#define MASK_SIZE (54)
 	
 	/*
 	 * Mask radius.
@@ -34,7 +34,7 @@
 	/*
 	 * Maximum image size.
 	 */
-	#define IMG_SIZE (32768)
+	#define IMG_SIZE (24576)
 	
 	/* Type of messages. */
 	#define MSG_CHUNK 1
