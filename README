@@ -192,12 +192,13 @@ KERNELS
        length. We opted to use a brute-force approach based on a simple
        heuristic. The sequential version of the algorithm is based on the branch
        and bound method using brute force. It takes as input the number of towns
-       and a cost matrix, and outputs the minimum path length. The algorithm does
-       a depth-first search looking for the shortest path, pruning paths that
-       have a bigger cost than the current minimum cost. This pruning introduces
-       irregularities in the algorithm, since the search depth needed to discard
-       one of the branches depends on the order in which the branches were
-       searched. Our implementation of TSP uses the Workpool parallel pattern.
+       and a cost matrix, and outputs the minimum path length. The algorithm
+       does a depth-first search looking for the shortest path, pruning paths
+       that have a bigger cost than the current minimum cost. This pruning
+       introduces irregularities in the algorithm, since the search depth needed
+       to discard one of the branches depends on the order in which the branches
+       were searched. Our implementation of TSP uses the Workpool parallel
+       pattern.
        
        The MPPA-256 implementation uses a task queue in which tasks are branches
        of the search tree. Compute clusters take jobs from it to be executed.
