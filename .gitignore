@@ -6,6 +6,8 @@
 *.o
 *.a
 bin/*
+x86/bin/*
+mppa256/bin/*
 
 # Exceptions.
 !bin/.gitignore

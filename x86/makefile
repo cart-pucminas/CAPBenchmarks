@@ -21,8 +21,8 @@ export CFLAGS += -I $(INCDIR)
 export ARFLAGS = -vq
 
 # Libraries.
-export LIB = libcapb.a
-export LIBS = -lm -fopenmp $(LIBDIR)/$(LIB)
+export LIB = libcapb
+export LIBS = $(LIBDIR)/$(LIB).a -lm -fopenmp 
 
 .PHONY: lib
 
@@ -33,6 +33,7 @@ all: lib
 	
 # Builds kernel library.
 lib:
+	mkdir -p lib
 	cd $(LIBSRCDIR) && $(MAKE) all
 	
 # Cleans compilation files.

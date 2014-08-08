@@ -10,7 +10,7 @@ OBJ = $(SRC:.c=.o)
 
 # Builds library.
 all: $(OBJ)
-	$(AR) $(ARFLAGS) $(LIBDIR)/$(LIB) $(OBJ)
+	$(AR) $(ARFLAGS) $(LIBDIR)/$(LIB).a $(OBJ)
 
 # Builds object files.
 %.o: %.c
