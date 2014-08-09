@@ -14,20 +14,21 @@ for kernel in fast fn gf is km lu tsp; do
 	echo "running $kernel"
 	
 	# Weak scaling
-	echo "running weak scaling test: iteration $it"
-	for nprocs in 1 2 4 8 16; do
-		for class in tiny small large huge; do
-			likwid-powermeter $BINDIR/$kernel.intel --verbose --class $class --nclusters $nprocs &>> $RESULTSDIR/$kernel-$class-$nprocs.mppa
+	for it in {1..10}; do
+		echo "running weak scaling test: iteration $it"
+		for nprocs in 1 2 4 8 16; do
+			for class in tiny small standard large huge; do
+				likwid-powermeter $BINDIR/$kernel.intel --verbose --class $class --nthreads $nprocs &>> $RESULTSDIR/$kernel-$class-$nprocs.intel
+			done
 		done
 	done
 	
 	# Strong scaling.
 	for it in {1..10}; do
 		echo "running strong scaling test: iteration $it"
-		for nprocs in 1 2 3 5 6 7 8 9 10 11 12 13 14 15 16; do
-			likwid-powermeter $BINDIR/$kernel.intel --verbose --class $class --nclusters $nprocs &>> $RESULTSDIR/$kernel-$class-$nprocs.mppa
+		# 1, 2, 4, 8 and 16 omitted because they are already computed
+		for nprocs in 3 5 6 7 9 10 11 12 13 14 15; do
+			likwid-powermeter $BINDIR/$kernel.intel --verbose --class $class --nthreads $nprocs &>> $RESULTSDIR/$kernel-$class-$nprocs.intel
 		done
 	done
 done
-
-
