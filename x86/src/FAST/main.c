@@ -28,11 +28,11 @@ struct problem
 };
 
 /* Problem sizes. */
-static struct problem tiny     = { 2,28,56,  2048};
-static struct problem small    = { 2,28,56,  4096};
-static struct problem standard = { 2,28,56,  8192};
-static struct problem large    = { 2,28,56, 16384};
-static struct problem huge     = { 2,28,56, 24576};
+static struct problem tiny     = { 2,27,54,  2048};
+static struct problem small    = { 2,27,54,  4096};
+static struct problem standard = { 2,27,54,  8192};
+static struct problem large    = { 2,27,54, 16384};
+static struct problem huge     = { 2,27,54, 24576};
 
 /* Be verbose? */
 int verbose = 0;
