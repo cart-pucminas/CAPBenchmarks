@@ -29,9 +29,13 @@ km:
 lu:
 	cd LU && $(MAKE) all
 
-# Builds TSP.
+# Builds TSP kernel.
 tsp:
 	cd TSP && $(MAKE) all
+
+# Builds RT kernel.
+rt:
+	cd RT && $(MAKE) all
 
 # Cleans compilation files.
 clean:
@@ -42,3 +46,4 @@ clean:
 	cd KM && $(MAKE) clean
 	cd LU && $(MAKE) clean
 	cd TSP && $(MAKE) clean
+	cd RT && $(MAKE) clean
