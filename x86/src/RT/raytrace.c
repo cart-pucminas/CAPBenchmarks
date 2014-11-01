@@ -18,7 +18,8 @@
 #define BIAS 0.001
 #define PI 3.141592653589793
 #define INFINITY FLT_MAX
-#define MAX_RAY_DEPTH 100
+
+static int max_depth;
 
 static float max(float a, float b)
 {
@@ -61,6 +62,7 @@ struct vector raytrace(struct vector rayorig, struct vector raydir, sphere_t *sp
 	float cosi;
 	float k;
 	float eta;
+	int transmission;
 	
 	t0 = INFINITY;
 	t1 = INFINITY;
@@ -113,7 +115,7 @@ struct vector raytrace(struct vector rayorig, struct vector raydir, sphere_t *sp
 	tmp3 = vector_scalar(nhit, BIAS);
 	tmp3 = vector_add(tmp3, phit);
 
-	if (((s->transparency > 0) || (s->reflection > 0)) && (depth < MAX_RAY_DEPTH))
+	if (((s->transparency > 0) || (s->reflection > 0)) && (depth < max_depth))
 	{		
 		facingratio = -vector_dot(raydir, nhit);
 		fresneleffect = mix(pow(1 - facingratio, 3), 1, 0.1);
@@ -162,16 +164,15 @@ struct vector raytrace(struct vector rayorig, struct vector raydir, sphere_t *sp
 			/* This is a light source. */
 			if (spheres[i]->emission_color.x > 0)
 			{
-				int transmission = 1;
+				transmission = 1;
 
 				lightdir = vector_sub(spheres[i]->center, phit);
 				lightdir = vector_normalize(lightdir);
 				
 				for (j = 0; j < nspheres; j++)
 				{	
-					if (i == j) {
+					if (i == j)
 						continue;
-					}
 					
 					/* Shade this point. */
 					if (sphere_intersects(spheres[j], tmp3, lightdir, NULL, NULL))
@@ -195,10 +196,8 @@ struct vector raytrace(struct vector rayorig, struct vector raydir, sphere_t *sp
 	return (vector_add(surface_color, s->emission_color));
 }
 
-image_t render(sphere_t *spheres, int nspheres)
+image_t render(sphere_t *spheres, int nspheres, unsigned width, unsigned height, int depth)
 {
-	unsigned width;     /* Image width.    */
-	unsigned height;    /* Image height.   */
 	struct vector raydir;    /* Ray direction.  */
 	unsigned x, y;
 	float xx, yy;
@@ -210,8 +209,7 @@ image_t render(sphere_t *spheres, int nspheres)
 	struct vector pixel;
 	float aspectratio; /* Image's aspect ratio. */
 
-	width = 1200;
-	height = 800;
+	max_depth = depth;
 
 	img = image_create(width, height);
 	
