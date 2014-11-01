@@ -3,7 +3,7 @@
 #
 
 # Builds all kernels.
-all: fast fn gf is km lu tsp
+all: fast fn gf is km lu tsp rt
 
 # Builds FAST kernel.
 fast:

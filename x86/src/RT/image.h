@@ -10,9 +10,9 @@
 	 */
 	struct pixel
 	{
-		unsigned char *r; /* Red value.   */
-		unsigned char *g; /* Green value. */
-		unsigned char *b; /* Blue value.  */
+		unsigned char r; /* Red value.   */
+		unsigned char g; /* Green value. */
+		unsigned char b; /* Blue value.  */
 	};
 
 	/* Image file types. */
@@ -34,19 +34,22 @@
 	 */
 	typedef struct image * image_t;
 	
+	#define IMAGE(img, x, y) \
+		(img->pixels[(y)*img->width + (x)])
+	
 	/*
-	 * Creates a image.
+	 * Creates an image.
 	 */
 	extern image_t image_create(unsigned width, unsigned height);
 	
 	/*
-	 * Destroys a image.
+	 * Destroys an image.
 	 */
 	extern void image_destroy(image_t img);
 	
 	/*
-	 * Exports a image to a file type.
+	 * Exports an image to a file type.
 	 */
-	extern void image_export(const char *filename, image_t img unsigned type);
+	extern void image_export(const char *filename, image_t img, unsigned type);
 
 #endif /* IMAGE_H_ */

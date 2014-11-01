@@ -4,14 +4,14 @@
 
 #include <assert.h>
 #include <math.h>
-#include <sphere.h>
 #include <util.h>
-#include <vector.h>
+#include "sphere.h"
+#include "vector.h"
 
 /*
  * Returns the center of a sphere.
  */
-vector_t sphere_center(struct sphere *s)
+struct vector sphere_center(struct sphere *s)
 {
 	/* Sanity check. */
 	assert(s != NULL);
@@ -23,17 +23,14 @@ vector_t sphere_center(struct sphere *s)
  * Creates a sphere.
  */
 struct sphere *sphere_create
-(vector_t c, float r, vector_t sc, float rf, float t, vector_t ec)
+(struct vector c, float r, struct vector sc, float rf, float t, struct vector ec)
 {
 	struct sphere *s;
 	
 	/* Sanity check. */
-	assert(c != NULL);
 	assert(r > 0);
 	assert(t >= 0);
 	assert(t >= 0);
-	assert(sc != NULL);
-	assert(ec != NULL);
 	
 	s = smalloc(sizeof(struct sphere));
 	
@@ -42,9 +39,9 @@ struct sphere *sphere_create
 	s->radius2 = r*r;
 	s->transparency = t;
 	s->reflection = rf;
-	s->surface_color = vector_clone(sc);
-	s->emission_color = vector_clone(ec);
-	s->center = vector_clone(c);
+	s->surface_color = sc;
+	s->emission_color = ec;
+	s->center = c;
 	
 	return (s);
 }
@@ -57,11 +54,6 @@ void sphere_destroy(struct sphere *s)
 	/* Sanity check. */
 	assert(s != NULL);
 	
-	/* Deallocate internal data. */
-	vector_destroy(s->surface_color);
-	vector_destroy(s->emission_color);
-	vector_destroy(s->center);
-	
 	free(s);
 }
 
@@ -69,42 +61,35 @@ void sphere_destroy(struct sphere *s)
  * Asserts if a ray intercepts a sphere.
  */
 int sphere_intersects
-(struct sphere *s, vector_t rayorig, vector_t raydir, float *t0, float *t1)
+(struct sphere *s, struct vector rayorig, struct vector raydir, float *t0, float *t1)
 {
 	float d2;
 	float tca;
 	float thc;
-	vector_t l;
+	struct vector l;
 	
 	/* Sanity check. */
 	assert(s != NULL);
-	assert(rayorig != NULL);
-	assert(raydir != NULL);
 	
-	l = vector_clone(s->center);
-	vector_sub(l, rayorig);
+	l = vector_sub(s->center, rayorig);
 	
 	tca = vector_dot(l, raydir);
 	
-	if (tca < 0) {
-		vector_destroy(l);
+	if (tca < 0)
 		return (0);
-	}
 	
 	d2 = vector_dot(l, l) - tca*tca;
 	
-	if (d2 > s->radius2) {
-		vector_destroy(l);
+	if (d2 > s->radius2)
 		return (0);
-	}
 	
 	thc = sqrt(s->radius2 -d2);
 	
-	if ((t0 != NULL) && (t1 != NULL)) {
-			*t0 = tca - thc;
-			*t1 = tca + thc;
+	if ((t0 != NULL) && (t1 != NULL))
+	{
+		*t0 = tca - thc;
+		*t1 = tca + thc;
 	}
 	
-	vector_destroy(l);
 	return (1);
 }

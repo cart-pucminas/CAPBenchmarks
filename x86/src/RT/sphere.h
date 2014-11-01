@@ -5,7 +5,7 @@
 #ifndef SPHERE_H_
 #define SPHERE_H_
 
-	#include <vector.h>
+	#include "vector.h"
 
 	/*
 	 * Sphere.
@@ -16,9 +16,9 @@
 		float radius2;           /* Radius^2.       */
 		float transparency;      /* Transparency.   */
 		float reflection;        /* Reflection.     */
-		vector_t surface_color;  /* Surface color.  */
-		vector_t emission_color; /* Emission color. */
-		vector_t center;         /* Center.         */
+		struct vector surface_color;  /* Surface color.  */
+		struct vector emission_color; /* Emission color. */
+		struct vector center;         /* Center.         */
 	};
 	
 	/*
@@ -29,13 +29,13 @@
 	/*
 	 * Returns the center of a sphere.
 	 */
-	extern vector_t sphere_center(sphere_t s);
+	extern struct vector sphere_center(sphere_t s);
 	
 	/*
 	 * Creates a sphere.
 	 */
 	extern sphere_t sphere_create
-	(vector_t c, float r, vector_t sc, float rf, float t, vector_t ec);
+	(struct vector c, float r, struct vector sc, float rf, float t, struct vector ec);
 	
 	/*
 	 * Destroys a sphere.
@@ -46,6 +46,6 @@
 	 * Asserts if a ray intercepts a sphere.
 	 */
 	extern int sphere_intersects
-	(sphere_t s, vector_t rayorig, vector_t raydir, float *t0, float *t1);
+	(sphere_t s, struct vector rayorig, struct vector raydir, float *t0, float *t1);
 
 #endif /* SPHERE_H_ */
