@@ -18,15 +18,16 @@
  */
 struct problem
 {
-	int n; /* Number of elements. */
+	int n;   /* Number of elements. */
+	int max; /* Maximum number.     */
 };
 
 /* Problem sizes. */
-static struct problem tiny     = {   8388608 };
-static struct problem small    = {  16777216 };
-static struct problem standard = {  33554432 };
-static struct problem large    = {  67108864 };
-static struct problem huge     = { 134217728 };
+static struct problem tiny     = {   8388608, (1 << 20) };
+static struct problem small    = {  16777216, (1 << 20) };
+static struct problem standard = {  33554432, (1 << 20) };
+static struct problem large    = {  67108864, (1 << 20) };
+static struct problem huge     = { 134217728, (1 << 20) };
 
 /* Be verbose? */
 int verbose = 0;
@@ -138,6 +139,7 @@ int main(int argc, char **argv)
 {
 	int i;          /* Loop index.         */
 	int *a;         /* Array to be sorted. */
+	double num;     /* Normal number.      */
 	uint64_t end;   /* End time.           */
 	uint64_t start; /* Start time.         */
 	
@@ -153,7 +155,10 @@ int main(int argc, char **argv)
 	start = timer_get();
 	a = smalloc(p->n*sizeof(int));
 	for (i = 0; i < p->n; i++)
-		a[i] = randnum() & 0xfffff;
+	{
+		num = normalnum(0, (p->max >> 4));
+		a[i] = (int)((num < 0) ? -num) + 1;
+	}
 	end = timer_get();
 	if (verbose)
 		printf("  time spent: %f\n", timer_diff(start, end)*MICROSEC);
