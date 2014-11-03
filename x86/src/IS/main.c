@@ -157,7 +157,7 @@ int main(int argc, char **argv)
 	for (i = 0; i < p->n; i++)
 	{
 		num = normalnum(0, (p->max >> 4));
-		a[i] = (int)((num < 0) ? -num) + 1;
+		a[i] = (int)((num < 0) ? -num : num) + 1;
 	}
 	end = timer_get();
 	if (verbose)
