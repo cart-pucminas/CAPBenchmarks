@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <float.h>
 #include <math.h>
+#include <omp.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <util.h>
@@ -222,6 +223,8 @@ image_t render(sphere_t *spheres, int nspheres, unsigned width, unsigned height,
 
 	for (y = 0; y < height; ++y)
 	{
+		#pragma omp parallel for \
+			default(shared) private(x,xx,yy,raydir,pixel) schedule(dynamic)
 		for (x = 0; x < width; x++)
 		{
 			xx = (2 * ((x + 0.5) * invwidth) - 1) * angle * aspectratio;
