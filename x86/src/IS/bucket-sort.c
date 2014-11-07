@@ -7,6 +7,7 @@
 #include <omp.h>
 #include <util.h>
 #include "is.h"
+#include <stdio.h>
 
 /* Number of buckets. */
 #define NUM_BUCKETS 8192
@@ -67,41 +68,44 @@ void integer_sort(int *array, int n)
 		buckets[i] = darray_create(n/NUM_BUCKETS);
 	
 	max = findmax(array, n);
+	range = max/NUM_BUCKETS;
 	
-	#pragma omp parallel private(i, k, j) default(shared)
+	#pragma omp parallel private(i, j, k) default(shared)
 	{	
 		/* Distribute numbers into buckets. */
-		range = max/NUM_BUCKETS;
+		#pragma omp master
 		for (i = 0; i < n; i++)
 		{
 			j = array[i]/range;
 			if (j >= NUM_BUCKETS)
 				j = NUM_BUCKETS - 1;
-			
+
 			darray_append(buckets[j], array[i]);
 		}
 		
 		/* Sort Each bucket. */
-		#pragma omp for
+		#pragma omp for schedule(dynamic)
 		for (i = 0; i < NUM_BUCKETS; i++)
 		{
 			if (darray_size(buckets[i]) > 0)
 				sort(buckets[i]);
 		}
 		
-		/* Build indexes. */
-		indexes[0] = 0;
-		for (i = 1; i < NUM_BUCKETS; i++)
-			indexes[i] = indexes[0] + darray_size(buckets[i]);
-		
-		/* Rebuild array. */
-		# pragma omp for
-		for (i = 0; i < NUM_BUCKETS; i++)
+		#pragma omp master
 		{
-			k = indexes[i];
-				
-			for (j = 0; j < darray_size(buckets[i]); j++)
-				array[k + j] = darray_get(buckets[i], j);
+			/* Build indexes. */
+			indexes[0] = 0;
+			for (i = 1; i < NUM_BUCKETS; i++)
+				indexes[i] = indexes[i - 1] + darray_size(buckets[i]);
+		
+			/* Rebuild array. */
+			for (i = 0; i < NUM_BUCKETS; i++)
+			{
+				k = indexes[i];
+					
+				for (j = 0; j < darray_size(buckets[i]); j++)
+					array[k + j] = darray_get(buckets[i], j);
+			}
 		}
 	}
 	
