@@ -13,43 +13,6 @@
 #define NUM_BUCKETS 8192
 
 /*
- * Finds the maximum element in an array.
- */
-static int findmax(int *array, int n)
-{
-	int i;    /* Loop index.          */
-	int max;  /* Max number in array. */
-	int maxp; /* Max private.         */
-	
-	/* Find max number in the array. */
-	max = INT_MIN;
-	#pragma omp parallel private(i, maxp) default(shared)
-	{
-		maxp = INT_MIN;
-		
-		#pragma omp for
-		for (i = 0; i < n; i++)
-		{
-			/* Found. */
-			if (array[i] > max)
-				max = array[i];
-		}
-	
-		/* Reduce. */
-		if (maxp > max)
-		{
-			#pragma omp critical
-			{
-				if (maxp > max)
-					max = maxp;
-			}
-		}
-	}
-	
-	return (max);
-}
-
-/*
  * Bucket sort algorithm.
  */
 void integer_sort(int *array, int n)
@@ -67,11 +30,23 @@ void integer_sort(int *array, int n)
 	for (i = 0; i < NUM_BUCKETS; i++)
 		buckets[i] = darray_create(n/NUM_BUCKETS);
 	
-	max = findmax(array, n);
-	range = max/NUM_BUCKETS;
+	max = INT_MIN;
 	
-	#pragma omp parallel private(i, j, k) default(shared)
+	#pragma omp parallel private(i, j, k)
 	{	
+		/* Find max number in the array. */
+		#pragma omp for schedule(static) reduction(max:max)
+		for (i = 0; i < n; i++)
+		{
+			/* Found. */
+			if (array[i] > max)
+				max = array[i];
+		}
+		
+		#pragma omp master
+		range = max/NUM_BUCKETS;
+		#pragma omp barrier
+		
 		/* Distribute numbers into buckets. */
 		#pragma omp master
 		for (i = 0; i < n; i++)
