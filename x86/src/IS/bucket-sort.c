@@ -17,7 +17,7 @@
  */
 void integer_sort(int *array, int n)
 {
-	int max;                 /* Max number in array. */
+	int max, _max;           /* Max number in array. */
 	int range;               /* Bucket range.        */
 	int i, j, k;             /* Loop indexes.        */
 	int *indexes;            /* Index for buckets.   */
@@ -32,15 +32,24 @@ void integer_sort(int *array, int n)
 	
 	max = INT_MIN;
 	
-	#pragma omp parallel private(i, j, k)
+	#pragma omp parallel private(i, j, k, _max)
 	{	
+		_max = INT_MIN;
+
 		/* Find max number in the array. */
-		#pragma omp for schedule(static) reduction(max:max)
+		#pragma omp for schedule(static)
 		for (i = 0; i < n; i++)
 		{
 			/* Found. */
-			if (array[i] > max)
-				max = array[i];
+			if (array[i] > _max)
+				_max = array[i];
+		}
+
+		#pragma omp critical
+		{
+			if (_max > max) {
+				max = _max;
+			}
 		}
 		
 		#pragma omp master
