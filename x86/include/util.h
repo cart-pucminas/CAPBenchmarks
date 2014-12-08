@@ -49,5 +49,15 @@
 	 * Prints a warning message.
 	 */
 	extern void warning(const char *msg);
+	
+	/*
+	 * Initializes power measurement utility.
+	 */
+	extern void power_init(void);
+	
+	/*
+	 * Terminates power measurement utility.
+	 */
+	extern double power_end(void);
 
 #endif /* UTIL_H_ */
