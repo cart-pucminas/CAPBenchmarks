@@ -182,8 +182,15 @@ int main(int argc, char **argv)
 	uint64_t start;     /* Start time.         */
 	unsigned char *img; /* Image.              */
 	
+#ifdef _XEON_PHI_
+	double power;
+#endif	
+
 	readargs(argc, argv);
 	
+#ifdef _XEON_PHI_
+	power_init();
+#endif	
 	timer_init();
 	srandnum(seed);
 	omp_set_num_threads(nthreads);
@@ -207,9 +214,17 @@ int main(int argc, char **argv)
 	start = timer_get();
 	gauss_filter(img, p->imgsize, mask, p->masksize);
 	end = timer_get();
+	
+#ifdef _XEON_PHI_
+	power = power_end();
+#endif
 
 	printf("timing statistics:\n");
 	printf("  total time:    %f\n", timer_diff(start, end)*MICROSEC);
+
+#ifdef _XEON_PHI_
+	printf("  total time:    %f\n", power*0.000001);
+#endif
 	
 	/* House keeping. */
 	free(mask);
