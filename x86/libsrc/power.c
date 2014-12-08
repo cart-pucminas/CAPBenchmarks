@@ -34,7 +34,8 @@ static FILE *micras_power = NULL;
 
 static const long time_stamp = 50000000L;
 static pthread_t tid;
-static volatile double avg;
+static volatile double avg = 0;
+static unsigned count = 0;
 static unsigned live;
 
 /*
@@ -67,12 +68,15 @@ static void *power_listen(void *unused)
 	ts.tv_sec = 0;
 	ts.tv_nsec = time_stamp;
 	
-	while (live)
+	do
 	{
-		avg = (avg + power_get())/2.0;
+		avg += power_get();
+		count++;
 	
 		nanosleep(&ts, NULL);
-	}
+	} while (live);
+	
+	avg /= count;
 	
 	return (NULL);
 }
@@ -83,8 +87,6 @@ static void *power_listen(void *unused)
 void power_init(void)
 {
 	live = 1;
-	
-	avg = power_get();
 	
 	pthread_create(&tid, NULL, power_listen, NULL);
 }
