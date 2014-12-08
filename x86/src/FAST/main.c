@@ -229,12 +229,16 @@ static void generate_mask(int *mask)
  */
 int main(int argc, char **argv)
 {
-	int i;              /* Loop index.         */
-	int *mask;       	/* Mask.               */
-	uint64_t end;       /* End time.           */
-	uint64_t start;     /* Start time.         */
-	char *img; 			/* Image.              */
+	int i;              /* Loop index.            */
+	int *mask;       	/* Mask.                  */
+	uint64_t end;       /* End time.              */
+	uint64_t start;     /* Start time.            */
+	char *img; 			/* Image.                 */
 	int numcorners=0;	/* Total corners detected */
+	
+#ifdef _XEON_PHI_
+	double power;
+#endif	
 	
 	readargs(argc, argv);
 	
@@ -256,6 +260,10 @@ int main(int argc, char **argv)
 	end = timer_get();
 	if (verbose)
 		printf("  time spent: %f\n", timer_diff(start, end)*MICROSEC);
+	
+#ifdef _XEON_PHI_
+	power_init();
+#endif		
 		
 	/* Detect corners. */
 	if (verbose)
@@ -263,9 +271,18 @@ int main(int argc, char **argv)
 	start = timer_get();
 	numcorners = fast(img, p->imgsize, mask);
 	end = timer_get();
+	
+#ifdef _XEON_PHI_
+	power = power_end();
+#endif
 
 	printf("timing statistics:\n");
 	printf("  total time:       %f\n", timer_diff(start, end)*MICROSEC);
+
+#ifdef _XEON_PHI_
+	printf("  average power: %f\n", power*0.000001);
+#endif
+
 	printf("  corners detected: %d\n", numcorners);
 	
 	/* House keeping. */

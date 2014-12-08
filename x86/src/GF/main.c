@@ -184,13 +184,10 @@ int main(int argc, char **argv)
 	
 #ifdef _XEON_PHI_
 	double power;
-#endif	
+#endif
 
 	readargs(argc, argv);
-	
-#ifdef _XEON_PHI_
-	power_init();
-#endif	
+
 	timer_init();
 	srandnum(seed);
 	omp_set_num_threads(nthreads);
@@ -207,10 +204,15 @@ int main(int argc, char **argv)
 	end = timer_get();
 	if (verbose)
 		printf("  time spent: %f\n", timer_diff(start, end)*MICROSEC);
-		
+	
 	/* Apply filter. */
 	if (verbose)
 		printf("applying filter...\n");
+	
+#ifdef _XEON_PHI_
+	power_init();
+#endif
+
 	start = timer_get();
 	gauss_filter(img, p->imgsize, mask, p->masksize);
 	end = timer_get();
@@ -223,7 +225,7 @@ int main(int argc, char **argv)
 	printf("  total time:    %f\n", timer_diff(start, end)*MICROSEC);
 
 #ifdef _XEON_PHI_
-	printf("  total time:    %f\n", power*0.000001);
+	printf("  average power: %f\n", power*0.000001);
 #endif
 	
 	/* House keeping. */

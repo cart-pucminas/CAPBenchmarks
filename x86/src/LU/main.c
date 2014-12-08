@@ -142,13 +142,15 @@ int main(int argc, char **argv)
 	uint64_t end;   /* End time.     */
 	uint64_t start; /* Start time.   */
 	
+#ifdef _XEON_PHI_
+	double power;
+#endif
+	
 	readargs(argc, argv);
 	
 	srandnum(seed);
 	timer_init();
-#ifndef _MPPA_256_	
 	omp_set_num_threads(nthreads);
-#endif
 	
 	/* Benchmark initialization. */
 	if (verbose)
@@ -162,6 +164,10 @@ int main(int argc, char **argv)
 	if (verbose)
 		printf("  time spent: %f\n", timer_diff(start, end)*MICROSEC);
 	
+#ifdef _XEON_PHI_
+	power_init();
+#endif
+	
 	/* Matrix factorization. */
 	if (verbose)
 		printf("factorizing...\n");
@@ -169,8 +175,16 @@ int main(int argc, char **argv)
 	lower_upper(m, l, u);
 	end = timer_get();
 	
+#ifdef _XEON_PHI_
+	power = power_end();
+#endif
+	
 	printf("timing statistics:\n");
 	printf("  total time:    %f\n", timer_diff(start, end)*MICROSEC);
+
+#ifdef _XEON_PHI_
+	printf("  average power: %f\n", power*0.000001);
+#endif
 	
 	/* House keeping. */
 	matrix_destroy(u);

@@ -19,4 +19,4 @@ all: $(OBJ)
 # Cleans compilation files.
 clean:
 	rm -f $(OBJ)
-	rm -f $(LIBDIR)/$(LIB)
+	rm -f $(LIBDIR)/$(LIB).a

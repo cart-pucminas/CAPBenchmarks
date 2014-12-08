@@ -202,8 +202,16 @@ void run_tsp (int nb_threads, int nb_towns, int seed, int nb_clusters) {
 
 	uint64_t end;   /* End time.     */
 	uint64_t start; /* Start time.   */
+	
+#ifdef _XEON_PHI_
+	double power;
+#endif
 
 	timer_init();
+	
+#ifdef _XEON_PHI_
+	power_init();
+#endif
 	
 	int nb_partitions = get_number_of_partitions(nb_clusters);
 	if (verbose)
@@ -230,11 +238,19 @@ void run_tsp (int nb_threads, int nb_towns, int seed, int nb_clusters) {
 	free(tsps);
 
 	end = timer_get();
+	
+#ifdef _XEON_PHI_
+	power = power_end();
+#endif
 
 	printf("shortest path size = %5d towns\n", min_distance);
 	
 	printf("timing statistics:\n");
 	printf("  total time:    %f\n", timer_diff(start, end)*MICROSEC);
+
+#ifdef _XEON_PHI_
+	printf("  average power: %f\n", power*0.000001);
+#endif
 }
 
 partition_interval_t get_next_partition(tsp_t_pointer tsp) {

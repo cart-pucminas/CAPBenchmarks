@@ -34,22 +34,25 @@ static FILE *micras_power = NULL;
 
 static const long time_stamp = 50000000L;
 static pthread_t tid;
-static double avg;
+static volatile double avg;
 static unsigned live;
 
 /*
  * Gets power information.
  */
-static unsigned power_get(void)
+static double power_get(void)
 {
 	int error;
 	
-	fseek(micras_power, 0, SEEK_SET);
+	micras_power = fopen(micras_power_file, "r");
+	assert(micras_power != NULL);
 	
-	error = fscanf(micras_power, "%*u %*u %*u %u", &power_buffer.inst);
+	error = fscanf(micras_power, "%u", &power_buffer.tot0);
 	((void)error);
 	
-	return (power_buffer.inst);
+	fclose(micras_power);
+	
+	return (power_buffer.tot0);
 }
 
 /*
@@ -66,7 +69,7 @@ static void *power_listen(void *unused)
 	
 	while (live)
 	{
-		avg = (avg + power_get())/2;
+		avg = (avg + power_get())/2.0;
 	
 		nanosleep(&ts, NULL);
 	}
@@ -79,9 +82,6 @@ static void *power_listen(void *unused)
  */
 void power_init(void)
 {
-	micras_power = fopen(micras_power_file, "r");
-	assert(micras_power != NULL);
-	
 	live = 1;
 	
 	avg = power_get();
@@ -96,7 +96,6 @@ double power_end(void)
 {
 	live = 0;
 	pthread_join(tid, NULL);
-	fclose(micras_power);
 	
 	return (avg);
 }

@@ -144,6 +144,10 @@ int main(int argc, char **argv)
 	uint64_t start; /* Start time.      */
 	vector_t *data; /* Data points.     */
 	
+#ifdef _XEON_PHI_
+	double power;
+#endif
+	
 	readargs(argc, argv);
 	
 	timer_init();
@@ -164,6 +168,10 @@ int main(int argc, char **argv)
 	if (verbose)
 		printf("  time spent: %f\n", timer_diff(start, end)*MICROSEC);
 	
+#ifdef _XEON_PHI_
+	power_init();
+#endif
+	
 	/* Cluster data. */
 	if (verbose)
 		printf("clustering data...\n");
@@ -171,8 +179,16 @@ int main(int argc, char **argv)
 	map = kmeans(data, p->npoints, p->ncentroids, p->mindistance);
 	end = timer_get();
 	
+#ifdef _XEON_PHI_
+	power = power_end();
+#endif
+	
 	printf("timing statistics:\n");
 	printf("  total time:    %f\n", timer_diff(start, end)*MICROSEC);
+
+#ifdef _XEON_PHI_
+	printf("  average power: %f\n", power*0.000001);
+#endif
 	
 	/* House keeping. */
 	free(map);

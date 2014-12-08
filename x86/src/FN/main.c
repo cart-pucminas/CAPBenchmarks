@@ -142,10 +142,18 @@ int main(int argc, char **argv)
 	uint64_t end;   /* End time.   */
 	uint64_t start; /* Start time. */
 	
+#ifdef _XEON_PHI_
+	double power;
+#endif
+	
 	readargs(argc, argv);
 	
 	timer_init();
 	omp_set_num_threads(nthreads);
+	
+#ifdef _XEON_PHI_
+	power_init();
+#endif
 	
 	/* Compute friendly numbers. */
 	if (verbose)
@@ -154,8 +162,16 @@ int main(int argc, char **argv)
 	friendly_numbers(p->start, p->end);
 	end = timer_get();
 	
+#ifdef _XEON_PHI_
+	power = power_end();
+#endif
+	
 	printf("timing statistics:\n");
 	printf("  total time:    %f\n", timer_diff(start, end)*MICROSEC);
+
+#ifdef _XEON_PHI_
+	printf("  average power: %f\n", power*0.000001);
+#endif
 	
 	return (0);
 }
