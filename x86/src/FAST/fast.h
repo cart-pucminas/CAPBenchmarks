@@ -11,7 +11,7 @@
 	/*
 	 * Maximum thread num.
 	 */
-	#define MAX_THREADS (16)
+	#define MAX_THREADS (256)
 	
 	/*
 	 * Threshold value between central pixel and neighboor pixel.
