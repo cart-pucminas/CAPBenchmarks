@@ -12,17 +12,17 @@ export LIBSRCDIR = $(CURDIR)/libsrc
 export SRCDIR    = $(CURDIR)/src
 
 # Tool chain.
-export CC = icc
+export CC = gcc
 export AR = ar
 
 # Tool chain configuration.
-export CFLAGS = -Wall -Wextra -Werror -O3 -static -mmic
-export CFLAGS += -I $(INCDIR) -D_XEON_PHI_
+export CFLAGS = -Wall -Wextra -Werror -O3
+export CFLAGS += -I $(INCDIR)
 export ARFLAGS = -vq
 
 # Libraries.
 export LIB = libcapb
-export LIBS = $(LIBDIR)/$(LIB).a -lm -openmp 
+export LIBS = $(LIBDIR)/$(LIB).a -lm -fopenmp 
 
 .PHONY: lib
 
