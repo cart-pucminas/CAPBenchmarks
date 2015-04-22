@@ -10,6 +10,7 @@
 #include <omp.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <util.h>
 
 /*
  * Gaussian filter.
@@ -19,13 +20,19 @@ void gauss_filter(unsigned char *img, int imgsize, double *mask, int masksize)
 	int i, j;
 	int half;
 	double pixel;
+	unsigned char *newimg;
 	int imgI, imgJ, maskI, maskJ;
+	
+	newimg = smalloc(imgsize*imgsize*sizeof(unsigned char));
 	
 	#define MASK(i, j) \
 		mask[(i)*masksize + (j)]
 	
 	#define IMG(i, j) \
 		img[(i)*imgsize + (j)]
+	
+	#define NEWIMG(i, j) \
+		newimg[(i)*imgsize + (j)]
 	
 	i = 0; j = 0;
 	half = imgsize >> 1;
@@ -49,8 +56,10 @@ void gauss_filter(unsigned char *img, int imgsize, double *mask, int masksize)
 					}
 				}
 				   
-				IMG(imgI, imgJ) = (pixel > 255) ? 255 : (int)pixel;
+				NEWIMG(imgI, imgJ) = (pixel > 255) ? 255 : (int)pixel;
 			}
 		}
 	}
+	
+	free(newimg);
 }
