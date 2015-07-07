@@ -18,7 +18,7 @@ DEBUG = -UDEBUG
 
 # Builds kernel.
 all: master slave
-	$(MPPADIR)/bin/createImage.rb --toolchain $(MPPADIR) --clusters=$(EXEC).slave --boot=$(EXEC).master -T $(BINDIR)/$(EXEC).mppa.mpk
+	$(MPPADIR)/bin/k1-create-multibinary --toolchain $(MPPADIR) --clusters=$(EXEC).slave --boot=$(EXEC).master -T $(BINDIR)/$(EXEC).mppa.mpk
 	rm -f $(EXEC).master
 	rm -f $(EXEC).slave
 
