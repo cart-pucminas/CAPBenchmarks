@@ -16,6 +16,27 @@
 #include "master.h"
 
 /*
+ * Wrapper to data_send(). 
+ */
+#define data_send(a, b, c)                   \
+	{                                        \
+		data_sent += c;                      \
+		nsend++;                             \
+		communication += data_send(a, b, c); \
+	}                                        \
+
+/*
+ * Wrapper to data_receive(). 
+ */
+#define data_receive(a, b, c)                   \
+	{                                           \
+		data_received += c;                     \
+		nreceive++;                             \
+		communication += data_receive(a, b, c); \
+	}                                           \
+
+
+/*
  * Gaussian filter.
  */
 void gauss_filter(unsigned char *img, int imgsize, double *mask, int masksize)
@@ -33,8 +54,8 @@ void gauss_filter(unsigned char *img, int imgsize, double *mask, int masksize)
     n = sizeof(double)*masksize*masksize;	
 	for (i = 0; i < nclusters; i++)
 	{
-		communication += data_send(outfd[i], &masksize, sizeof(int));
-		communication += data_send(outfd[i], mask, n);
+		data_send(outfd[i], &masksize, sizeof(int));
+		data_send(outfd[i], mask, n);
 	}
     
     /* Process image in chunks. */
@@ -42,8 +63,8 @@ void gauss_filter(unsigned char *img, int imgsize, double *mask, int masksize)
     nchunks = (imgsize*imgsize)/(CHUNK_SIZE*CHUNK_SIZE);
     for (i = 0; i < nchunks; i++)
     {		
-		communication += data_send(outfd[j], &msg, sizeof(int));
-		communication += data_send(outfd[j], &img[i*(CHUNK_SIZE*CHUNK_SIZE)],n);
+		data_send(outfd[j], &msg, sizeof(int));
+		data_send(outfd[j], &img[i*(CHUNK_SIZE*CHUNK_SIZE)],n);
 		
 		j++;
 		
@@ -55,7 +76,7 @@ void gauss_filter(unsigned char *img, int imgsize, double *mask, int masksize)
 		{
 			for (/* NOOP */ ; j > 0; j--)
 			{
-				communication += data_receive(infd[nclusters-j],
+				data_receive(infd[nclusters-j],
 								   &img[(nclusters-j)*CHUNK_SIZE*CHUNK_SIZE], n);
 			}
 		}
@@ -64,7 +85,7 @@ void gauss_filter(unsigned char *img, int imgsize, double *mask, int masksize)
 	/* Receive remaining results. */
 	for (/* NOOP */ ; j > 0; j--)
 	{
-		communication += data_receive(infd[j - 1], 
+		data_receive(infd[j - 1], 
 								&img[(nchunks - j)*CHUNK_SIZE*CHUNK_SIZE], n);
 	}
 	

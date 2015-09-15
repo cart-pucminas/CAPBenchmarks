@@ -11,6 +11,27 @@
 #include <stdio.h>
 #include "master.h"
 
+/*
+ * Wrapper to data_send(). 
+ */
+#define data_send(a, b, c)                   \
+	{                                        \
+		data_sent += c;                      \
+		nsend++;                             \
+		communication += data_send(a, b, c); \
+	}                                        \
+
+/*
+ * Wrapper to data_receive(). 
+ */
+#define data_receive(a, b, c)                   \
+	{                                           \
+		data_received += c;                     \
+		nreceive++;                             \
+		communication += data_receive(a, b, c); \
+	}                                           \
+
+
 /* Number of buckets. */
 #define NUM_BUCKETS 256
 
@@ -148,7 +169,7 @@ extern void bucketsort(int *array, int n)
 			message_destroy(msg);
 			
 			/* Send data. */
-			communication += 
+			
 				data_send(outfd[j], minib->elements, minib->size*sizeof(int));
 			minibucket_destroy(minib);
 			
@@ -169,7 +190,7 @@ extern void bucketsort(int *array, int n)
 					/* Receive mini-bucket. */
 					minib = minibucket_create();
 					minib->size = msg->u.sortresult.size;
-					communication += data_receive(infd[nclusters -j], minib->elements, 
+					data_receive(infd[nclusters -j], minib->elements, 
 													minib->size*sizeof(int));
 					
 					bucket_push(done[msg->u.sortresult.id], minib);
@@ -189,7 +210,7 @@ extern void bucketsort(int *array, int n)
 		/* Receive bucket. */
 		minib = minibucket_create();
 		minib->size = msg->u.sortresult.size;
-		communication += 
+		
 			data_receive(infd[j - 1], minib->elements, minib->size*sizeof(int));
 					
 		bucket_push(done[msg->u.sortresult.id], minib);

@@ -19,6 +19,27 @@
 #include <util.h>
 #include "master.h"
 
+/*
+ * Wrapper to data_send(). 
+ */
+#define data_send(a, b, c)                   \
+	{                                        \
+		data_sent += c;                      \
+		nsend++;                             \
+		communication += data_send(a, b, c); \
+	}                                        \
+
+/*
+ * Wrapper to data_receive(). 
+ */
+#define data_receive(a, b, c)                   \
+	{                                           \
+		data_received += c;                     \
+		nreceive++;                             \
+		communication += data_receive(a, b, c); \
+	}                                           \
+
+
 typedef struct {
     int number;
     int num;
@@ -61,8 +82,8 @@ static void sendWork(void)
 		end = timer_get();
 		master += timer_diff(start, end);
 
-		communication += data_send(outfd[i], &tasksize[i], sizeof(int));
-		communication += data_send(outfd[i], task, tasksize[i]*sizeof(Item));
+		data_send(outfd[i], &tasksize[i], sizeof(int));
+		data_send(outfd[i], task, tasksize[i]*sizeof(Item));
     }
     
 }
@@ -73,11 +94,11 @@ static void syncNumbers(void)
 
 	for (i = 0; i < nclusters - 1; i++)
 	{
-        communication += data_receive(infd[i], &finishedTasks[i*avgtasksize], 
+        data_receive(infd[i], &finishedTasks[i*avgtasksize], 
 													avgtasksize*sizeof(Item));
 	}
 	
-	communication += data_receive(infd[i], &finishedTasks[i*avgtasksize], 
+	data_receive(infd[i], &finishedTasks[i*avgtasksize], 
 													tasksize[i]*sizeof(Item));
 }
 

@@ -13,6 +13,27 @@
 #include <util.h>
 #include "master.h"
 
+/*
+ * Wrapper to data_send(). 
+ */
+#define data_send(a, b, c)                   \
+	{                                        \
+		data_sent += c;                      \
+		nsend++;                             \
+		communication += data_send(a, b, c); \
+	}                                        \
+
+/*
+ * Wrapper to data_receive(). 
+ */
+#define data_receive(a, b, c)                   \
+	{                                           \
+		data_received += c;                     \
+		nreceive++;                             \
+		communication += data_receive(a, b, c); \
+	}                                           \
+
+
 /* Work list. */
 static struct message *works = NULL; 
 
@@ -68,12 +89,12 @@ void row_reduction(struct matrix *m, int i0)
 		
 		/* Send pivot line. */
 		n = (msg->u.reductwork.width)*sizeof(float);
-		communication += 
+		
 		data_send(outfd[i], &MATRIX(m, msg->u.reductwork.ipvt, msg->u.reductwork.j0), n);
 		
 		/* Send matrix block. */
 		n = (msg->u.reductwork.height)*(msg->u.reductwork.width)*sizeof(float);
-		communication += 
+		
 		data_send(outfd[i], &MATRIX(m,msg->u.reductwork.i0, msg->u.reductwork.j0), n);
 		
 		i++;
@@ -92,7 +113,7 @@ void row_reduction(struct matrix *m, int i0)
 				
 				/* Receive matrix block. */
 				n = (msg->u.reductresult.height)*(msg->u.reductresult.width)*sizeof(float);
-				communication += data_receive(infd[nclusters - i], &MATRIX(m,msg->u.reductresult.i0, msg->u.reductresult.j0), n);
+				data_receive(infd[nclusters - i], &MATRIX(m,msg->u.reductresult.i0, msg->u.reductresult.j0), n);
 				
 				message_destroy(msg);
 			}
@@ -106,7 +127,7 @@ void row_reduction(struct matrix *m, int i0)
 				
 		/* Receive matrix block. */
 		n = (msg->u.reductresult.height)*(msg->u.reductresult.width)*sizeof(float);
-		communication += data_receive(infd[i - 1], &MATRIX(m,msg->u.reductresult.i0, msg->u.reductresult.j0), n);
+		data_receive(infd[i - 1], &MATRIX(m,msg->u.reductresult.i0, msg->u.reductresult.j0), n);
 				
 		message_destroy(msg);
 	}

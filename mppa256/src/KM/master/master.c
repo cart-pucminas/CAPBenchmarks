@@ -13,6 +13,27 @@
 #include <util.h>
 #include "master.h"
 
+/*
+ * Wrapper to data_send(). 
+ */
+#define data_send(a, b, c)                   \
+	{                                        \
+		data_sent += c;                      \
+		nsend++;                             \
+		communication += data_send(a, b, c); \
+	}                                        \
+
+/*
+ * Wrapper to data_receive(). 
+ */
+#define data_receive(a, b, c)                   \
+	{                                           \
+		data_received += c;                     \
+		nreceive++;                             \
+		communication += data_receive(a, b, c); \
+	}                                           \
+
+
 #define NUM_THREADS (NUM_CORES/NUM_CLUSTERS)
 
 /* Size of arrays. */
@@ -65,31 +86,31 @@ static void sendwork(void)
 	/* Send work to slave processes. */
 	for (i = 0; i < nclusters; i++)
 	{
-		communication += data_send(outfd[i], &lnpoints[i], sizeof(int));
+		data_send(outfd[i], &lnpoints[i], sizeof(int));
 		
-		communication += data_send(outfd[i], &nclusters, sizeof(int));
+		data_send(outfd[i], &nclusters, sizeof(int));
 		
-		communication += data_send(outfd[i], &ncentroids, sizeof(int));
+		data_send(outfd[i], &ncentroids, sizeof(int));
 		
-		communication += data_send(outfd[i], &mindistance, sizeof(float));
+		data_send(outfd[i], &mindistance, sizeof(float));
 
-		communication += data_send(outfd[i], &dimension, sizeof(int));
+		data_send(outfd[i], &dimension, sizeof(int));
 		
 		n = nclusters*sizeof(int);
-		communication += data_send(outfd[i], lncentroids, n);
+		data_send(outfd[i], lncentroids, n);
 		
 		n = dimension*sizeof(float);
 		for (j = 0; j < lnpoints[i]; j++)
 		{
-			communication += 
+			
 				data_send(outfd[i], data[i*(npoints/nclusters)+j]->elements, n);
 		}
 		
 		n = ncentroids*dimension*sizeof(float);
-		communication += data_send(outfd[i], centroids, n);
+		data_send(outfd[i], centroids, n);
 		
 		n = lnpoints[i]*sizeof(int);
-		communication += data_send(outfd[i], &map[i*(npoints/nclusters)], n);
+		data_send(outfd[i], &map[i*(npoints/nclusters)], n);
 	}
 }
 
@@ -111,7 +132,7 @@ static void sync_pcentroids(void)
 	/* Receive partial centroids. */
 	n = ncentroids*dimension*sizeof(float);
 	for (i = 0; i < nclusters; i++)
-		communication += data_receive(infd[i], PCENTROID(i, 0), n);
+		data_receive(infd[i], PCENTROID(i, 0), n);
 
 	/* 
 	 * Send partial centroids to the
@@ -131,7 +152,7 @@ static void sync_pcentroids(void)
 		master += timer_diff(start, end);
 
 		n = nclusters*lncentroids[i]*dimension*sizeof(float);
-		communication += data_send(outfd[i], centroids, n);
+		data_send(outfd[i], centroids, n);
 	}
 }
 
@@ -147,7 +168,7 @@ static void sync_ppopulation(void)
 	/* Receive temporary population. */
 	n = ncentroids*sizeof(int);
 	for (i = 0; i < nclusters; i++)
-		communication += data_receive(infd[i], PPOPULATION(i, 0), n);
+		data_receive(infd[i], PPOPULATION(i, 0), n);
 
 	/* 
 	 * Send partial population to the
@@ -167,7 +188,7 @@ static void sync_ppopulation(void)
 		master += timer_diff(start, end);
 
 		n = nclusters*lncentroids[i]*sizeof(int);
-		communication += data_send(outfd[i], population, n);
+		data_send(outfd[i], population, n);
 	}
 }
 
@@ -183,14 +204,14 @@ static void sync_centroids(void)
 	for (i = 0; i < nclusters; i++)
 	{
 		n = lncentroids[i]*dimension*sizeof(float);
-		communication += 
+		
 					data_receive(infd[i], CENTROID(i*(ncentroids/nclusters)), n);
 	}
 
 	/* Broadcast centroids. */
 	n = ncentroids*dimension*sizeof(float);
 	for (i = 0; i < nclusters; i++)
-		communication += data_send(outfd[i], centroids, n);
+		data_send(outfd[i], centroids, n);
 }
 
 /*
@@ -205,16 +226,16 @@ static void sync_status(void)
 	n = NUM_THREADS*sizeof(int);
 	for (i = 0; i < nclusters; i++)
 	{
-		communication += data_receive(infd[i], &has_changed[i*NUM_THREADS], n);
-		communication += data_receive(infd[i], &too_far[i*NUM_THREADS], n);
+		data_receive(infd[i], &has_changed[i*NUM_THREADS], n);
+		data_receive(infd[i], &too_far[i*NUM_THREADS], n);
 	}
 
 	/* Broadcast data to slaves. */
 	n = nclusters*NUM_THREADS*sizeof(int);
 	for (i = 0; i < nclusters; i++)
 	{
-		communication += data_send(outfd[i], has_changed, n);
-		communication += data_send(outfd[i], too_far, n);
+		data_send(outfd[i], has_changed, n);
+		data_send(outfd[i], too_far, n);
 	}
 }
 

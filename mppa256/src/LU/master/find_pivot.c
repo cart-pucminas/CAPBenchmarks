@@ -12,6 +12,27 @@
 #include <util.h>
 #include "master.h"
 
+/*
+ * Wrapper to data_send(). 
+ */
+#define data_send(a, b, c)                   \
+	{                                        \
+		data_sent += c;                      \
+		nsend++;                             \
+		communication += data_send(a, b, c); \
+	}                                        \
+
+/*
+ * Wrapper to data_receive(). 
+ */
+#define data_receive(a, b, c)                   \
+	{                                           \
+		data_received += c;                     \
+		nreceive++;                             \
+		communication += data_receive(a, b, c); \
+	}                                           \
+
+
 /* Lists. */
 static struct message *works = NULL;   /* Work list.   */
 static struct message *results = NULL; /* Result list. */
@@ -105,7 +126,7 @@ float find_pivot(struct matrix *m, int i0, int j0)
 		
 		/* Send data. */
 		n = (msg->u.findwork.height)*(msg->u.findwork.width)*sizeof(float);
-		communication += 
+		
 		data_send(outfd[i], &MATRIX(m,msg->u.findwork.i0,msg->u.findwork.j0), n);
 		
 		i++;
