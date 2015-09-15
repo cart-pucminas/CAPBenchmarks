@@ -8,6 +8,7 @@
 #define GLOBAL_H_
 
 	#include <arch.h>
+	#include <stddef.h>
 	#include <stdint.h>
 
 	/*
@@ -25,5 +26,9 @@
 	extern uint64_t slave[NUM_CLUSTERS];
 	extern uint64_t communication;
 	extern uint64_t total;
+	extern size_t data_sent;
+	extern size_t data_received;
+	extern unsigned nsend;
+	extern unsigned nreceive;
 
 #endif /* GLOBAL_H_ */
