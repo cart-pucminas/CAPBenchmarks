@@ -7,6 +7,12 @@ static broadcast_t *broad;
 
 void callback_master (mppa_sigval_t sigval);
 
+/* Data exchange statistics. */
+size_t data_sent = 0;     /* Number of bytes received. */
+unsigned nsend = 0;       /* Number of sends.          */
+size_t data_received = 0; /* Number of bytes sent.     */
+unsigned nreceive = 0;    /* Number of receives.       */
+
 /*
  * Problem.
  */
@@ -220,6 +226,11 @@ void run_tsp (int nb_threads, int nb_towns, int seed, int nb_clusters) {
 		mppa_write_rqueue (rqueue_partition_response[from[0]], &partition_interval, sizeof(partition_interval_t));
 		end_comm_time = mppa_get_time();
 		comm_time += mppa_diff_time(start_comm_time, end_comm_time);
+		
+		nsend++;
+		data_sent += sizeof(partition_interval_t);
+		nread++;
+		data_received += 2 * sizeof(int);
 	}
 
 	wait_barrier (barrier); //end barrier
@@ -258,6 +269,11 @@ void run_tsp (int nb_threads, int nb_towns, int seed, int nb_clusters) {
 	LOG("  comm time..........: %f\n", (exec_time - comm_time - master_time)/1000000.0);
 	LOG("  master blocked time: %f\n", comm_time/1000000.0);
 	printf("  total time: %f\n", exec_time/1000000.0);
+	printf("data exchange statistics:\n");
+	printf("  data sent:            %d\n", data_sent);
+	printf("  number sends:         %u\n", nsend);
+	printf("  data received:        %d\n", data_received);
+	printf("  number receives:      %u\n", nreceive);
 }
 
 void new_minimun_distance_found(tsp_t_pointer tsp) {
