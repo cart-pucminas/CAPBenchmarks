@@ -173,7 +173,7 @@ int main(int argc, char **argv)
 	printf("  data sent:            %d\n", data_sent);
 	printf("  number sends:         %u\n", nsend);
 	printf("  data received:        %d\n", data_received);
-	printf("  number receives:      %u\n", nreceived);
+	printf("  number receives:      %u\n", nreceive);
 	
 	return (0);
 }
