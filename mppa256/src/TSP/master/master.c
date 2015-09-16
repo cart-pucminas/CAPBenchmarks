@@ -229,7 +229,7 @@ void run_tsp (int nb_threads, int nb_towns, int seed, int nb_clusters) {
 		
 		nsend++;
 		data_sent += sizeof(partition_interval_t);
-		nread++;
+		nreceive++;
 		data_received += 2 * sizeof(int);
 	}
 
