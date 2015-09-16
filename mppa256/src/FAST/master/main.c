@@ -277,7 +277,7 @@ int main(int argc, char **argv)
 	
 	total = timer_diff(start, end);
 
-	/* Print tiing statistics. */
+	/* Print timing statistics. */
 	printf("timing statistics:\n");
 	printf("  master:           %f\n", master*MICROSEC);
 	for (i = 0; i < nclusters; i++){
@@ -285,7 +285,11 @@ int main(int argc, char **argv)
 	}
 	printf("  communication:    %f\n", communication*MICROSEC);
 	printf("  total time:       %f\n", total*MICROSEC);
-	printf("  corners detected: %d\n", numcorners);
+	printf("data exchange statistics:\n");
+	printf("  data sent:            %d\n", data_sent);
+	printf("  number sends:         %u\n", nsend);
+	printf("  data received:        %d\n", data_received);
+	printf("  number receives:      %u\n", nreceived);
 	
 	/* House keeping. */
 	free(mask);

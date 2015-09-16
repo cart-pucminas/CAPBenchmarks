@@ -169,6 +169,11 @@ int main(int argc, char **argv)
 		printf("  slave %d:      %f\n", i, slave[i]*MICROSEC);
 	printf("  communication: %f\n", communication*MICROSEC);
 	printf("  total time:    %f\n", total*MICROSEC);
+	printf("data exchange statistics:\n");
+	printf("  data sent:            %d\n", data_sent);
+	printf("  number sends:         %u\n", nsend);
+	printf("  data received:        %d\n", data_received);
+	printf("  number receives:      %u\n", nreceived);
 	
 	return (0);
 }
