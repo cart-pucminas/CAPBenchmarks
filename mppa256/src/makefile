@@ -13,32 +13,32 @@ fast:
 # Builds FN kernel.
 fn:
 	cd FN && $(MAKE) all
-	cp FAST/output/bin/*.img $(BINDIR)
+	cp FN/output/bin/*.img $(BINDIR)
 
 # Builds GF kernel.
 gf:
 	cd GF && $(MAKE) all
-	cp FAST/output/bin/*.img $(BINDIR)
+	cp GF/output/bin/*.img $(BINDIR)
 
 # Builds IS kernel.
 is:
 	cd IS && $(MAKE) all
-	cp FAST/output/bin/*.img $(BINDIR)
+	cp IS/output/bin/*.img $(BINDIR)
 
 # Builds KM kernel.
 km:
 	cd KM && $(MAKE) all
-	cp FAST/output/bin/*.img $(BINDIR)
+	cp KM/output/bin/*.img $(BINDIR)
 
 # Builds LU kernel.
 lu:
 	cd LU && $(MAKE) all
-	cp FAST/output/bin/*.img $(BINDIR)
+	cp LU/output/bin/*.img $(BINDIR)
 
 # Builds TSP.
 tsp:
 	cd TSP && $(MAKE) all
-	cp FAST/output/bin/*.img $(BINDIR)
+	cp TSP/output/bin/*.img $(BINDIR)
 
 # Cleans compilation files.
 clean:

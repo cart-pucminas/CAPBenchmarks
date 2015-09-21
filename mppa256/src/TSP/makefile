@@ -15,12 +15,12 @@ k1-lflags := -lmppaipc
 
 # Builds master binary.
 io-bin := master
-master-srcs := $(wildcard master/*.c) $(wildcard $(LIBSRCDIR)/*.c)
+master-srcs := $(wildcard master/*.c) $(wildcard $(LIBSRCDIR)/*.c) $(wildcard *.c)
 
 # Builds slave binary
 cluster-bin := slave
 slave-lflags := -fopenmp
-slave-srcs := $(wildcard slave/*.c) $(wildcard $(LIBSRCDIR)/*.c)
+slave-srcs := $(wildcard slave/*.c) $(wildcard $(LIBSRCDIR)/*.c) $(wildcard *.c)
 
 # build image (master + slave)
 mppa-bin := multibin
