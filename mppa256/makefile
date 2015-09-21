@@ -5,10 +5,10 @@
 #
 
 # Directories.
-LIBSRCDIR = $(CURDIR)/libsrc
-INCDIR = $(CURDIR)/include
-SRCDIR = $(CURDIR)/src
-K1_TOOLCHAIN_DIR = /usr/local/k1tools
+export LIBSRCDIR = $(CURDIR)/libsrc
+export INCDIR = $(CURDIR)/include
+export SRCDIR = $(CURDIR)/src
+export K1_TOOLCHAIN_DIR = /usr/local/k1tools
 
 # Builds all kernels.
 all:
