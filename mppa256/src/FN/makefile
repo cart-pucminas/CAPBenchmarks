@@ -2,30 +2,30 @@
 # Copyright(C) 2014 Pedro H. Penna <pedrohenriquepenna@gmail.com>
 #
 
-# Source files.
-SRC_MASTER = $(wildcard master/*.c)
-SRC_SLAVE =  $(wildcard slave/*.c)
-
 # Executable.
 EXEC = fn
 
-.PHONY: master
-.PHONY: slave
+# Sets the target platform.
+platforms := hardware
 
-# Builds kernel.
-all: master slave
-	$(MPPADIR)/bin/k1-create-multibinary --toolchain $(MPPADIR) --clusters=$(EXEC).slave --boot=$(EXEC).master -T $(BINDIR)/$(EXEC).mppa.mpk
-	rm -f $(EXEC).master
-	rm -f $(EXEC).slave
+# Compilation flags flags
+cflags := -O3 -I $(INCDIR)
+lflags := -lm
+k1-lflags := -lmppaipc
 
-# Builds master.
-master: $(SRC_MASTER)
-	$(CC) -mos=rtems $(CFLAGS) $(SRC_MASTER) $(LIBSRCDIR)/*.c -o $(EXEC).master $(LIBS)
+# Builds master binary.
+io-bin := master
+master-srcs := $(wildcard master/*.c) $(wildcard $(LIBSRCDIR)/*.c)
 
-# Builds slave.
-slave: $(SRC_SLAVE)
-	$(CC) -mos=nodeos $(CFLAGS) $(SRC_SLAVE) $(LIBSRCDIR)/*.c -o $(EXEC).slave $(LIBS) -fopenmp
+# Builds slave binary
+cluster-bin := slave
+slave-lflags := -fopenmp
+slave-srcs := $(wildcard slave/*.c) $(wildcard $(LIBSRCDIR)/*.c)
 
-# Cleans compilation files.
-clean:
-	rm -f $(BINDIR)/$(EXEC).mppa.mpk
+# build image (master + slave)
+mppa-bin := multibin
+multibin-objs := master slave
+multibin-name := $(EXEC).img
+
+# must be at the end of the makefile!
+include $(K1_TOOLCHAIN_DIR)/share/make/Makefile.mppaipc

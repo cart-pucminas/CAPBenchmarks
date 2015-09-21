@@ -2,38 +2,30 @@
 # Copyright(C) 2014 Pedro H. Penna <pedrohenriquepenna@gmail.com>
 #
 
-# Source files.
-SRC_COMMON = $(wildcard *.c)
-SRC_MASTER = $(wildcard master/*.c)
-SRC_SLAVE =  $(wildcard slave/*.c)
-
 # Executable.
 EXEC = tsp
 
-# Debug mode? (use -DDEBUG to turn on debug mode or -UDEBUG to turn off debug mode)
-DEBUG = -UDEBUG
+# Sets the target platform.
+platforms := hardware
 
-.PHONY: master
-.PHONY: slave
+# Compilation flags flags
+cflags := -O3 -I $(INCDIR)
+lflags := -lm
+k1-lflags := -lmppaipc
 
-# Builds kernel.
-all: master slave
-	$(MPPADIR)/bin/k1-create-multibinary --toolchain $(MPPADIR) --clusters=$(EXEC).slave --boot=$(EXEC).master -T $(BINDIR)/$(EXEC).mppa.mpk
-	rm -f $(EXEC).master
-	rm -f $(EXEC).slave
+# Builds master binary.
+io-bin := master
+master-srcs := $(wildcard master/*.c) $(wildcard $(LIBSRCDIR)/*.c)
 
-# Builds common objects.
-common: $(SRC_COMMON)
-	$(CC) -Wno-unused-parameter -DMT -DNO_CACHE_COHERENCE $(DEBUG) -mos=rtems $(CFLAGS) $(SRC_COMMON) -c $(EXEC) $(LIBS)
+# Builds slave binary
+cluster-bin := slave
+slave-lflags := -fopenmp
+slave-srcs := $(wildcard slave/*.c) $(wildcard $(LIBSRCDIR)/*.c)
 
-# Builds master.
-master: $(SRC_COMMON) $(SRC_MASTER)
-	$(CC) -Wno-unused-parameter -DMT -DNO_CACHE_COHERENCE $(DEBUG) -mos=rtems $(CFLAGS) $(SRC_COMMON) $(SRC_MASTER) -o $(EXEC).master $(LIBS)
+# build image (master + slave)
+mppa-bin := multibin
+multibin-objs := master slave
+multibin-name := $(EXEC).img
 
-# Builds slave.
-slave: $(SRC_COMMON) $(SRC_SLAVE) 
-	$(CC) -Wno-unused-parameter -DMT -DNO_CACHE_COHERENCE $(DEBUG) -mos=nodeos $(CFLAGS) $(SRC_COMMON) $(SRC_SLAVE) -o $(EXEC).slave $(LIBS)
-
-# Cleans compilation files.
-clean:
-	rm -f $(BINDIR)/$(EXEC).mppa.mpk
+# must be at the end of the makefile!
+include $(K1_TOOLCHAIN_DIR)/share/make/Makefile.mppaipc
