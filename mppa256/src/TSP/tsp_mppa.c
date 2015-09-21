@@ -1,5 +1,6 @@
-#include <mppa/osconfig.h>
 #include "tsp_mppa.h"
+
+extern int k1_get_cluster_id(void);
 
 void set_path_name(char *path, char *template_path, int rx, int tag) {
 	sprintf(path, template_path, rx, tag);
@@ -125,7 +126,7 @@ broadcast_t *mppa_create_broadcast (int clusters, char *path_name, void *buffer,
 	ret->portals = (portal_t **) malloc((clusters + 1) * sizeof(portal_t *));
 	ret->clusters = clusters;
 	ret->includes_ionode = includes_ionode;
-	int rank = __k1_get_cluster_id();
+	int rank = k1_get_cluster_id();
 	
 	for( i = 0; i < clusters; i++) {
 		set_path_name(filled_path, path_name, i, i + 40);
@@ -148,7 +149,7 @@ broadcast_t *mppa_create_broadcast (int clusters, char *path_name, void *buffer,
 
 void mppa_broadcast (broadcast_t *broadcast, void *value, int size) {
 	int i;
-	int rank = __k1_get_cluster_id();
+	int rank = k1_get_cluster_id();
 	int offset = size * ((rank == IO_NODE_RANK) ? broadcast->clusters : rank);
 
 	for (i = 0; i < broadcast->clusters; i++) {
@@ -237,7 +238,7 @@ void mppa_barrier_wait(barrier_t *barrier) {
 		assert(status == sizeof(long long));
 	}
 	else {
-		long long mask = (long long) 1 << __k1_get_cluster_id();
+		long long mask = (long long) 1 << k1_get_cluster_id();
 		dummy = 0;
 		
 		status = mppa_write(barrier->sync_fd_master, &mask, sizeof(long long));

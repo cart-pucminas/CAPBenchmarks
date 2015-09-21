@@ -9,18 +9,17 @@ EXEC = tsp
 platforms := hardware
 
 # Compilation flags flags
-cflags := -O3 -I $(INCDIR)
-lflags := -lm
+cflags := -O3 -I $(INCDIR) -DMT -DNO_CACHE_COHERENCE -UDEBUG
+lflags := -lm -pthread
 k1-lflags := -lmppaipc
 
 # Builds master binary.
 io-bin := master
-master-srcs := $(wildcard master/*.c) $(wildcard $(LIBSRCDIR)/*.c) $(wildcard *.c)
+master-srcs := $(wildcard master/*.c) $(LIBSRCDIR)/timer.c $(wildcard *.c)
 
 # Builds slave binary
 cluster-bin := slave
-slave-lflags := -fopenmp
-slave-srcs := $(wildcard slave/*.c) $(wildcard $(LIBSRCDIR)/*.c) $(wildcard *.c)
+slave-srcs := $(wildcard slave/*.c) $(LIBSRCDIR)/timer.c $(wildcard *.c)
 
 # build image (master + slave)
 mppa-bin := multibin

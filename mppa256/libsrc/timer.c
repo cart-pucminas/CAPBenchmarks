@@ -42,3 +42,8 @@ void timer_init(void)
   
   timer_error = (end - start);
 }
+
+int k1_get_cluster_id(void)
+{
+	return (__k1_get_cluster_id());
+}
