@@ -7,6 +7,7 @@
 # Directories.
 LIBSRCDIR = $(CURDIR)/libsrc
 INCDIR = $(CURDIR)/include
+SRCDIR = $(CURDIR)/src
 K1_TOOLCHAIN_DIR = /usr/local/k1tools
 
 # Builds all kernels.
