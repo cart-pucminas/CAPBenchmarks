@@ -48,7 +48,7 @@ portal_t *mppa_create_write_portal (char *path, int min_rank, int max_rank, int 
 		if (includes_ionode)
 			ranks[size - 1] = IO_NODE_RANK; 
 
-		status = mppa_ioctl(ret->file_descriptor, size, ranks);
+		status = mppa_ioctl(ret->file_descriptor, MPPA_TX_SET_RX_RANKS, size, ranks);
 		assert(status == 0);
 	}
 
@@ -198,7 +198,7 @@ barrier_t *mppa_create_master_barrier (char *path_master, char *path_slave, int 
 	for (i = 0; i < clusters; i++)
 		ranks[i] = i;
 
-	status = mppa_ioctl(ret->sync_fd_slave, clusters, ranks);
+	status = mppa_ioctl(ret->sync_fd_slave, MPPA_TX_SET_RX_RANKS, clusters, ranks);
 	assert(status == 0);
 
 	ret->mode = BARRIER_MASTER;
