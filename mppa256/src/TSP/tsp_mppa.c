@@ -1,3 +1,4 @@
+#include <mppa.h>
 #include "tsp_mppa.h"
 
 extern int k1_get_cluster_id(void);
@@ -278,7 +279,7 @@ void mppa_init_time(void) {
 }
 
 inline uint64_t mppa_get_time(void) {
-	return __k1_io_read64((void *)0x70084040) / MPPA_FREQUENCY;
+	return k1_io_read64(0x70084040);
 }
 
 inline uint64_t mppa_diff_time(uint64_t t1, uint64_t t2) {
