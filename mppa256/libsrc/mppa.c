@@ -19,5 +19,5 @@ int k1_get_cluster_id(void)
 
 int k1_dcache_invalidate_mem_area(void *p, size_t n)
 {
-	_k1_dcache_invalidate_mem_area((__k1_uintptr_t)p, n);
+	return (__k1_dcache_invalidate_mem_area((__k1_uintptr_t)p, n));
 }
