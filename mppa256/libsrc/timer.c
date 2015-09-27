@@ -4,8 +4,8 @@
  * timer.c - Timer library implementation.
  */
 
-#include <mppa/osconfig.h>
 #include <arch.h>
+#include <mppa.h>
 #include <mppaipc.h>
 #include <stdint.h>
 
@@ -19,7 +19,7 @@ uint64_t timer_error = 0;
  */
 uint64_t timer_get(void)
 {
-	return (__k1_io_read64((void *)0x70084040) / MPPA_FREQUENCY);
+	return (k1_io_read64(0x70084040)/MPPA_FREQUENCY);
 }
 
 /*
@@ -43,7 +43,4 @@ void timer_init(void)
   timer_error = (end - start);
 }
 
-int k1_get_cluster_id(void)
-{
-	return (__k1_get_cluster_id());
-}
+
