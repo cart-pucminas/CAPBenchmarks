@@ -65,7 +65,7 @@ void open_noc_connectors(void)
 	/* Open channels. */
 	for (i = 0; i < nclusters; i++)
 	{		
-		sprintf(path, "/mppa/channel/%d:%d/128:%d", i, i + 1, i + 1);
+		sprintf(path, "/mppa/channel/%d:%d/128:%d", i, i + 17, i + 17);
 		outfd[i] = mppa_open(path, O_WRONLY);
 		assert(outfd[i] != -1);
 		
@@ -105,7 +105,7 @@ void open_noc_connectors(void)
 	char path[35];
 	
 	/* Open input channel. */
-	sprintf(path, "/mppa/channel/%d:%d/128:%d", rank, rank + 1, rank + 1);
+	sprintf(path, "/mppa/channel/%d:%d/128:%d", rank, rank + 17, rank + 17);
 	infd = mppa_open(path, O_RDONLY);
 	assert(infd != -1);
 	sprintf(path, "/mppa/channel/128:%d/%d:%d", rank + 33, rank, rank + 33);
