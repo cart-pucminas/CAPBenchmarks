@@ -13,6 +13,7 @@
 #include <string.h>
 #include <timer.h>
 #include <util.h>
+#include <ipc.h>
 #include "master.h"
 
 /*
@@ -48,7 +49,6 @@ void gauss_filter(unsigned char *img, int imgsize, double *mask, int masksize)
 	
 	open_noc_connectors();
 	spawn_slaves();
-	sync_slaves();
 	
 	 /* Send mask. */
     n = sizeof(double)*masksize*masksize;	

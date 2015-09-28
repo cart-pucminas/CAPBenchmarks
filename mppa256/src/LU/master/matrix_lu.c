@@ -11,6 +11,7 @@
 #include <stdint.h>
 #include <timer.h>
 #include <util.h>
+#include <ipc.h>
 #include "master.h"
 
 /*
@@ -101,7 +102,6 @@ int matrix_lu(struct matrix *m, struct matrix *l, struct matrix *u)
 	/* Setup slaves. */
 	open_noc_connectors();
 	spawn_slaves();
-	sync_slaves();
 	
 	/* Apply elimination on all rows. */
 	for (i = 0; i < m->height - 1; i++)

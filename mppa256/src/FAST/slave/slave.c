@@ -12,6 +12,8 @@
 #include <string.h>
 #include "slave.h"
 
+#include <ipc.h>
+
 /* Timing statistics. */
 uint64_t start;
 uint64_t end;
@@ -102,7 +104,6 @@ int main(int argc, char **argv)
 	
 	/* Setup interprocess communication. */
 	open_noc_connectors();
-	sync_master();
 	
 	/* Receives filter mask.*/
 	data_receive(infd, &masksize, sizeof(int));

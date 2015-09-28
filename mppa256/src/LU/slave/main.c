@@ -14,6 +14,7 @@
 #include <stdint.h>
 #include <timer.h>
 #include <util.h>
+#include <ipc.h>
 #include "slave.h"
 
 /* 
@@ -138,7 +139,6 @@ int main(int argc, char **argv)
 	
 	rank = atoi(argv[0]);
 	open_noc_connectors();
-	sync_master();
 	
 	/* Slave life. */
 	while (1)
