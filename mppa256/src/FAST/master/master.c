@@ -15,6 +15,8 @@
 #include <timer.h>
 #include <util.h>
 #include <stdio.h>
+
+#include <ipc.h>
 #include "master.h"
 
 /*
@@ -54,7 +56,6 @@ int fast(char *img, char *output, int imgsize, int *mask, int masksize)
 	
 	open_noc_connectors();
 	spawn_slaves();
-	sync_slaves();
 	
 	 /* Send mask. */
     	n = sizeof(int)*masksize;	

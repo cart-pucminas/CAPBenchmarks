@@ -8,6 +8,7 @@
 bin/*
 x86/bin/*
 mppa256/bin/*
+mppa256/src/FAST/output/*
 *.img
 
 # Exceptions.
