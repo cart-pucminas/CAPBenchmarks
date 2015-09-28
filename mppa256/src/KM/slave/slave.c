@@ -141,18 +141,15 @@ static void populate(void)
  */
 static void sync_pcentroids(void)
 {	
-	ssize_t n;     /* Bytes to send/receive.        */
-	ssize_t count; /* Bytes actually sent/received. */
+	ssize_t n;
 	
 	/* Send partial centroids. */
 	n = ncentroids*dimension*sizeof(float);
-	count = mppa_write(outfd, centroids, n);
-	assert(n == count);
+	total += data_send(outfd, centroids, n);
 	
 	/* Receive partial centroids. */
 	n = nprocs*lncentroids[rank]*dimension*sizeof(float);
-	count = mppa_read(infd, centroids, n);
-	assert(n == count);
+	total += data_receive(infd, centroids, n);
 }
 
 /*
@@ -160,18 +157,15 @@ static void sync_pcentroids(void)
  */
 static void sync_ppopulation(void)
 {
-	ssize_t n;     /* Bytes to send/receive.        */
-	ssize_t count; /* Bytes actually sent/received. */
-		
+	ssize_t n;
+	
 	/* Send partial population. */
 	n = ncentroids*sizeof(int);
-	count = mppa_write(outfd, ppopulation, n);
-	assert(n == count);
+	total += data_send(outfd, ppopulation, n);
 	
 	/* Receive partial population. */
 	n = nprocs*lncentroids[rank]*sizeof(int);
-	count = mppa_read(infd, ppopulation, n);
-	assert(n == count);
+	total += data_receive(infd, ppopulation, n);
 }
 
 /*
@@ -179,16 +173,13 @@ static void sync_ppopulation(void)
  */
 static void sync_centroids(void)
 {
-	ssize_t n;     /* Bytes to send/receive.        */
-	ssize_t count; /* Bytes actually sent/received. */
+	ssize_t n;
 	
 	n = lncentroids[rank]*dimension*sizeof(float);
-	count = mppa_write(outfd, lcentroids, n);
-	assert(n == count);
+	total += data_send(outfd, lcentroids, n);
 	
 	n = ncentroids*dimension*sizeof(float);
-	count = mppa_read(infd, centroids, n);
-	assert(n == count);
+	tota += data_receive(infd, centroids, n);
 }
 
 /*
@@ -197,19 +188,14 @@ static void sync_centroids(void)
 static void sync_status(void)
 {
 	ssize_t n;
-	ssize_t count;
 	
 	n = NUM_THREADS*sizeof(int);
-	count = mppa_write(outfd, &has_changed[rank*NUM_THREADS], n);
-	assert(n == count);
-	count = mppa_write(outfd, &too_far[rank*NUM_THREADS], n);
-	assert(n == count);
+	total += data_send(outfd, &has_changed[rank*NUM_THREADS], n);
+	total += data_send(outfd, &too_far[rank*NUM_THREADS], n);
 		
 	n = nprocs*NUM_THREADS*sizeof(int);
-	count = mppa_read(infd, has_changed, n);
-	assert(n == count);
-	count = mppa_read(infd, too_far, n);
-	assert(n == count);
+	total += data_receive(infd, has_changed, n);
+	total += data_receive(infd, too_far, n);
 }
 
 /*
@@ -359,8 +345,7 @@ static void getwork(void)
 	timer_init();
 	
 	n = sizeof(int);
-	count = mppa_read(infd, &lnpoints, n);
-	assert(n == count);
+	total += data_receive(infd, &lnpoints, n);
 	
 	data_receive(infd, &nprocs, sizeof(int));
 	
@@ -371,20 +356,17 @@ static void getwork(void)
 	data_receive(infd, &dimension, sizeof(int));
 	
 	n = nprocs*sizeof(int);
-	count = mppa_read(infd, lncentroids, n);
-	assert(count != -1);
+	total += data_receive(infd, lncentroids, n);
 	
 	n = dimension*sizeof(float);
 	for (i = 0; i < lnpoints; i++)
 		data_receive(infd, &points[i*dimension], n);
 	
 	n = ncentroids*dimension*sizeof(float);
-	count = mppa_read(infd, centroids, n);
-	assert(n == count);
+	total += data_receive(infd, centroids, n);
 	
 	n = lnpoints*sizeof(int);
-	count = mppa_read(infd, map, n);
-	assert(n == count);
+	total += data_receive(infd, map, n);
 }
 
 /*============================================================================*

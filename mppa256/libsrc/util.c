@@ -12,6 +12,8 @@
 #include <stdlib.h>
 #include <timer.h>
 
+#include <mppa.h>
+
 /*
  * Prints an error message and exits.
  */
@@ -121,6 +123,9 @@ uint64_t data_receive(int infd, void *data, size_t n)
 	
 	start = timer_get();
 	count = mppa_read(infd, data, n);
+#ifndef _MASTER_
+	k1_dcache_invalidate_mem_area(data, n);
+#endif
 	end = timer_get();
 	assert(count != -1);
 	
