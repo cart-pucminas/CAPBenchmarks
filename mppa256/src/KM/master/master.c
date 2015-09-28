@@ -11,6 +11,7 @@
 #include <stdint.h>
 #include <timer.h>
 #include <util.h>
+#include <ipc.h>
 #include "master.h"
 
 /*
@@ -340,7 +341,6 @@ int *kmeans(vector_t *_data, int _npoints, int _ncentroids, float _mindistance)
 	
 	open_noc_connectors();
 	spawn_slaves();
-	sync_slaves();
 
 	_kmeans();
 

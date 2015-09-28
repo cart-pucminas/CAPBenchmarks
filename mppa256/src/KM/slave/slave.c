@@ -11,6 +11,7 @@
 #include <string.h>
 #include <timer.h>
 #include <util.h>
+#include <ipc.h>
 #include "slave.h"
 
 #define NUM_THREADS (NUM_CORES/NUM_CLUSTERS)
@@ -401,7 +402,6 @@ int main(int argc, char **argv)
 	
 	/* Setup interprocess communication. */
 	open_noc_connectors();
-	sync_master();
 	
 	getwork();
 	

@@ -12,6 +12,7 @@ mppa256/src/FAST/output/*
 mppa256/src/FN/output/*
 mppa256/src/GF/output/*
 mppa256/src/IS/output/*
+mppa256/src/KM/output/*
 *.img
 
 # Exceptions.
