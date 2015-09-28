@@ -112,10 +112,6 @@ void friendly_numbers(void)
 
 int main(int argc, char **argv)
 {
-    char path[35];
-    uint64_t mask;       /* Mask for sync.        */
-    int sync_fd;         /* Sync file descriptor. */
-	
 	timer_init();
 
     ((void) argc);
@@ -123,22 +119,9 @@ int main(int argc, char **argv)
     total = 0;
     
     rank = atoi(argv[0]);
-
-    sync_fd = mppa_open("/mppa/sync/128:64", O_WRONLY);
-    assert(sync_fd != -1);
-
-    /* Open channels. */
-    sprintf(path, "/mppa/channel/%d:%d/128:%d", rank, rank + 1, rank + 1);
-    infd = mppa_open(path, O_RDONLY);
-    assert(infd != -1);
-    sprintf(path, "/mppa/channel/128:%d/%d:%d", rank + 33, rank, rank + 33);
-    outfd = mppa_open(path, O_WRONLY);
-    assert(outfd != -1);
     
-    // Synchronize with master.
-    mask = 1 << rank;
-    assert(mppa_write(sync_fd, &mask, 8) == 8);
-	mppa_close(sync_fd);
+    open_noc_connectors();
+   
 	
     getwork();
 

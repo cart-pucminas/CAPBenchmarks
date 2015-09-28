@@ -1,20 +1,23 @@
 /*
- * Copyright(C) 2014 Pedro H. Penna <pedrohenriquepenna@gmail.com>
+ * Copyright(C) 2015 Pedro H. Penna <pedrohenriquepenna@gmail.com>
  */
 
 #include <assert.h>
-#include <arch.h>
-#include <global.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <util.h>
+#include <mppaipc.h>
+
+#include <arch.h>
+#include <global.h>
+
+#ifdef MASTER_CODE_
 
 /* Interprocess communication. */
-int infd[NUM_CLUSTERS];               /* Input channels.       */
-int outfd[NUM_CLUSTERS];              /* Output channels.      */
-static mppa_pid_t pids[NUM_CLUSTERS]; /* Processes IDs.        */
-static int sync_fd;                   /* Sync file descriptor. */
+int infd[NUM_CLUSTERS];               /* Input channels.  */
+int outfd[NUM_CLUSTERS];              /* Output channels. */
+static mppa_pid_t pids[NUM_CLUSTERS]; /* Processes IDs.   */
 
 /*
  * Spwans slave processes.
@@ -23,7 +26,7 @@ void spawn_slaves(void)
 {
 	int i;          /* Loop index. */
 	char arg0[4];   /* Argument 0. */
-	char *args[3];  /* Arguments.  */
+	char *args[2];  /* Arguments.  */
 
 	/* Spawn slaves. */
 	args[1] = NULL;
@@ -49,16 +52,6 @@ void join_slaves(void)
 		data_receive(infd[i], &slave[i], sizeof(uint64_t));
 		mppa_waitpid(pids[i], NULL, 0);
 	}
-}
-
-/*
- * Waits for slaves to be ready.
- */
-void sync_slaves(void)
-{
-	uint64_t match;
-
-	assert(mppa_read(sync_fd, &match, 8) == 8);
 }
 
 /*
@@ -104,3 +97,38 @@ void close_noc_connectors(void)
 	/* Close sync. */
 	mppa_close(sync_fd);
 }
+
+#else
+
+/* Inter process communication. */
+int rank;  /* Process rank.   */
+int infd;  /* Input channel.  */
+int outfd; /* Output channel. */
+
+/*
+ * Opens NoC connectors.
+ */
+void open_noc_connectors(void)
+{
+	char path[35];
+	
+	/* Open input channel. */
+	sprintf(path, "/mppa/channel/%d:%d/128:%d", rank, rank + 1, rank + 1);
+	infd = mppa_open(path, O_RDONLY);
+	assert(infd != -1);
+	sprintf(path, "/mppa/channel/128:%d/%d:%d", rank + 33, rank, rank + 33);
+	outfd = mppa_open(path, O_WRONLY);
+	assert(outfd != -1);
+}
+
+/*
+ * Closes NoC connectors.
+ */
+void close_noc_connectors(void)
+{
+	/* Close channels. */
+	mppa_close(infd);
+	mppa_close(outfd);
+}
+
+#endif
