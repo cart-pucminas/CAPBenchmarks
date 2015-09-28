@@ -179,7 +179,7 @@ static void sync_centroids(void)
 	total += data_send(outfd, lcentroids, n);
 	
 	n = ncentroids*dimension*sizeof(float);
-	tota += data_receive(infd, centroids, n);
+	total += data_receive(infd, centroids, n);
 }
 
 /*
