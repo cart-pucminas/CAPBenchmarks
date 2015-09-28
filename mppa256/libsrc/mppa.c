@@ -9,7 +9,11 @@
 
 uint64_t k1_io_read64(unsigned addr)
 {
+#ifdef BUGGED_MPPA
 	return (__k1_io_read64((void *)addr));
+#else
+	return (0);
+#endif
 }
 
 int k1_get_cluster_id(void)
