@@ -17,6 +17,8 @@
 #include <mppaipc.h>
 #include <timer.h>
 #include <util.h>
+#include <ipc.h>
+
 #include "master.h"
 
 /*
@@ -203,24 +205,23 @@ int friendly_numbers(int _start, int _end)
 	
 	tasksize = smalloc(nclusters*sizeof(int));
 	
-    /* Distribute task sizes. */
-    problemsize = (_end - _start + 1);
-    avgtasksize = problemsize/nclusters;
+	/* Distribute task sizes. */
+	problemsize = (_end - _start + 1);
+	avgtasksize = problemsize/nclusters;
 	for (i = 0; i < nclusters; i++)
 		tasksize[i] = (i + 1 < nclusters)?avgtasksize:problemsize-i*avgtasksize;
 	
 	/* Setup slaves. */
-    open_noc_connectors();
+	open_noc_connectors();
 	spawn_slaves();
-    sync_slaves();
     
 	sendWork();
-    syncNumbers();
+	syncNumbers();
 	
 	/* House keeping. */
 	join_slaves();
 	close_noc_connectors();
 	free(tasksize);
 
-    return (count_friends());
+	return (count_friends());
 }

@@ -16,17 +16,13 @@
 #include <stdlib.h>
 #include <timer.h>
 #include <util.h>
+#include <ipc.h>
 
 typedef struct {
     long int number;
     long int numerator;
     long int denominator;
 } Item;
-
-/* Inter process communication. */
-static int rank; /* Process rank.   */
-static int infd; /* Input channel.  */
-static int outfd; /* Output channel. */
 
 /* Timing statistics. */
 uint64_t start;
@@ -121,7 +117,6 @@ int main(int argc, char **argv)
     rank = atoi(argv[0]);
     
     open_noc_connectors();
-   
 	
     getwork();
 
