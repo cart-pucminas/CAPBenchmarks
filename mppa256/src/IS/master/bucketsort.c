@@ -9,6 +9,7 @@
 #include <timer.h>
 #include <util.h>
 #include <stdio.h>
+#include <ipc.h>
 #include "master.h"
 
 /*
@@ -122,7 +123,6 @@ extern void bucketsort(int *array, int n)
 	/* Setup slaves. */
 	open_noc_connectors();
 	spawn_slaves();
-	sync_slaves();
 	
 	todo = smalloc(NUM_BUCKETS*sizeof(struct bucket *));
 	done = smalloc(NUM_BUCKETS*sizeof(struct bucket *));

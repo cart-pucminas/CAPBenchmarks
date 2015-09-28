@@ -15,6 +15,7 @@ k1-lflags := -lmppaipc
 
 # Builds master binary.
 io-bin := master
+master-cflags := -D_MASTER_
 master-srcs := $(wildcard master/*.c) $(wildcard $(LIBSRCDIR)/*.c)
 
 # Builds slave binary
