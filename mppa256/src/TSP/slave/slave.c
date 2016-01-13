@@ -45,19 +45,14 @@ void run_tsp (int nb_threads, int nb_towns, int seed, int nb_clusters) {
 	barrier.void_t = sync_barrier;
 
 	broad = mppa_create_broadcast (nb_clusters, BROADCAST_MASK, comm_buffer, comm_buffer_size, TRUE, callback_slave);
-	rqueue_partition_request = mppa_create_write_rqueue(2 * sizeof(int), 128, 70, "[0..15]", 71);
-	rqueue_partition_response = mppa_create_read_rqueue(sizeof(partition_interval_t), cluster_id, cluster_id + 72, "128", cluster_id + 72 + MAX_CLUSTERS);
+	rqueue_partition_request = mppa_create_write_rqueue(2 * sizeof(int), 128, 70, "[0..15]", 71, 1);
+	rqueue_partition_response = mppa_create_read_rqueue(sizeof(partition_interval_t), cluster_id, cluster_id + 72, "128", cluster_id + 72 + MAX_CLUSTERS, 1);
 
-	// ------------------------------------------
-	// SOLUTION FOR ioctl along with rqueue BUG
- 	// ------------------------------------------ 
 	tsp_instance = init_execution(cluster_id, nb_clusters, get_number_of_partitions(nb_clusters), nb_threads, nb_towns, seed);
 	wait_barrier (barrier);
-	mppa_init_read_rqueue(rqueue_partition_response, 1);
 	start_execution(tsp_instance);
 	wait_barrier (barrier);	
 	end_execution(tsp_instance);
-	// -------------------------------------------
 
 	mppa_close_broadcast(broad);
 	mppa_close_barrier(sync_barrier);

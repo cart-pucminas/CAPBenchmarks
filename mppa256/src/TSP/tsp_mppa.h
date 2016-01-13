@@ -55,9 +55,8 @@ portal_t *mppa_create_write_portal (char *path, int min_rank, int max_rank, int 
 void mppa_write_portal (portal_t *portal, void *buffer, int buffer_size, int offset);
 void mppa_close_portal (portal_t *portal);
 
-rqueue_t *mppa_create_read_rqueue (int message_size, int rx_id, int rx_tag, char *tx_ids, int tx_tag);
-void mppa_init_read_rqueue(rqueue_t *rqueue, int credit);
-rqueue_t *mppa_create_write_rqueue (int message_size, int rx_id, int rx_tag, char *tx_ids, int tx_tag);
+rqueue_t *mppa_create_read_rqueue (int message_size, int rx_id, int rx_tag, char *tx_ids, int tx_tag, int credit);
+rqueue_t *mppa_create_write_rqueue (int message_size, int rx_id, int rx_tag, char *tx_ids, int tx_tag, int credit);
 void mppa_read_rqueue (rqueue_t *rqueue, void *buffer, int buffer_size);
 void mppa_write_rqueue (rqueue_t *rqueue, void *buffer, int buffer_size);
 void mppa_close_rqueue(rqueue_t *rqueue);

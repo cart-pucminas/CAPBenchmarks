@@ -72,27 +72,22 @@ void mppa_write_portal (portal_t *portal, void *buffer, int buffer_size, int off
  * RQUEUE COMMUNICATION
  **************************************/
 
-rqueue_t *mppa_create_read_rqueue (int message_size, int rx_id, int rx_tag, char *tx_ids, int tx_tag) {
+  rqueue_t *mppa_create_read_rqueue (int message_size, int rx_id, int rx_tag, char *tx_ids, int tx_tag, int credit) {
 	rqueue_t *ret = (rqueue_t *) malloc (sizeof(rqueue_t));
 	char path_name[256];
 	
-	sprintf(path_name, "/mppa/queue.%d/%d:%d/%s:%d", message_size, rx_id, rx_tag, tx_ids, tx_tag);
+	sprintf(path_name, "/mppa/rqueue/%d:%d/%s:%d/%d.%d", rx_id, rx_tag, tx_ids, tx_tag, credit, message_size);
 	ret->file_descriptor = mppa_open(path_name, O_RDONLY);
 	assert(ret->file_descriptor != -1);
 
 	return ret;
 }
 
-void mppa_init_read_rqueue(rqueue_t *rqueue, int credit) {
-	int status = mppa_ioctl(rqueue->file_descriptor, credit);
-	assert(status == 0);
-}
-
-rqueue_t *mppa_create_write_rqueue (int message_size, int rx_id, int rx_tag, char *tx_ids, int tx_tag) {
+rqueue_t *mppa_create_write_rqueue (int message_size, int rx_id, int rx_tag, char *tx_ids, int tx_tag, int credit) {
 	rqueue_t *ret = (rqueue_t *) malloc (sizeof(rqueue_t));
 	char path_name[256];
 	
-	sprintf(path_name, "/mppa/queue.%d/%d:%d/%s:%d", message_size, rx_id, rx_tag, tx_ids, tx_tag);
+	sprintf(path_name, "/mppa/rqueue/%d:%d/%s:%d/%d.%d", rx_id, rx_tag, tx_ids, tx_tag, credit, message_size);
 	ret->file_descriptor = mppa_open(path_name, O_WRONLY);
 	assert(ret->file_descriptor != -1);
 
