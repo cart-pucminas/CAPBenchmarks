@@ -38,7 +38,7 @@ typedef struct {
 
 tsp_t_pointer init_tsp(int cluster_id, int nb_clusters, int nb_partitions, int nb_threads, int nb_towns, int seed);
 void free_tsp(tsp_t_pointer tsp);
-int queue_size (nb_threads, nb_clusters, nb_towns, int *max_hops);
+int queue_size (int nb_threads, int nb_clusters, int nb_towns, int *max_hops);
 
 void *worker (void *tsp_worker_par);
 inline int tsp_get_shortest_path (tsp_t_pointer tsp);
