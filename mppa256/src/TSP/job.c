@@ -22,7 +22,6 @@ void init_queue (job_queue_t *q, unsigned long max_size, int (*repopulate_queue)
 	q->buffer = (job_queue_node_t *) malloc(req_mem);
 	assert(q->buffer != NULL);
 	COND_VAR_INIT(q->cond_var);
-    return 1;
 }
 
 static void close_queue (job_queue_t *q) {	
