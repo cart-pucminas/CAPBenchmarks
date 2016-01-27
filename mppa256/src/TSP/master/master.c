@@ -136,8 +136,8 @@ int parametersOk() {
     int entries = queue_size(16, nclusters, p->nb_towns, NULL);
     int req_mem = sizeof(job_queue_node_t) * entries;
     if (req_mem > MAX_MEM_PER_CLUSTER) {
-        printf("Error, not enough memory. Verify MAX_TOWNS (%d), MIN_JOBS_THREAD (%d), and MAX_MEM_PER_CLUSTER (%d) parameters. Requested memory: %d\n",
-            MAX_TOWNS, MIN_JOBS_THREAD, MAX_MEM_PER_CLUSTER, req_mem);
+        printf("Error, not enough memory. Verify MAX_TOWNS (%d), MIN_JOBS_THREAD (%d), and MAX_MEM_PER_CLUSTER (%d) parameters. Requested memory: %d bytes (should be < %d bytes)\n",
+	       MAX_TOWNS, MIN_JOBS_THREAD, MAX_MEM_PER_CLUSTER, req_mem, MAX_MEM_PER_CLUSTER);
         return 0;
     }
     return 1;
@@ -174,9 +174,8 @@ void run_tsp (int nb_threads, int nb_towns, int seed, int nb_clusters) {
 	int finished_clusters = 0;
 	int next_partition = 0;
 
-	if (verbose)
-		printf ("Number of clusters..: %3d\nNumber of partitions: %3d\nNumber of threads...: %3d\nNumber of Towns.....: %3d\nSeed................: %3d\n", 
-			nb_clusters, nb_partitions, nb_threads, nb_towns, seed);
+	printf ("Number of clusters..: %3d\nNumber of partitions: %3d\nNumber of threads...: %3d\nNumber of Towns.....: %3d\nSeed................: %3d\n", 
+		nb_clusters, nb_partitions, nb_threads, nb_towns, seed);
 
 	//uint64_t start_comm_time, end_comm_time, comm_time = 0, master_time = 0;
 	//uint64_t start = mppa_get_time();
@@ -275,7 +274,7 @@ void run_tsp (int nb_threads, int nb_towns, int seed, int nb_clusters) {
 	//uint64_t end = mppa_get_time();
    	//uint64_t exec_time = mppa_diff_time(start, end);
 
-	printf("shortest path size = %5d towns\n", min);
+	printf("shortest path size = %5d\n", min);
 	
 	/*printf("timing statistics:\n");
 	LOG("  master time........: %f\n", master_time/1000000.0);
