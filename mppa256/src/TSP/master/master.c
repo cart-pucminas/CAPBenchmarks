@@ -132,6 +132,17 @@ static void readargs(int argc, char **argv)
 		usage();
 }
 
+int parametersOk() {
+    int entries = queue_size(16, nclusters, p->nb_towns, NULL);
+    int req_mem = sizeof(job_queue_node_t) * entries;
+    if (req_mem > MAX_MEM_PER_CLUSTER) {
+        printf("Error, not enough memory. Verify MAX_TOWNS (%d), MIN_JOBS_THREAD (%d), and MAX_MEM_PER_CLUSTER (%d) parameters. Requested memory: %d\n",
+            MAX_TOWNS, MIN_JOBS_THREAD, MAX_MEM_PER_CLUSTER, req_mem);
+        return 0;
+    }
+    return 1;
+}
+
 /*
  * Runs benchmark.
  */
@@ -141,8 +152,12 @@ int main (int argc, char **argv) {
 	
 	//mppa_init_time();
 
-	/* Always run with 16 thraeds per cluster by default */
-	run_tsp(16, p->nb_towns, seed, nclusters);
+    if (parametersOk()) {
+        /* Always run with 16 thraeds per cluster by default */
+        run_tsp(16, p->nb_towns, seed, nclusters);
+    } else {
+        printf("Invalid parameters. Terminating execution.\n");
+    }
 
 	mppa_exit(0);
 	

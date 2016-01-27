@@ -64,15 +64,26 @@ static inline void intern_update_minimum_distance(tsp_t_pointer tsp, int new_dis
 #endif		
 }
 
-inline int init_max_hops(tsp_t_pointer tsp) {
-	int total = 1;
-	tsp->max_hops = 0;
-	while (total < MIN_JOBS_THREAD * tsp->nb_threads * tsp->nb_clusters && tsp->max_hops < tsp->distance->nb_towns - 1) {
-		tsp->max_hops++;
-		total *= tsp->distance->nb_towns - tsp->max_hops;
+int max_hops (int nb_threads, int nb_clusters, int nb_towns, int *max_hops_ret) {
+    int total = 1;
+    int max_hops = 0;
+    while (total < MIN_JOBS_THREAD * nb_threads * nb_clusters && max_hops < nb_towns - 1) {
+		max_hops++;
+		total *= nb_towns - max_hops;
 	}
-	tsp->max_hops++;
-	return total;
+    max_hops++;
+    if (max_hops_ret) *max_hops_ret = max_hops;
+    return total;
+}
+
+int queue_size (nb_threads, nb_clusters, nb_towns, int *max_hops) {
+    int total = max_hops (nb_threads, nb_clusters, nb_towns, max_hops);
+    int queue_size = total / nb_clusters + total % nb_clusters + nb_clusters - 1;
+    return queue_size;
+}
+
+int preinit_queue_size_tsp (tsp_t_pointer tsp) {
+    return queue_size (tsp->nb_threads, tsp->nb_clusters, tsp->distance->nb_towns, &tsp->max_hops);
 }
 
 tsp_t_pointer init_tsp(int cluster_id, int nb_clusters, int nb_partitions, int nb_threads, int nb_towns, int seed) {
@@ -91,16 +102,11 @@ tsp_t_pointer init_tsp(int cluster_id, int nb_clusters, int nb_partitions, int n
 	tsp->processed_partitions = 0;
 	tsp->distance->nb_towns = nb_towns;
 	init_distance(tsp, seed);
-	total = init_max_hops(tsp);
-
-	unsigned long queue_size = total / nb_clusters + total % nb_clusters + nb_clusters - 1;
-	if (init_queue(&tsp->queue, queue_size, repopulate_queue, tsp))
-        return tsp;
-    else {
-        free(tsp->distance);
-        free (tsp);
-        return NULL;
-    }
+    preinit_queue_size_tsp(tsp);
+    
+	init_queue(&tsp->queue, preinit_queue_size_tsp(tsp), repopulate_queue, tsp));
+    
+    return tsp;    
 }
 
 void free_tsp(tsp_t_pointer tsp) {

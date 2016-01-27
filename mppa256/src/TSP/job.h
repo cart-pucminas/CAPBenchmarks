@@ -34,7 +34,7 @@ typedef struct {
 	char PADDING2 [PADDING(COND_VAR_SIZE) + 2 * sizeof(int)];
 } job_queue_t;
 
-int init_queue (job_queue_t *q, unsigned long max_size, int (*repopulate_queue)(void*), void *repopulate_queue_par);
+void init_queue (job_queue_t *q, unsigned long max_size, int (*repopulate_queue)(void*), void *repopulate_queue_par);
 void add_job (job_queue_t *q, job_t j);
 int get_job (job_queue_t *q, job_t *j);
 void free_queue (job_queue_t *q);

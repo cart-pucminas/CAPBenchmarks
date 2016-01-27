@@ -50,9 +50,9 @@ void run_tsp (int nb_threads, int nb_towns, int seed, int nb_clusters) {
 
 	tsp_instance = init_execution(cluster_id, nb_clusters, get_number_of_partitions(nb_clusters), nb_threads, nb_towns, seed);
 	wait_barrier (barrier);
-	if (tsp_instance) start_execution(tsp_instance);
+	start_execution(tsp_instance);
 	wait_barrier (barrier);	
-	if (tsp_instance) end_execution(tsp_instance);
+	end_execution(tsp_instance);
 
 	mppa_close_broadcast(broad);
 	mppa_close_barrier(sync_barrier);
