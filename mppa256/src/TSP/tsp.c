@@ -104,7 +104,7 @@ tsp_t_pointer init_tsp(int cluster_id, int nb_clusters, int nb_partitions, int n
 	init_distance(tsp, seed);
     preinit_queue_size_tsp(tsp);
     
-	init_queue(&tsp->queue, preinit_queue_size_tsp(tsp), repopulate_queue, tsp));
+	init_queue(&tsp->queue, preinit_queue_size_tsp(tsp), repopulate_queue, tsp);
     
     return tsp;    
 }
