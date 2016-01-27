@@ -76,7 +76,7 @@ int calc_max_hops (int nb_threads, int nb_clusters, int nb_towns, int *max_hops_
     return total;
 }
 
-int queue_size (nb_threads, nb_clusters, nb_towns, int *max_hops_ret) {
+int queue_size (int nb_threads, int nb_clusters, int nb_towns, int *max_hops_ret) {
     int total = calc_max_hops (nb_threads, nb_clusters, nb_towns, max_hops_ret);
     int queue_size = total / nb_clusters + total % nb_clusters + nb_clusters - 1;
     return queue_size;
