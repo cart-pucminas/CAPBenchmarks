@@ -94,9 +94,13 @@ tsp_t_pointer init_tsp(int cluster_id, int nb_clusters, int nb_partitions, int n
 	total = init_max_hops(tsp);
 
 	unsigned long queue_size = total / nb_clusters + total % nb_clusters + nb_clusters - 1;
-	init_queue(&tsp->queue, queue_size, repopulate_queue, tsp);
-
-	return tsp;
+	if (init_queue(&tsp->queue, queue_size, repopulate_queue, tsp))
+        return tsp;
+    else {
+        free(tsp->distance);
+        free (tsp);
+        return NULL;
+    }
 }
 
 void free_tsp(tsp_t_pointer tsp) {

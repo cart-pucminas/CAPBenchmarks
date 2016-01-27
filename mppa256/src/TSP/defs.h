@@ -10,7 +10,7 @@
 #include <pthread.h>
 
 #define MAX_TOWNS		21
-#define MIN_JOBS_THREAD 100
+#define MIN_JOBS_THREAD 50
 #define MIN_PARTITIONS_PER_CLUSTER 20
 #define INITIAL_JOB_DISTRIBUTION_PERCENTAGE 50.0 //float!!
 #define MAX_GRID_X		100

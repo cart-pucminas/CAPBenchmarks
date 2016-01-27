@@ -37,8 +37,7 @@
 }
 
 tsp_t_pointer init_execution(int cluster_id, int nb_clusters, int nb_partitions, int nb_threads, int nb_towns, int seed) {
-	tsp_t_pointer ret = init_tsp(cluster_id, nb_clusters, nb_partitions, nb_threads, nb_towns, seed);
-	return ret;
+	return init_tsp(cluster_id, nb_clusters, nb_partitions, nb_threads, nb_towns, seed);
 }
 
 void start_execution(tsp_t_pointer tsp) {

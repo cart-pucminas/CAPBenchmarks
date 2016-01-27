@@ -11,16 +11,23 @@ inline void reset_queue(job_queue_t *q) {
 	q->end = 0;
 }
 
-void init_queue (job_queue_t *q, unsigned long max_size, int (*repopulate_queue)(void*), void *repopulate_queue_par) {
-	q->max_size = max_size;
+int init_queue (job_queue_t *q, unsigned long max_size, int (*repopulate_queue)(void*), void *repopulate_queue_par) {
+	int req_mem;
+    q->max_size = max_size;
 	q->status = QUEUE_OK;
 	q->repopulate_queue = repopulate_queue;
 	q->repopulate_queue_par = repopulate_queue_par;
 	reset_queue(q);
-	
-	q->buffer = (job_queue_node_t *) malloc(sizeof(job_queue_node_t) * q->max_size);
+	req_mem = sizeof(job_queue_node_t) * q->max_size;
+    if (req_mem > MAX_MEM_PER_CLUSTER) {
+        printf("Error, not enough memory. Verify MAX_TOWNS (%d), MIN_JOBS_THREAD (%d), and MAX_MEM_PER_CLUSTER (%d) parameters. Requested memory: %d\n",
+            MAX_TOWNS, MIN_JOBS_THREAD, MAX_MEM_PER_CLUSTER, req_mem);
+        return 0;
+    }
+	q->buffer = (job_queue_node_t *) malloc(req_mem);
 	assert(q->buffer != NULL);
 	COND_VAR_INIT(q->cond_var);
+    return 1;
 }
 
 static void close_queue (job_queue_t *q) {	
