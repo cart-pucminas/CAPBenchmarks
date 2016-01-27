@@ -64,7 +64,7 @@ static inline void intern_update_minimum_distance(tsp_t_pointer tsp, int new_dis
 #endif		
 }
 
-int max_hops (int nb_threads, int nb_clusters, int nb_towns, int *max_hops_ret) {
+int calc_max_hops (int nb_threads, int nb_clusters, int nb_towns, int *max_hops_ret) {
     int total = 1;
     int max_hops = 0;
     while (total < MIN_JOBS_THREAD * nb_threads * nb_clusters && max_hops < nb_towns - 1) {
@@ -76,8 +76,8 @@ int max_hops (int nb_threads, int nb_clusters, int nb_towns, int *max_hops_ret) 
     return total;
 }
 
-int queue_size (int nb_threads, int nb_clusters, int nb_towns, int *max_hops) {
-    int total = max_hops (nb_threads, nb_clusters, nb_towns, max_hops);
+int queue_size (nb_threads, nb_clusters, nb_towns, int *max_hops_ret) {
+    int total = calc_max_hops (nb_threads, nb_clusters, nb_towns, max_hops_ret);
     int queue_size = total / nb_clusters + total % nb_clusters + nb_clusters - 1;
     return queue_size;
 }
@@ -104,7 +104,7 @@ tsp_t_pointer init_tsp(int cluster_id, int nb_clusters, int nb_partitions, int n
 	init_distance(tsp, seed);
     preinit_queue_size_tsp(tsp);
     
-	init_queue(&tsp->queue, preinit_queue_size_tsp(tsp), repopulate_queue, tsp);
+	init_queue(&tsp->queue, preinit_queue_size_tsp(tsp), repopulate_queue, tsp));
     
     return tsp;    
 }
