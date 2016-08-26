@@ -230,10 +230,6 @@ static void generate_mask(int *mask)
  */
 int main(int argc, char **argv)
 {
-	int nThreads;
-	nThreads = omp_get_num_threads();
-	printf("CAPBench - FAST kernel\n");
-	printf("  # of threads: %d \n", nThreads);
 	int i;              /* Loop index.            */
 	int *mask;       	/* Mask.                  */
 	uint64_t end;       /* End time.              */
@@ -242,6 +238,8 @@ int main(int argc, char **argv)
 	int numcorners=0;	/* Total corners detected */
 		
 	readargs(argc, argv);
+	printf("CAPBench - FAST kernel\n");
+	printf("  # of threads: %d \n", nthreads);
 	
 	timer_init();
 	srandnum(seed);

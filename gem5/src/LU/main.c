@@ -137,11 +137,6 @@ static void readargs(int argc, char **argv)
  */
 int main(int argc, char **argv)
 {
-	int nThreads;
-	nThreads = omp_get_num_threads();
-	printf("CAPBench - LU kernel\n");
-	printf("  # of threads: %d \n", nThreads);
-
 	matrix_t m;     /* Matrix.       */
 	matrix_t l;     /* Lower matrix. */
 	matrix_t u;     /* Upper matrix. */
@@ -149,6 +144,9 @@ int main(int argc, char **argv)
 	uint64_t start; /* Start time.   */
 	
 	readargs(argc, argv);
+
+	printf("CAPBench - LU kernel\n");
+	printf("  # of threads: %d \n", nthreads);
 	
 	srandnum(seed);
 	timer_init();

@@ -139,12 +139,10 @@ static void readargs(int argc, char **argv)
  * Runs benchmark.
  */
 int main (int argc, char **argv) {
-	int nThreads;
-	nThreads = omp_get_num_threads();
-	printf("CAPBench - TSP kernel\n");
-	printf("  # of threads: %d \n", nThreads);
-
 	readargs(argc, argv);
+
+	printf("CAPBench - TSP kernel\n");
+	printf("  # of threads: %d \n", nthreads);
 	
 	COND_VAR_INIT(sync_barrier);
 	MUTEX_INIT(main_lock);

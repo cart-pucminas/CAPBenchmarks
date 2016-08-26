@@ -177,11 +177,6 @@ static void generate_mask(double *mask)
  */
 int main(int argc, char **argv)
 {
-	int nThreads;
-	nThreads = omp_get_num_threads();
-	printf("CAPBench - GF kernel\n");
-	printf("  # of threads: %d \n", nThreads);
-
 	int i;              /* Loop index.         */
 	double *mask;       /* Mask.               */
 	uint64_t end;       /* End time.           */
@@ -189,6 +184,8 @@ int main(int argc, char **argv)
 	unsigned char *img; /* Image.              */
 	
 	readargs(argc, argv);
+	printf("CAPBench - GF kernel\n");
+	printf("  # of threads: %d \n", nthreads);
 
 	timer_init();
 	srandnum(seed);

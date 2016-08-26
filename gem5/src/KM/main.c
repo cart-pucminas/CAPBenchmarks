@@ -139,11 +139,6 @@ static void readargs(int argc, char **argv)
  */
 int main(int argc, char **argv)
 {
-	int nThreads;
-	nThreads = omp_get_num_threads();
-	printf("CAPBench - KM kernel\n");
-	printf("  # of threads: %d \n", nThreads);
-
 	int i;          /* Loop index.      */
 	int *map;       /* Map of clusters. */
 	uint64_t end;   /* End time.        */
@@ -151,6 +146,8 @@ int main(int argc, char **argv)
 	vector_t *data; /* Data points.     */
 	
 	readargs(argc, argv);
+	printf("CAPBench - KM kernel\n");
+	printf("  # of threads: %d \n", nthreads);
 	
 	timer_init();
 	srandnum(seed);
