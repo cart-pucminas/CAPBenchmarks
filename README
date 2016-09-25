@@ -1,5 +1,5 @@
 ================================================================================
-                                    CAP Bench: 
+                                    CAP Bench 
  A Benchmark Suite for Performance and Energy Evaluation of MPPA-256 Processor
 ================================================================================
 
@@ -14,6 +14,14 @@ CAP Bench was born from a joint initiative involving three research groups:
     * Nanosimulations and Embedded Applications
       for Hybrid Multi-core Architectures (Nanosim) 
        - University of Grenoble.
+
+================================================================================
+How to cite:
+Souza, M. A., Penna, P. H., Queiroz, M. M., Pereira, A. D., Góes, L. F. W.,
+Freitas, H. C., Castro, M., Navaux, P. O. A., and Méhaut, J. -F. (2016)
+CAP Bench: a benchmark suite for performance and energy evaluation of low-power many-core processors.
+Concurrency Computat.: Pract. Exper., doi: 10.1002/cpe.3892.
+================================================================================
 
 To compose the benchmark, seven algorithms are proposed, aiming to cover a wide
 range of characteristics. 
