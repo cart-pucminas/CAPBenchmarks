@@ -1,230 +1,223 @@
-{\rtf1\ansi\deff0\nouicompat{\fonttbl{\f0\fnil\fcharset0 Courier New;}}
-{\*\generator Riched20 10.0.14393}\viewkind4\uc1 
-\pard\f0\fs22\lang1046 ==============================================================\par
+================================================================================
+                                    CAP Bench 
+ A Benchmark Suite for Performance and Energy Evaluation of MPPA-256 Processor
+================================================================================
 
-\pard\qc\b\fs44 CAP Bench\b0\fs22\par
+CAP Bench was born from a joint initiative involving three research groups:
 
-\pard A benchmark suite for performance and energy evaluation of low-power many-core processors\par
+    * Computer Architecture and Parallel Processing Team (CArT) 
+       - Pontifical Catholic University of Minas Gerais (PUC Minas)
+    
+    * Parallel and Distributed Processing Group (GPPD)
+       - Federal University of Rio Grande do Sul (UFRGS)
+    
+    * Nanosimulations and Embedded Applications
+      for Hybrid Multi-core Architectures (Nanosim) 
+       - University of Grenoble.
 
-\pard ==============================================================\par
-\par
-CAP Bench was born from a joint initiative involving three research groups:\par
-\par
-    * Computer Architecture and Parallel Processing Team (CArT) \par
-       - Pontifical Catholic University of Minas Gerais (PUC Minas)\par
-    \par
-    * Parallel and Distributed Processing Group (GPPD)\par
-       - Federal University of Rio Grande do Sul (UFRGS)\par
-    \par
-    * Nanosimulations and Embedded Applications\par
-      for Hybrid Multi-core Architectures (Nanosim) \par
-       - University of Grenoble.\par
-\par
-==============================================================\par
-\b\fs32 How to cite\b0\fs22 :\par
-Souza, M. A., Penna, P. H., Queiroz, M. M., Pereira, A. D., G\'f3es, L. F. W.,\par
-Freitas, H. C., Castro, M., Navaux, P. O. A., and M\'e9haut, J. -F. (2016)\par
-CAP Bench: a benchmark suite for performance and energy evaluation of\par
-low-power many-core processors. Concurrency Computat.: Pract. Exper.,\par
-doi: 10.1002/cpe.3892.\par
-==============================================================\par
-\par
-To compose the benchmark, seven algorithms are proposed, aiming to cover a wide range of characteristics. \par
-\par
-Kernels follow five different parallel patterns:\par
-\par
-    * Divide and Conquer, which starts with a division of the problem into small\par
-      subproblems solvable in parallel, ending in a merging of the subsolutions\par
-      into a result; \par
-    * Map, where operations are mostly uniform and applied individually over\par
-      elements of a data structure; \par
-    * MapReduce, which combines Map and a consolidation of results in a Reduce\par
-      procedure; \par
-    * Workpool, where the algorithm can be divided into independent tasks and\par
-      distributed among the execution units in a balanced way; \par
-    * Stencil, in which a function can access an element in a collection and its\par
-      neighbors, given by relative offsets. \par
-\par
-=======\par
-KERNELS\par
-=======\par
-\par
-    1) Features from Accelerated Segment Test - FAST\par
-\par
-       Features from Accelerated Segment Test (FAST) is a corner detection \par
-       method that follows the Stencil parallel pattern. It is usually used to\par
-       extract feature points and to track and map objects in computer vision\par
-       tasks. It uses a circle of 16 pixels to classify whether a candidate\par
-       point p is actually a corner. Each pixel in the circle is labeled from\par
-       integer number 1 to 16 clockwise. If all N contiguous pixels in the\par
-       circle are brighter than the intensity of the candidate pixel p plus a\par
-       threshold value t or all darker than the intensity of p - t, then p is\par
-       classified as a corner. \par
-       \par
-       In the MPPA-256 implementation, we use randomly generated images as\par
-       inputs and a mask containing the positions relative to p that must be\par
-       analyzed. The N value is set to 12 and threshold t is set to 20. Due to\par
-       very large input images and the compute cluster memory restriction, the\par
-       I/O subsystem partitions the input image into 256 KB chunks and sends\par
-       them to compute clusters for corner detection. We consider that a medium\par
-       granularity, that provokes intense communications and the NoC-boundary\par
-       behavior. After that, output chunks are sent back to the I/O subsystem,\par
-       which in turn puts them together to build the output image that indicates\par
-       all corners present in it. Moreover, the I/O subsystem receives the\par
-       amount of corners detected by each compute cluster and summarizes them\par
-       to indicate the overall number of corners detected. The number of\par
-       detected corners may differ, pointing out the irregularity of the\par
-       algorithm.\par
-\par
-    2) Friendly Numbers - FN\par
-\par
-       In number theory, two natural numbers are friendly if they share the same\par
-       abundance. For a given number n, we could define its abundance as the\par
-       ratio between the sum of divisors of n and n itself. The parallel pattern\par
-       used in FN implementation is MapReduce.\par
-       \par
-       The MPPA-256 implementation uses a master/slave approach. Since every\par
-       processing task for FN can be executed independently, we split the number\par
-       interval in sets of equal size in the master process and distribute them\par
-       among the compute clusters to be simultaneously processed. These sets are\par
-       balanced, causing a regular task load in the slave process. The abundance\par
-       results are sent back to the master process, which then performs\par
-       abundance comparisons using the 4 I/O clusters. This computation is not\par
-       overwhelmed by the NoC use or memory access, being exclusively CPU-bound.\par
-\par
-    3) Gaussian Filter - GF\par
-\par
-       The Gaussian blur filter is an image smoothing filter that seeks to\par
-       reduce noise and achieve an overall smoothing of the image. It consists\par
-       in applying a specially computed two-dimensional Gaussian mask to an\par
-       image, using a matrix convolution operation. It uses the Stencil\par
-       parallel pattern.\par
-       \par
-       In the MPPA-256 implementation, we use randomly generated masks and\par
-       images as inputs. Since some input images are very large and the compute\par
-       clusters have a 2 MB memory restriction, the I/O subsystem partitions the\par
-       image into 1 MB chunks and sends them to compute clusters to be filtered.\par
-       This is an reasonable size, inducing a moderate NoC usage that does not\par
-       overwhelm the general computation. Besides that, the task load will\par
-       always be constant. After the individual chunks are filtered, they will\par
-       be sent back to the I/O subsystem, which will put them together to build\par
-       the output image.\par
-\par
-    4) Integer Sort - IS\par
-\par
-       The integer sort problem consists in sorting a very large amount of\par
-       integer numbers. An implementation of integer sort can use the bucket\par
-       sort approach, which divides elements into buckets. A bucket is a\par
-       structure that stores numbers in a certain range. The integer numbers\par
-       used as input are randomly generated and range from 0 to 2^20 -1. The IS\par
-       kernel uses the Divide and Conquer parallel pattern.\par
-       \par
-       In the MPPA-256 implementation, the buckets are further subdivided into\par
-       minibuckets of 1 MB. As input elements are mapped to the appropriate\par
-       buckets, they are placed in a minibucket. When the minibucket becomes\par
-       full, a new minibucket is allocated inside its parent bucket and starts\par
-       receiving elements. This takes place in the I/O subsystem, which will\par
-       also send minibuckets for compute clusters to work on. Each compute\par
-       cluster receives only one minibucket at a time, due to memory\par
-       restrictions. Inside a compute cluster, minibuckets are sorted using a\par
-       parallel mergesort algorithm, and as the starting order are random, the\par
-       task load is irregular. Sorted minibuckets are then sent back to the I/O\par
-       subsystem to be merged, using Pthreads to take advantage of its 4 cores.\par
-       Because of this flow of minibuckets, IS is a high-intense algorithm in\par
-       terms of communication, being restricted by NoC boundaries.\par
-\par
-    5) K-Means - KM\par
-\par
-       K-Means clustering is a data clustering solution employed in clustering\par
-       analysis. We opted to use Lloyd's algorithm in our work. Given a set of\par
-       n\\ points in a real d-dimensional space, the problem is to partition\par
-       these n points into k partitions. The data points are evenly and\par
-       randomly distributed among the k partitions, and the initial centroids\par
-       are computed. Then, the data points are re-clustered into partitions\par
-       taking into account the minimum Euclidean distance between them and the\par
-       centroids. Next, the centroid of each partition is recalculated taking\par
-       the mean of all points in the partition. The whole procedure is repeated\par
-       until no centroid is changed and every point is farther than the minimum\par
-       accepted distance. During the execution, the number of points within\par
-       each partition may differ, implying different recalculation times for\par
-       each partition\'e2\'80\'99s centroid. The parallel pattern of KM is Map.\par
-       \par
-       The MPPA-256 version of the K-Means algorithm takes additional parameters\par
-       p, specifying the number of compute clusters to be used, and t, which\par
-       specifies the total number of execution flows. Each cluster spawns t\par
-       working threads, so the total number of threads equals p * t. In our\par
-       strategy, it provokes a high-intense communication between the I/O\par
-       subsystem and the compute clusters. We first distribute data points and\par
-       replicate data centroids among clusters, and then loop over a two-phase\par
-       iteration. First, partitions are populated. Then, data centroids are\par
-       recalculated, a memory-intensive process. For this recalculation, each\par
-       cluster uses its local data points to compute partial centroids, i.e.,\par
-       a partial sum of data points and population within a partition. Next, \par
-       lusters exchange partial centroids so each cluster ends up with the\par
-       partial centroids of the same partitions. The amount of work for each\par
-       thread may vary during each iteration, an irregular task load\par
-       haracteristic. Finally, clusters compute their local centroids and send\par
-       them to the master process.\par
-\par
-    6) LU Factorization - LU\par
-\par
-       The LU algorithm is a matrix decomposition algorithm which factors a\par
-       matrix as a product of two triangular matrices: lower (L) and upper (U).\par
-       To compute the L and U matrices -- we opted to implement Gaussian\par
-       elimination -- n-1 iterations are required, where n is the order of A\par
-       (always square). In each iteration, a sub-matrix of a smaller order\par
-       (1 unit smaller) is analyzed, starting from order n. First, the biggest\par
-       element in the submatrix (pivot) is found. Then, this element is moved\par
-       to the (1,1) position, shifting rows and columns appropriately. The line\par
-       containing the pivot is subsequently divided by it, thus the pivot\par
-       element becomes 1. The last step (reduction) aims to nullify elements\par
-       below the main diagonal. For every line l below the pivot, we multiply\par
-       the pivot line p by the opposite of the first element e of l and replace\par
-       l with l + p. We store -e in a separate matrix. After the iterations are\par
-       finished, every line would have undergone reduction, and the resulting\par
-       matrix is the U matrix. The L matrix is formed by the -e factors that\par
-       were stored in the separate matrix. Therefore, both matrices are computed\par
-       simultaneously. The LU kernel uses the Workpool parallel pattern.\par
-       \par
-       We implemented the LU factorization algorithm for the MPPA-256 assigning\par
-       rows to compute clusters so the largest element can be found. Each\par
-       compute cluster receives no more than 1 MB of data, in this case,\par
-       causing a high-intense communication. In the other hand, the distributed\par
-       task loads are regular. The same restriction of 1 MB applies when\par
-       distributing lines among the compute clusters to apply reduction.\par
-       Swapping rows so the pivot becomes the first element in the matrix is\par
-       done exclusively in the master process (I/O subsystem). The I/O subsystem\par
-       is also used to rebuild the L and U matrices from chunks processed in the\par
-       compute clusters.\par
-\par
-    7) Traveling-Salesman Problem - TSP\par
-\par
-       The TSP consists in solving the routing problem of a hypothetical\par
-       traveling salesman. Such a route must pass through n towns, only once per\par
-       town, return to the town of origin and have the shortest possible\par
-       length. We opted to use a brute-force approach based on a simple\par
-       heuristic. The sequential version of the algorithm is based on the branch\par
-       and bound method using brute force. It takes as input the number of towns\par
-       and a cost matrix, and outputs the minimum path length. The algorithm\par
-       does a depth-first search looking for the shortest path, pruning paths\par
-       that have a bigger cost than the current minimum cost. This pruning\par
-       introduces irregularities in the algorithm, since the search depth needed\par
-       to discard one of the branches depends on the order in which the branches\par
-       were searched. Our implementation of TSP uses the Workpool parallel\par
-       pattern.\par
-       \par
-       The MPPA-256 implementation uses a task queue in which tasks are branches\par
-       of the search tree. Compute clusters take jobs from it to be executed.\par
-       The number of clusters and the number of threads define the total number\par
-       of lines of execution. For each cluster, n threads will be spawned, thus\par
-       totaling n_threads * n_clusters threads. When the minimum path is\par
-       updated, this update is broadcast to every other cluster so they can also\par
-       use it to optimize their execution. At the end of the execution, one of\par
-       the clusters (typically the 0-th) prints the solution. The final solution\par
-       might have been discovered by any one of the clusters, however all of\par
-       them are aware of it due to the broadcasts of each discovered minimum\par
-       path.\par
-\par
-\par
-}
- 
+================================================================================
+How to cite:
+Souza, M. A., Penna, P. H., Queiroz, M. M., Pereira, A. D., Góes, L. F. W.,
+Freitas, H. C., Castro, M., Navaux, P. O. A., and Méhaut, J. -F. (2016)
+CAP Bench: a benchmark suite for performance and energy evaluation of
+low-power many-core processors. Concurrency Computat.: Pract. Exper.,
+doi: 10.1002/cpe.3892.
+================================================================================
+
+To compose the benchmark, seven algorithms are proposed, aiming to cover a wide
+range of characteristics. 
+
+Kernels follow five different parallel patterns:
+
+    * Divide and Conquer, which starts with a division of the problem into small
+      subproblems solvable in parallel, ending in a merging of the subsolutions
+      into a result; 
+    * Map, where operations are mostly uniform and applied individually over
+      elements of a data structure; 
+    * MapReduce, which combines Map and a consolidation of results in a Reduce
+      procedure; 
+    * Workpool, where the algorithm can be divided into independent tasks and
+      distributed among the execution units in a balanced way; 
+    * Stencil, in which a function can access an element in a collection and its
+      neighbors, given by relative offsets. 
+
+=======
+KERNELS
+=======
+
+    1) Features from Accelerated Segment Test - FAST
+
+       Features from Accelerated Segment Test (FAST) is a corner detection 
+       method that follows the Stencil parallel pattern. It is usually used to
+       extract feature points and to track and map objects in computer vision
+       tasks. It uses a circle of 16 pixels to classify whether a candidate
+       point p is actually a corner. Each pixel in the circle is labeled from
+       integer number 1 to 16 clockwise. If all N contiguous pixels in the
+       circle are brighter than the intensity of the candidate pixel p plus a
+       threshold value t or all darker than the intensity of p - t, then p is
+       classified as a corner. 
+       
+       In the MPPA-256 implementation, we use randomly generated images as
+       inputs and a mask containing the positions relative to p that must be
+       analyzed. The N value is set to 12 and threshold t is set to 20. Due to
+       very large input images and the compute cluster memory restriction, the
+       I/O subsystem partitions the input image into 256 KB chunks and sends
+       them to compute clusters for corner detection. We consider that a medium
+       granularity, that provokes intense communications and the NoC-boundary
+       behavior. After that, output chunks are sent back to the I/O subsystem,
+       which in turn puts them together to build the output image that indicates
+       all corners present in it. Moreover, the I/O subsystem receives the
+       amount of corners detected by each compute cluster and summarizes them
+       to indicate the overall number of corners detected. The number of
+       detected corners may differ, pointing out the irregularity of the
+       algorithm.
+
+    2) Friendly Numbers - FN
+
+       In number theory, two natural numbers are friendly if they share the same
+       abundance. For a given number n, we could define its abundance as the
+       ratio between the sum of divisors of n and n itself. The parallel pattern
+       used in FN implementation is MapReduce.
+       
+       The MPPA-256 implementation uses a master/slave approach. Since every
+       processing task for FN can be executed independently, we split the number
+       interval in sets of equal size in the master process and distribute them
+       among the compute clusters to be simultaneously processed. These sets are
+       balanced, causing a regular task load in the slave process. The abundance
+       results are sent back to the master process, which then performs
+       abundance comparisons using the 4 I/O clusters. This computation is not
+       overwhelmed by the NoC use or memory access, being exclusively CPU-bound.
+
+    3) Gaussian Filter - GF
+
+       The Gaussian blur filter is an image smoothing filter that seeks to
+       reduce noise and achieve an overall smoothing of the image. It consists
+       in applying a specially computed two-dimensional Gaussian mask to an
+       image, using a matrix convolution operation. It uses the Stencil
+       parallel pattern.
+       
+       In the MPPA-256 implementation, we use randomly generated masks and
+       images as inputs. Since some input images are very large and the compute
+       clusters have a 2 MB memory restriction, the I/O subsystem partitions the
+       image into 1 MB chunks and sends them to compute clusters to be filtered.
+       This is an reasonable size, inducing a moderate NoC usage that does not
+       overwhelm the general computation. Besides that, the task load will
+       always be constant. After the individual chunks are filtered, they will
+       be sent back to the I/O subsystem, which will put them together to build
+       the output image.
+
+    4) Integer Sort - IS
+
+       The integer sort problem consists in sorting a very large amount of
+       integer numbers. An implementation of integer sort can use the bucket
+       sort approach, which divides elements into buckets. A bucket is a
+       structure that stores numbers in a certain range. The integer numbers
+       used as input are randomly generated and range from 0 to 2^20 -1. The IS
+       kernel uses the Divide and Conquer parallel pattern.
+       
+       In the MPPA-256 implementation, the buckets are further subdivided into
+       minibuckets of 1 MB. As input elements are mapped to the appropriate
+       buckets, they are placed in a minibucket. When the minibucket becomes
+       full, a new minibucket is allocated inside its parent bucket and starts
+       receiving elements. This takes place in the I/O subsystem, which will
+       also send minibuckets for compute clusters to work on. Each compute
+       cluster receives only one minibucket at a time, due to memory
+       restrictions. Inside a compute cluster, minibuckets are sorted using a
+       parallel mergesort algorithm, and as the starting order are random, the
+       task load is irregular. Sorted minibuckets are then sent back to the I/O
+       subsystem to be merged, using Pthreads to take advantage of its 4 cores.
+       Because of this flow of minibuckets, IS is a high-intense algorithm in
+       terms of communication, being restricted by NoC boundaries.
+
+    5) K-Means - KM
+
+       K-Means clustering is a data clustering solution employed in clustering
+       analysis. We opted to use Lloyd's algorithm in our work. Given a set of
+       n\ points in a real d-dimensional space, the problem is to partition
+       these n points into k partitions. The data points are evenly and
+       randomly distributed among the k partitions, and the initial centroids
+       are computed. Then, the data points are re-clustered into partitions
+       taking into account the minimum Euclidean distance between them and the
+       centroids. Next, the centroid of each partition is recalculated taking
+       the mean of all points in the partition. The whole procedure is repeated
+       until no centroid is changed and every point is farther than the minimum
+       accepted distance. During the execution, the number of points within
+       each partition may differ, implying different recalculation times for
+       each partition’s centroid. The parallel pattern of KM is Map.
+       
+       The MPPA-256 version of the K-Means algorithm takes additional parameters
+       p, specifying the number of compute clusters to be used, and t, which
+       specifies the total number of execution flows. Each cluster spawns t
+       working threads, so the total number of threads equals p * t. In our
+       strategy, it provokes a high-intense communication between the I/O
+       subsystem and the compute clusters. We first distribute data points and
+       replicate data centroids among clusters, and then loop over a two-phase
+       iteration. First, partitions are populated. Then, data centroids are
+       recalculated, a memory-intensive process. For this recalculation, each
+       cluster uses its local data points to compute partial centroids, i.e.,
+       a partial sum of data points and population within a partition. Next, 
+       lusters exchange partial centroids so each cluster ends up with the
+       partial centroids of the same partitions. The amount of work for each
+       thread may vary during each iteration, an irregular task load
+       haracteristic. Finally, clusters compute their local centroids and send
+       them to the master process.
+
+    6) LU Factorization - LU
+
+       The LU algorithm is a matrix decomposition algorithm which factors a
+       matrix as a product of two triangular matrices: lower (L) and upper (U).
+       To compute the L and U matrices -- we opted to implement Gaussian
+       elimination -- n-1 iterations are required, where n is the order of A
+       (always square). In each iteration, a sub-matrix of a smaller order
+       (1 unit smaller) is analyzed, starting from order n. First, the biggest
+       element in the submatrix (pivot) is found. Then, this element is moved
+       to the (1,1) position, shifting rows and columns appropriately. The line
+       containing the pivot is subsequently divided by it, thus the pivot
+       element becomes 1. The last step (reduction) aims to nullify elements
+       below the main diagonal. For every line l below the pivot, we multiply
+       the pivot line p by the opposite of the first element e of l and replace
+       l with l + p. We store -e in a separate matrix. After the iterations are
+       finished, every line would have undergone reduction, and the resulting
+       matrix is the U matrix. The L matrix is formed by the -e factors that
+       were stored in the separate matrix. Therefore, both matrices are computed
+       simultaneously. The LU kernel uses the Workpool parallel pattern.
+       
+       We implemented the LU factorization algorithm for the MPPA-256 assigning
+       rows to compute clusters so the largest element can be found. Each
+       compute cluster receives no more than 1 MB of data, in this case,
+       causing a high-intense communication. In the other hand, the distributed
+       task loads are regular. The same restriction of 1 MB applies when
+       distributing lines among the compute clusters to apply reduction.
+       Swapping rows so the pivot becomes the first element in the matrix is
+       done exclusively in the master process (I/O subsystem). The I/O subsystem
+       is also used to rebuild the L and U matrices from chunks processed in the
+       compute clusters.
+
+    7) Traveling-Salesman Problem - TSP
+
+       The TSP consists in solving the routing problem of a hypothetical
+       traveling salesman. Such a route must pass through n towns, only once per
+       town, return to the town of origin and have the shortest possible
+       length. We opted to use a brute-force approach based on a simple
+       heuristic. The sequential version of the algorithm is based on the branch
+       and bound method using brute force. It takes as input the number of towns
+       and a cost matrix, and outputs the minimum path length. The algorithm
+       does a depth-first search looking for the shortest path, pruning paths
+       that have a bigger cost than the current minimum cost. This pruning
+       introduces irregularities in the algorithm, since the search depth needed
+       to discard one of the branches depends on the order in which the branches
+       were searched. Our implementation of TSP uses the Workpool parallel
+       pattern.
+       
+       The MPPA-256 implementation uses a task queue in which tasks are branches
+       of the search tree. Compute clusters take jobs from it to be executed.
+       The number of clusters and the number of threads define the total number
+       of lines of execution. For each cluster, n threads will be spawned, thus
+       totaling n_threads * n_clusters threads. When the minimum path is
+       updated, this update is broadcast to every other cluster so they can also
+       use it to optimize their execution. At the end of the execution, one of
+       the clusters (typically the 0-th) prints the solution. The final solution
+       might have been discovered by any one of the clusters, however all of
+       them are aware of it due to the broadcasts of each discovered minimum
+       path.
+
