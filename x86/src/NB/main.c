@@ -145,7 +145,6 @@ int main(int argc, char **argv)
 	readargs(argc, argv);
 	
 	timer_init();
-	srandnum(seed);
 	omp_set_num_threads(nthreads);
 	
 	/* Benchmark initialization. */
@@ -160,9 +159,9 @@ int main(int argc, char **argv)
 	sim_time = 0.0;
 	/* Initialize with random numbers */
 	for (i=0; i<p->nbodies; i++) {
-		bodies[i].x	      = randnum();
-		bodies[i].y	      = randnum();
-		bodies[i].z	      = randnum();
+		bodies[i].x	      = prngnum(seed);
+		bodies[i].y	      = prngnum(seed);
+		bodies[i].z	      = prngnum(seed);
 		bodies[i].mass    = 1.0;
 		bodiesV[i].xold	  = bodies[i].x;
 		bodiesV[i].yold	  = bodies[i].y;

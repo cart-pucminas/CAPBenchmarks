@@ -26,6 +26,11 @@
 	extern unsigned randnum(void);
 	
 	/*
+	 * Generates a pseudo-random real number uniformly distributed between 0.0 and 1.0. 
+	 */
+	extern double prngnum(int seed);
+
+	/*
 	 * Safe calloc().
 	 */
 	extern void *scalloc(size_t nmemb, size_t size);
