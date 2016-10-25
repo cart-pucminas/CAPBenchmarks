@@ -16,7 +16,7 @@
  */
 struct problem
 {
-	int nbodies;      /* Number of bodies or particles. O(n^2) */
+	int nbodies;    /* Number of bodies or particles. O(n^2) */
 	int niter;      /* Number of iterations. O(n) */
 };
 
@@ -30,7 +30,6 @@ static struct problem huge     =  { 32768, 24 };
 /* Benchmark parameters. */      
 int verbose = 0;                  /* Be verbose?        */    
 int nthreads = 1;                 /* Number of threads. */
-static int seed = 123456789;      /* Seed number */
 static struct problem *p = &tiny; /* Problem.           */  
 
 /*
@@ -151,6 +150,7 @@ int main(int argc, char **argv)
 	if (verbose)
 		printf("initializing...\n");
 	start = timer_get();
+	prng_set_seed(123456789);
 
 	/* Memory alloc */
 	bodies = smalloc(p->nbodies*sizeof(body_t));
@@ -159,9 +159,9 @@ int main(int argc, char **argv)
 	sim_time = 0.0;
 	/* Initialize with random numbers */
 	for (i=0; i<p->nbodies; i++) {
-		bodies[i].x	      = prngnum(seed);
-		bodies[i].y	      = prngnum(seed);
-		bodies[i].z	      = prngnum(seed);
+		bodies[i].x	      = prngnum();
+		bodies[i].y	      = prngnum();
+		bodies[i].z	      = prngnum();
 		bodies[i].mass    = 1.0;
 		bodiesV[i].xold	  = bodies[i].x;
 		bodiesV[i].yold	  = bodies[i].y;

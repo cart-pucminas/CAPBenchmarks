@@ -4,16 +4,16 @@
 #include "nbody.h"
 
 double compute_forces(body_t bodies[], body_v_t bodiesV[], int nbodies) {
-	double max_f, rx, ry, r, fx, fy, rmin;
+	double max_f;
 	int i, j;
 	max_f = 0.0;
 
-	#pragma omp parallel for private(j, rx, ry, r, fx, fy, rmin) shared(max_f) schedule(static)
+	#pragma omp parallel for private(j) schedule(static)
 	for (i=0; i<nbodies; i++) {
-		
+		double rx, ry, r, fx, fy, rmin;
 		rmin = 100.0;
-		fx = 0.0;
-		fy = 0.0;
+		fx   = 0.0;
+		fy   = 0.0;
 		for (j=0; j<nbodies; j++) {
 			rx = bodies[i].x - bodies[j].x;
 			ry = bodies[i].y - bodies[j].y;
@@ -38,15 +38,15 @@ double compute_forces(body_t bodies[], body_v_t bodiesV[], int nbodies) {
 double compute_new_positions(body_t bodies[], body_v_t bodiesV[], int nbodies, double max_f) {
 	int i;
 	double a0, a1, a2;
-	double dt_old = 0.001, dt = 0.001;
+	static double dt_old = 0.001, dt = 0.001;
 	double dt_new;
-	double xi, yi;
 	a0 = 2.0 / (dt * (dt + dt_old));
 	a2 = 2.0 / (dt_old * (dt + dt_old));
 	a1 = -(a0 + a2);
 
-	#pragma omp parallel for private(xi, yi) schedule(static)
+	#pragma omp parallel for schedule(static)
 	for (i=0; i<nbodies; i++) {
+		double xi, yi;
 		xi = bodies[i].x;
 		yi = bodies[i].y;
 		bodies[i].x = (bodiesV[i].fx - a1 * xi - a2 * bodiesV[i].xold) / a0;
@@ -57,8 +57,10 @@ double compute_new_positions(body_t bodies[], body_v_t bodiesV[], int nbodies, d
 		bodiesV[i].fy = 0;
 	}
 	dt_new = 1.0/sqrt(max_f);
+	
 	if (dt_new < 1.0e-6)
 		dt_new = 1.0e-6;
+	
 	if (dt_new < dt) {
 		dt_old = dt;
 		dt = dt_new;

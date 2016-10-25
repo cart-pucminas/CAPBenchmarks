@@ -28,7 +28,8 @@
 	/*
 	 * Generates a pseudo-random real number uniformly distributed between 0.0 and 1.0. 
 	 */
-	extern double prngnum(int seed);
+	extern double prngnum(void);
+	extern void prng_set_seed(int seed);
 
 	/*
 	 * Safe calloc().
