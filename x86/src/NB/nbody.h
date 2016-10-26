@@ -6,6 +6,8 @@
 
 #ifndef _NB_H_
 #define _NB_H_
+	/* TODO: Join structs in order to optimize data movements */
+
 	/*
 	 * Body (particle) with mass.
 	 */

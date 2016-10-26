@@ -3,6 +3,8 @@
 #include <omp.h>
 #include "nbody.h"
 
+/* TODO: Implement tri-dimensional calculations. Using 2D simulation */
+
 double compute_forces(body_t bodies[], body_v_t bodiesV[], int nbodies) {
 	double max_f, rx, ry, r, fx, fy, rmin;
 	int i, j;
@@ -14,11 +16,12 @@ double compute_forces(body_t bodies[], body_v_t bodiesV[], int nbodies) {
 		fx   = 0.0;
 		fy   = 0.0;
 		for (j=0; j<nbodies; j++) {
+			if(i==j)
+				continue;
 			rx = bodies[i].x - bodies[j].x;
 			ry = bodies[i].y - bodies[j].y;
 			r  = rx * rx + ry * ry;
-			if (r == 0.0)
-				continue;
+
 			if (r < rmin)
 				rmin = r;
 			r  = r * sqrt(r);
