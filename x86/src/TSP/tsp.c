@@ -240,7 +240,7 @@ inline int tsp_update_minimum_distance (tsp_t_pointer tsp, int new_distance) {
 
 
 
-static inline partition_interval_t get_next_partition_block_size(int nb_partitions, int *next_partition, int block_size, int processed_partitions) {
+inline partition_interval_t get_next_partition_block_size(int nb_partitions, int *next_partition, int block_size, int processed_partitions) {
 	partition_interval_t ret;
 	ret.start = ret.end = -1;	
 	if ((*next_partition) < nb_partitions)

@@ -40,8 +40,8 @@ tsp_t_pointer init_tsp(int cluster_id, int nb_clusters, int nb_partitions, int n
 void free_tsp(tsp_t_pointer tsp);
 
 void *worker (void *tsp_worker_par);
-inline int tsp_get_shortest_path (tsp_t_pointer tsp);
-inline int tsp_update_minimum_distance(tsp_t_pointer tsp, int length);
+int tsp_get_shortest_path (tsp_t_pointer tsp);
+int tsp_update_minimum_distance(tsp_t_pointer tsp, int length);
 
 //callback
 extern void new_minimun_distance_found(tsp_t_pointer tsp);
@@ -52,6 +52,6 @@ typedef struct {
 } partition_interval_t;
 
 extern partition_interval_t get_next_partition(tsp_t_pointer tsp);
-inline partition_interval_t get_next_partition_default_impl(int nb_partitions, int nb_clusters, int *next_partition, int processed_partitions);
+partition_interval_t get_next_partition_default_impl(int nb_partitions, int nb_clusters, int *next_partition, int processed_partitions);
 
 #endif
