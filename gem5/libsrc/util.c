@@ -139,3 +139,31 @@ double normalnum(double mu, double sigma)
 }
 
 
+/*
+ * pRNG based on http://www.cs.wm.edu/~va/software/park/park.html
+ *
+ * Returns a pseudo-random real number uniformly distributed 
+ * between 0.0 and 1.0. 
+ */
+#define MODULUS    2147483647
+#define MULTIPLIER 48271
+
+static long prngseed = 0;
+double prngnum()
+{
+  const long Q = MODULUS / MULTIPLIER;
+  const long R = MODULUS % MULTIPLIER;
+        long t;
+
+  t = MULTIPLIER * (prngseed % Q) - R * (prngseed / Q);
+  if (t > 0) 
+    prngseed = t;
+  else 
+    prngseed = t + MODULUS;
+  return ((double) prngseed / MODULUS);
+}
+
+void prng_set_seed(int seed)
+{
+	prngseed = seed;
+}
