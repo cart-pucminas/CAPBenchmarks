@@ -144,7 +144,7 @@ int main(int argc, char **argv)
 	readargs(argc, argv);
 	
 	printf("CAPBench - NB kernel\n");
-	printf("  # of threads: %d \n", nthreads)
+	printf("  # of threads: %d \n", nthreads);
 	
 	omp_set_num_threads(nthreads);
 	
