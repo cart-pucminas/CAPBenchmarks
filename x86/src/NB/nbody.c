@@ -3,7 +3,7 @@
 #include <omp.h>
 #include "nbody.h"
 
-double compute_forces(body_t bodies[], body_v_t bodiesV[], int nbodies) {
+double compute_forces(body_t bodies[], int nbodies) {
 	double max_f, rx, ry, rz, r, fx, fy, fz, rmin;
 	int i, j;
 	max_f = 0.0;
@@ -29,9 +29,9 @@ double compute_forces(body_t bodies[], body_v_t bodiesV[], int nbodies) {
 			fy -= bodies[j].mass * ry / r;
 			fz -= bodies[j].mass * rz / r;
 		}
-		bodiesV[i].fx += fx;
-		bodiesV[i].fy += fy;
-		bodiesV[i].fz += fz;
+		bodies[i].fx += fx;
+		bodies[i].fy += fy;
+		bodies[i].fz += fz;
 		fx = sqrt(fx*fx + fy*fy + fz*fz)/rmin;
 		if (fx > max_f)
 			max_f = fx;
@@ -39,7 +39,7 @@ double compute_forces(body_t bodies[], body_v_t bodiesV[], int nbodies) {
 	return max_f;
 }
 
-double compute_new_positions(body_t bodies[], body_v_t bodiesV[], int nbodies, double max_f) {
+double compute_new_positions(body_t bodies[], int nbodies, double max_f) {
 	int i;
 	double a0, a1, a2, xi, yi, zi;
 	static double dt_old = 0.001, dt = 0.001;
@@ -53,15 +53,15 @@ double compute_new_positions(body_t bodies[], body_v_t bodiesV[], int nbodies, d
 		xi = bodies[i].x;
 		yi = bodies[i].y;
 		zi = bodies[i].z;
-		bodies[i].x = (bodiesV[i].fx - a1 * xi - a2 * bodiesV[i].xold) / a0;
-		bodies[i].y = (bodiesV[i].fy - a1 * yi - a2 * bodiesV[i].yold) / a0;
-		bodies[i].z = (bodiesV[i].fz - a1 * zi - a2 * bodiesV[i].zold) / a0;
-		bodiesV[i].xold = xi;
-		bodiesV[i].yold = yi;
-		bodiesV[i].zold = zi;
-		bodiesV[i].fx = 0.0;
-		bodiesV[i].fy = 0.0;
-		bodiesV[i].fz = 0.0;
+		bodies[i].x = (bodies[i].fx - a1 * xi - a2 * bodies[i].xold) / a0;
+		bodies[i].y = (bodies[i].fy - a1 * yi - a2 * bodies[i].yold) / a0;
+		bodies[i].z = (bodies[i].fz - a1 * zi - a2 * bodies[i].zold) / a0;
+		bodies[i].xold = xi;
+		bodies[i].yold = yi;
+		bodies[i].zold = zi;
+		bodies[i].fx = 0.0;
+		bodies[i].fy = 0.0;
+		bodies[i].fz = 0.0;
 	}
 	dt_new = 1.0/sqrt(max_f);
 	

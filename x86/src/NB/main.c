@@ -133,7 +133,6 @@ int main(int argc, char **argv)
 	double max_force;    /* Maximum force */
 	double sim_time;     /* Simulated time step */
 	body_t* bodies;      /* Bodies */
-	body_v_t* bodiesV;   /* Bodies velocities */
 	uint64_t end;        /* End time.   */
 	uint64_t start;      /* Start time. */
 	
@@ -154,7 +153,6 @@ int main(int argc, char **argv)
 
 	/* Memory alloc */
 	bodies = smalloc(p->nbodies*sizeof(body_t));
-	bodiesV = smalloc(p->nbodies*sizeof(body_v_t));
 
 	sim_time = 0.0;
 	/* Initialize with random numbers */
@@ -163,12 +161,12 @@ int main(int argc, char **argv)
 		bodies[i].y	      = prngnum();
 		bodies[i].z	      = prngnum();
 		bodies[i].mass    = 1.0;
-		bodiesV[i].xold	  = bodies[i].x;
-		bodiesV[i].yold	  = bodies[i].y;
-		bodiesV[i].zold	  = bodies[i].z;
-		bodiesV[i].fx	  = 0.0;
-		bodiesV[i].fy	  = 0.0;
-		bodiesV[i].fz	  = 0.0;
+		bodies[i].xold	  = bodies[i].x;
+		bodies[i].yold	  = bodies[i].y;
+		bodies[i].zold	  = bodies[i].z;
+		bodies[i].fx	  = 0.0;
+		bodies[i].fy	  = 0.0;
+		bodies[i].fz	  = 0.0;
     }
 
 	end = timer_get();
@@ -185,8 +183,8 @@ int main(int argc, char **argv)
 
 	start = timer_get();
 	while (p->niter--) {
-		max_force = compute_forces(bodies, bodiesV, p->nbodies);
-		sim_time += compute_new_positions(bodies, bodiesV, p->nbodies, max_force);
+		max_force = compute_forces(bodies, p->nbodies);
+		sim_time += compute_new_positions(bodies, p->nbodies, max_force);
 	}
 	end = timer_get();
 	
@@ -209,6 +207,5 @@ int main(int argc, char **argv)
 #endif
 	
 	free(bodies);
-	free(bodiesV);
 	return (EXIT_SUCCESS);
 }
