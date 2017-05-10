@@ -166,9 +166,9 @@ int main(int argc, char **argv)
 		bodiesV[i].xold	  = bodies[i].x;
 		bodiesV[i].yold	  = bodies[i].y;
 		bodiesV[i].zold	  = bodies[i].z;
-		bodiesV[i].fx	  = 0;
-		bodiesV[i].fy	  = 0;
-		bodiesV[i].fz	  = 0;
+		bodiesV[i].fx	  = 0.0;
+		bodiesV[i].fy	  = 0.0;
+		bodiesV[i].fz	  = 0.0;
     }
 
 	end = timer_get();
