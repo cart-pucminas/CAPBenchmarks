@@ -18,9 +18,9 @@ CAP Bench was born from a joint initiative involving three research groups:
 ================================================================================
 How to cite:
 Souza, M. A., Penna, P. H., Queiroz, M. M., Pereira, A. D., Góes, L. F. W.,
-Freitas, H. C., Castro, M., Navaux, P. O. A., and Méhaut, J. -F. (2016)
-CAP Bench: a benchmark suite for performance and energy evaluation of
-low-power many-core processors. Concurrency Computat.: Pract. Exper.,
+Freitas, H. C., Castro, M., Navaux, P. O.A., and Méhaut, J.-F. (2017)
+CAP Bench: a benchmark suite for performance and energy evaluation of low-power
+many-core processors. Concurrency Computat.: Pract. Exper., 29: e3892,
 doi: 10.1002/cpe.3892.
 ================================================================================
 
