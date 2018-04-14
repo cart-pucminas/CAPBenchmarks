@@ -25,7 +25,7 @@ struct problem
 };
 
 /* Problem sizes. */
-static struct problem tiny     = {  7,  2048 };
+static struct problem tiny     = {  7,   64 };
 static struct problem small    = {  7,  4096 };
 static struct problem standard = { 11,  8192 };
 static struct problem large    = { 11, 16384 };

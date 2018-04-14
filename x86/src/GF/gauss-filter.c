@@ -6,6 +6,7 @@
  */
 
 #include <global.h>
+#include <assert.h>
 #include <math.h>
 #include <omp.h>
 #include <stdio.h>
@@ -35,22 +36,22 @@ void gauss_filter(unsigned char *img, int imgsize, double *mask, int masksize)
 		newimg[(i)*imgsize + (j)]
 	
 	i = 0; j = 0;
-	half = imgsize >> 1;
+	half = masksize/2;
 	
 	#pragma omp parallel default(shared) private(imgI,imgJ,maskI,maskJ,pixel,i,j)
 	{
 		#pragma omp for
-		for (imgI = 0; imgI < imgsize; imgI++)
+		for (imgI = half; imgI < imgsize - half; imgI++)
 		{			
-			for (imgJ = 0; imgJ < imgsize; imgJ++)
+			for (imgJ = half; imgJ < imgsize - half; imgJ++)
 			{
 				pixel = 0.0;
 				for (maskI = 0; maskI < masksize; maskI++)
 				{	
 					for (maskJ = 0; maskJ < masksize; maskJ++)
 					{
-						i = (imgI - half < 0) ? imgsize-1 - maskI : imgI - half;
-						j = (imgJ - half < 0) ? imgsize-1 - maskJ : imgJ - half;
+						i = (maskI - half < 0) ? imgI - half + maskI : imgI + maskI - half;
+						j = (maskJ - half < 0) ? imgJ - half + maskJ : imgJ + maskJ - half;
 
 						pixel += IMG(i, j)*MASK(maskI, maskJ);
 					}
@@ -60,6 +61,31 @@ void gauss_filter(unsigned char *img, int imgsize, double *mask, int masksize)
 			}
 		}
 	}
+
+				for (maskI = 0; maskI < masksize; maskI++)
+				{	
+					for (maskJ = 0; maskJ < masksize; maskJ++)
+					{
+						fprintf(stderr, "%lf", MASK(maskI, maskJ));
+					}
+			fprintf(stderr, "\n");
+				}
+		for (imgI = 0; imgI < imgsize; imgI++)
+		{			
+			for (imgJ = 0; imgJ < imgsize; imgJ++)
+			{
+				  fprintf(stderr, "%d",	IMG(imgI, imgJ));
+			}
+			fprintf(stderr, "\n");
+		}
+		for (imgI = 0; imgI < imgsize; imgI++)
+		{			
+			for (imgJ = 0; imgJ < imgsize; imgJ++)
+			{
+				  fprintf(stderr, "%d",	NEWIMG(imgI, imgJ));
+			}
+			fprintf(stderr, "\n");
+		}
 	
 	free(newimg);
 }
