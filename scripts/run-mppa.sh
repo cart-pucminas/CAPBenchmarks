@@ -3,21 +3,20 @@
 #
 
 # Directories.
-export ROOTDIR=$PWD
-export RESULTSDIR=$ROOTDIR/results
-export BINDIR=$ROOTDIR/bin
-export MPPADIR=/usr/local/k1tools
+export BINDIR=bin
+export K1DIR=/usr/local/k1tools/bin
 
-# Problem size.
-export CLASS=standard
-
-# Create results directory.
-mkdir -p $RESULTSDIR
+# Default Parameters.
+export CLASS=tiny
+export NPROCS=16
 
 echo "Problem size = $CLASS"
-for kernel in fast fn gf is km lu tsp; do
-	for nprocs in {1..16}; do
-	    echo "  >> running $kernel with $nprocs cluster(s)."
-	    $MPPADIR/bin/k1-power -- $MPPADIR/bin/k1-jtag-runner --multibinary=$BINDIR/$kernel.img --exec-multibin=IODDR0:master -- --verbose --class $CLASS --nclusters $nprocs &>> $RESULTSDIR/$kernel-$CLASS-$nprocs.mppa
-	done
+
+for kernel in fn;
+do
+	echo "  ========== Running FN Kernel"
+	$K1DIR/k1-jtag-runner                               \
+		--multibinary=$BINDIR/$kernel.img               \
+		--exec-multibin=IODDR0:io_bin                   \
+		-- --verbose --class $CLASS --nclusters $NPROCS
 done
