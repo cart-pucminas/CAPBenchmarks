@@ -4,16 +4,10 @@
 # Builds CAP Benchmark suite for MPPA-256 architecture.
 #
 
-# Directories.
-export LIBSRCDIR = $(CURDIR)/libsrc
-export INCDIR = $(CURDIR)/include
-export SRCDIR = $(CURDIR)/src
-export K1_TOOLCHAIN_DIR = /usr/local/k1tools
-
-# Builds all kernels.
+# Builds kernel usync async.
 all:
-	cd $(SRCDIR) && $(MAKE) all
+	cd async && $(MAKE) all
 	
 # Cleans compilation files.
 clean:
-	cd $(SRCDIR) && $(MAKE) clean
+	cd async && $(MAKE) clean
