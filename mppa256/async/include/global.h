@@ -9,6 +9,9 @@
 
 	#include <stddef.h>
 	#include <stdint.h>
+	#include <vbsp.h>
+	
+	#define MPPA_FREQUENCY __bsp_frequency
 
 	#define NUM_CLUSTERS 16
 
@@ -33,5 +36,9 @@
 	extern size_t data_received;
 	extern unsigned nsend;
 	extern unsigned nreceive;
+
+	/* Infos description */
+	extern char *bench_initials;
+	extern char *bench_fullName;
 
 #endif /* GLOBAL_H_ */

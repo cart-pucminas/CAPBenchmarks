@@ -2,8 +2,13 @@
 #include <global.h>
 #include <timer.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "master.h"
+
+/* Definition of "String" variables for infos.c */
+char *bench_initials = "FN";
+char *bench_fullName = "Friendly Numbers Benchmark Kernel";
 
 /* Timing statistics. */
 uint64_t master = 0;          /* Time spent on master.        */
@@ -30,21 +35,101 @@ static struct problem large    =  { 8000001, 8032768 };
 static struct problem huge     =  { 8000001, 8065536 }; 
 
 /* Benchmark parameters. */
-int verbose = 0;   /* Display informations 	       */
-int nclusters = 16; /* Quantity of Clusters Spawned */
-static struct problem *p = &tiny;
+int verbose = 0;   /* Display informations? 	   */
+int nclusters = 1; /* Quantity of Clusters spawned */
+int npes = 1; /* Number of threads on each cluster */
+static struct problem *p = &tiny; /* Problem Class */
 
-int main(__attribute__((unused)) int argc, char **argv) {
-	uint64_t startTime, endTime; /* Start and End Time. */
-	int start_num = 0, end_num = 2;
+static void readargs(int argc, char **argv) {
+	int i;     /* Loop index.       */
+	char *arg; /* Working argument. */
+	int state; /* Processing state. */
+	
+	/* State values. */
+	#define READ_ARG     0 /* Read argument.         */
+	#define SET_nclusters 1 /* Set number of clusters. */
+	#define SET_CLASS    2 /* Set problem class.     */
+	#define SET_threads 3 /* Set number of threads */
+	
+	state = READ_ARG;
+	
+	/* Read command line arguments. */
+	for (i = 1; i < argc; i++)
+	{
+		arg = argv[i];
+		
+		/* Set value. */
+		if (state != READ_ARG)
+		{
+			switch (state)
+			{
+				/* Set problem class. */
+				case SET_CLASS :
+					if (!strcmp(argv[i], "tiny"))
+						p = &tiny;
+					else if (!strcmp(argv[i], "small"))
+						p = &small;
+					else if (!strcmp(argv[i], "standard"))
+						p = &standard;
+					else if (!strcmp(argv[i], "large"))
+						p = &large;
+					else if (!strcmp(argv[i], "huge"))
+						p = &huge;
+					else 
+						inform_usage();
+					state = READ_ARG;
+					break;
+				
+				/* Set number of threads. */
+				case SET_nclusters :
+					nclusters = atoi(arg);
+					state = READ_ARG;
+					break;
+				
+				case SET_threads:
+					npes = atoi(arg);
+					state = READ_ARG;
+					break;
+
+				default:
+					inform_usage();		
+			}
+			continue;
+		}
+		
+		/* Parse argument. */
+		if (!strcmp(arg, "--verbose"))
+			verbose = 1;
+		else if (!strcmp(arg, "--nclusters"))
+			state = SET_nclusters;
+		else if (!strcmp(arg, "--class"))
+			state = SET_CLASS;
+		else if (!strcmp(arg, "--nthreads"))
+			state = SET_threads;
+		else
+			inform_usage();
+	}
+	
+	/* Invalid argument(s). */
+	if (nclusters < 1)
+		inform_usage();
+}
+
+int main(int argc, const char **argv) {
+	uint64_t startTime, endTime;
 
 	timer_init();
 
+	readargs(argc, argv);
+
+	inform_actual_benchmark();
+
 	startTime = timer_get();
-	friendly_numbers(start_num, end_num);
+	friendly_numbers(p->start, p->end);
 	endTime = timer_get();
 	total = timer_diff(startTime, endTime);
 
-	printf("Executed in %.10f\n", total*MICROSEC);
+	inform_statistics();
+	
 	return 0;
 }

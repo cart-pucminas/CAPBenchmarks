@@ -6,22 +6,28 @@
 #ifdef _MASTER_
 
 void inform_clusters_started() {
-	if (verbose)
+	if (verbose) {
 		printf("[IODDR0] Starts %d Cluster(s)\n", nclusters);
+		fflush(stdout);
+	}
 }
 
 void error_spawn(int idCluster) {
-	if (verbose)
+	if (verbose) {
 		printf("#[IODDR0] Fail to Spawn cluster %d\n", idCluster);
+		fflush(stdout);
+	}
+
 }
 
 void error_waitpid(int idCluster) {
 	printf("#[IODDR0] ERROR: Waitpid failed on cluster %d\n", idCluster);
+	fflush(stdout);
 }
 
-void usage(char *initials, char *benchName) {
-	printf("Usage: %s [options]\n", initials);
-	printf("Brief: %s Kernel\n", benchName);
+void inform_usage() {
+	printf("Usage: %s [options]\n", bench_initials);
+	printf("Brief: %s Kernel\n", bench_fullName);
 	printf("Options:\n");
 	printf("  --help             Display this information and exit\n");
 	printf("  --nclusters <value> Set number of threads\n");
@@ -32,10 +38,12 @@ void usage(char *initials, char *benchName) {
 	printf("                       - large\n");
 	printf("                       - huge\n");
 	printf("  --verbose          Be verbose\n");
+	fflush(stdout);
 }
 
-void show_statics() {
-	printf("timing statistics:\n");
+void inform_statistics() {
+	printf("  total time: %f microseconds \n", total*MICROSEC);
+	/*printf("timing statistics of %s (in microseconds):\n", initials);
 	printf("  master:        %f\n", master*MICROSEC);
 	for (int i = 0; i < nclusters; i++)
 		printf("  slave %d:      %f\n", i, slave[i]*MICROSEC);
@@ -46,7 +54,14 @@ void show_statics() {
 	printf("  number sends:         %u\n", nsend);
 	printf("  data received:        %d\n", data_received);
 	printf("  number receives:      %u\n", nreceive);
+	fflush(stdout);*/
 }
 
+void inform_actual_benchmark() {
+	if (verbose) {
+		printf(" Computing %s ... \n", bench_fullName);
+		fflush(stdout);
+	}
+}
 
 #endif

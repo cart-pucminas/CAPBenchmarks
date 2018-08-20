@@ -5,8 +5,9 @@
 	extern void inform_clusters_started();
 	extern void error_spawn(int idCluster);
 	extern void error_waitpid(int idCluster);
-	extern void usage(char *initials, char *benchName);
-	extern void show_statics();
+	extern void inform_usage();
+	extern void inform_statistics();
+	extern void inform_actual_benchmark();
 #endif
 
 #endif

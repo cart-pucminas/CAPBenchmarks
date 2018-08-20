@@ -18,7 +18,7 @@ int main(int argc , const char **argv) {
 	int cid = __k1_get_cluster_id();
 
 	int i;
-	printf("Cluster %d Spawned\n", cid);
+	//printf("Cluster %d Spawned\n", cid);
 
 	off64_t offset;
 	mppa_async_malloc(MPPA_ASYNC_DDR_0, 4 * sizeof(utask_t), &offset, NULL);

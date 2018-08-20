@@ -5,9 +5,9 @@
  */
 
 #include <arch.h>
-#include <mppa.h>
 #include <mppaipc.h>
 #include <stdint.h>
+#include <mOS_vcore_u.h>
 
 /*
  * Timer residual error.
@@ -19,7 +19,7 @@ uint64_t timer_error = 0;
  */
 uint64_t timer_get(void)
 {
-	return (k1_io_read64(0x70084040)/MPPA_FREQUENCY);
+	return __k1_read_dsu_timestamp()/MPPA_FREQUENCY;
 }
 
 /*
