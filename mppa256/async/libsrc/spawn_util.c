@@ -8,6 +8,14 @@
 #ifdef _MASTER_
 
 void spawn_slaves() {
+	//char arg0[10];  /* Argument 0. */
+	//char arg1[10];	/* Argument 1. */
+	//char *args[2];  /* Arguments.  */
+
+	//sprintf(arg0, "%d", start);
+	//sprintf(arg1, "%d", start);
+	//args[0] = arg0;
+	//args[1] = arg1;
 	for(int i = 0; i < nclusters; i++){
 		if (mppa_power_base_spawn(i, "cluster_bin", (const char **)NULL , NULL, MPPA_POWER_SHUFFLING_ENABLED) == -1) {
 			error_spawn(i);

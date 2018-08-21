@@ -1,7 +1,9 @@
+#include <stddef.h> // Necessary for size_t.
+#include <stdint.h> // Necessary for uint64_t.
 #include <mppa_async.h>
 #include <utask.h>
 #include <global.h>
-#include <async_util.h>
+#include <infos.h>
 
 #ifdef _MASTER_
 

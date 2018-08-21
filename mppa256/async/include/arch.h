@@ -7,7 +7,7 @@
 #ifndef ARCH_H_
 #define ARCH_H_
 
-	#include <mppaipc.h>
+	#include <vbsp.h>
 	
 	/* Maximum cluster workload. */
 	#define CLUSTER_WORKLOAD 0xfffff /* 1 MB */
@@ -30,6 +30,6 @@
 	/*
 	 * Frequency of cores.
 	 */
-	#define MPPA_FREQUENCY 400
+	#define MPPA_FREQUENCY __bsp_frequency
 
 #endif /* ARCH_H_ */

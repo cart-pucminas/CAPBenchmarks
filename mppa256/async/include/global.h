@@ -9,11 +9,7 @@
 
 	#include <stddef.h>
 	#include <stdint.h>
-	#include <vbsp.h>
-	
-	#define MPPA_FREQUENCY __bsp_frequency
-
-	#define NUM_CLUSTERS 16
+	#include <arch.h>
 
 	//	Be verbose?
 	extern int verbose;

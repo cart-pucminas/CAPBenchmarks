@@ -5,7 +5,6 @@
  */
 
 #include <arch.h>
-#include <mppaipc.h>
 #include <stdint.h>
 #include <mOS_vcore_u.h>
 
@@ -19,7 +18,7 @@ uint64_t timer_error = 0;
  */
 uint64_t timer_get(void)
 {
-	return __k1_read_dsu_timestamp()/MPPA_FREQUENCY;
+	return __k1_read_dsu_timestamp();
 }
 
 /*
@@ -27,7 +26,7 @@ uint64_t timer_get(void)
  */
 uint64_t timer_diff(uint64_t t1, uint64_t t2)
 {
-	return (t2 - t1 - timer_error);
+	return (t2 - t1 - timer_error)/MPPA_FREQUENCY;
 }
 
 /*
