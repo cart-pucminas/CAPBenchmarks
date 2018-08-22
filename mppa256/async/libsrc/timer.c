@@ -4,7 +4,10 @@
  * timer.c - Timer library implementation.
  */
 
+/* Kernel Includes */
 #include <arch.h>
+
+/* C And MPPA Library Includes*/
 #include <stdint.h>
 #include <mOS_vcore_u.h>
 

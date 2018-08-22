@@ -13,7 +13,7 @@ nPES := 16
 ARGS := --verbose --class ${CLASS} --nclusters ${nprocs} --nthreads ${nPES}
 
 io-bin := io_bin
-io_bin-cflags := -D_MASTER_
+io_bin-cflags := -D_MASTER_ -D_FN_
 io_bin-lflags := $(generalMPPAFlags) -lpcie_queue 
 io_bin-srcs := $(wildcard master/*.c) $(wildcard $(LIBSRCDIR)/*.c)
 

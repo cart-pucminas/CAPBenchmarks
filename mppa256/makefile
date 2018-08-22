@@ -4,6 +4,8 @@
 # Builds CAP Benchmark suite for MPPA-256 architecture.
 #
 
+# Problem size.
+
 # Builds kernel usync async.
 all:
 	cd async && $(MAKE) all

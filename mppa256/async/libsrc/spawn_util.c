@@ -1,9 +1,12 @@
-#include <mppa_power.h>
+/* Kernel Includes */
 #include <global.h>
 #include <infos.h>
 #include <spawn_util.h>
+
+/* C And MPPA Library Includes*/
 #include <stdio.h>
 #include <stdlib.h>
+#include <mppa_power.h>
 
 #ifdef _MASTER_
 

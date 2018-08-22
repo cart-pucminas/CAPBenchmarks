@@ -1,9 +1,12 @@
-#include <stddef.h> // Necessary for size_t.
-#include <stdint.h> // Necessary for uint64_t.
-#include <mppa_async.h>
-#include <utask.h>
+/* Kernel Includes */
 #include <global.h>
 #include <infos.h>
+
+/* C And MPPA Library Includes*/
+#include <stddef.h> 
+#include <stdint.h> 
+#include <mppa_async.h>
+#include <utask.h>
 
 #ifdef _MASTER_
 

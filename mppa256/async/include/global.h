@@ -7,34 +7,37 @@
 #ifndef GLOBAL_H_
 #define GLOBAL_H_
 
-	#include <stddef.h>
-	#include <stdint.h>
-	#include <arch.h>
+/* Kernel Includes */
+#include <arch.h>
 
-	//	Be verbose?
-	extern int verbose;
+/* C And MPPA Library Includes*/
+#include <stddef.h>
+#include <stdint.h>
+#include <mppa_async.h>
 
-	//	Number of threads on each cluster.
-	extern int npes;
+// Segment to async communication
+extern mppa_async_segment_t GLOBAL_COMM;
 
-	//	Number of clusters to be used.
-	extern int nclusters;
+//	Be verbose?
+extern int verbose;
 
-	// Cluster rank.
-	extern int rank;
-	
-	/* Timing statistics. */
-	extern uint64_t master;
-	extern uint64_t slave[NUM_CLUSTERS];
-	extern uint64_t communication;
-	extern uint64_t total;
-	extern size_t data_sent;
-	extern size_t data_received;
-	extern unsigned nsend;
-	extern unsigned nreceive;
+//	Number of threads on each cluster.
+extern int npes;
 
-	/* Infos description */
-	extern char *bench_initials;
-	extern char *bench_fullName;
+//	Number of clusters to be used.
+extern int nclusters;
+
+// Cluster rank.
+extern int rank;
+
+/* Timing statistics. */
+extern uint64_t master;
+extern uint64_t slave[NUM_CLUSTERS];
+extern uint64_t communication;
+extern uint64_t total;
+extern size_t data_sent;
+extern size_t data_received;
+extern unsigned nsend;
+extern unsigned nreceive;
 
 #endif /* GLOBAL_H_ */

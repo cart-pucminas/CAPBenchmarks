@@ -1,7 +1,11 @@
-#include <stdio.h>
+/* Kernel Includes */
 #include <global.h>
-#include <infos.h>
+#include <problem.h>
 #include <timer.h>
+
+/* C And MPPA Library Includes*/
+#include <stdio.h>
+
 
 #ifdef _MASTER_
 

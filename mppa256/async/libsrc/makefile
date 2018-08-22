@@ -8,8 +8,8 @@
 SRC = $(wildcard *.c)
 
 # Object files.
-OBJ_MASTER = async_util.master.o spawn_util.master.o infos.master.o timer.master.o
-OBJ_SLAVE = async_util.slave.o spawn_util.slave.o infos.slave.o timer.master.c
+OBJ_MASTER = problem.master.o async_util.master.o spawn_util.master.o infos.master.o timer.master.o
+OBJ_SLAVE = problem.slave.o async_util.slave.o spawn_util.slave.o infos.slave.o timer.slave.o
 
 # Builds all libraries.
 all: master-lib slave-lib

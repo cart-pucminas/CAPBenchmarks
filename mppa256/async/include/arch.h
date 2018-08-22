@@ -7,29 +7,30 @@
 #ifndef ARCH_H_
 #define ARCH_H_
 
-	#include <vbsp.h>
-	
-	/* Maximum cluster workload. */
-	#define CLUSTER_WORKLOAD 0xfffff /* 1 MB */
+/* C And MPPA Library Includes*/
+#include <vbsp.h>
 
-	/*
-	 * Number of clusters on a MPPA-256 processor.
-	 */
-	#define NUM_CLUSTERS 16
+/* Maximum cluster workload. */
+#define CLUSTER_WORKLOAD 0xfffff /* 1 MB */
 
-	/*
-	 * Number of IO cores per IO cluster.
-	 */
-	#define NUM_IO_CORES 4
+/*
+ * Number of clusters on a MPPA-256 processor.
+ */
+#define NUM_CLUSTERS 16
 
-	/*
-	 * Number of cores on a MPPA-256 processor.
-	 */
-	#define NUM_CORES 256
-	
-	/*
-	 * Frequency of cores.
-	 */
-	#define MPPA_FREQUENCY __bsp_frequency
+/*
+ * Number of IO cores per IO cluster.
+ */
+#define NUM_IO_CORES 4
+
+/*
+ * Number of cores on a MPPA-256 processor.
+ */
+#define NUM_CORES 256
+
+/*
+ * Frequency of cores.
+ */
+#define MPPA_FREQUENCY __bsp_frequency
 
 #endif /* ARCH_H_ */
