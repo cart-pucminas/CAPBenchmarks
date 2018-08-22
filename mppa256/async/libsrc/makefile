@@ -2,12 +2,14 @@
 # Copyright(C) 2014 Pedro H. Penna <pedrohenriquepenna@gmail.com>
 #
 
+# OBS: MAKEFILE NAO INTERFERINDO NA EXECUÇÃO ??
+	
 # Source files.
 SRC = $(wildcard *.c)
 
 # Object files.
-OBJ_MASTER = async_util.master.o spawn_util.master.o infos.master.o 
-OBJ_SLAVE = async_util.slave.o spawn_util.slave.o infos.slave.o
+OBJ_MASTER = async_util.master.o spawn_util.master.o infos.master.o timer.master.o
+OBJ_SLAVE = async_util.slave.o spawn_util.slave.o infos.slave.o timer.master.c
 
 # Builds all libraries.
 all: master-lib slave-lib
