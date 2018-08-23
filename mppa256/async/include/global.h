@@ -16,7 +16,7 @@
 #include <mppa_async.h>
 
 // Segment to async communication
-extern mppa_async_segment_t GLOBAL_COMM;
+extern const mppa_async_segment_t GLOBAL_COMM;
 
 //	Be verbose?
 extern int verbose;

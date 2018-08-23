@@ -31,7 +31,7 @@ static int tasksize[NUM_CLUSTERS]; /* Task size.         */
 static int avgtasksize;            /* Average task size. */
 
 /* Async Communicator. */
-mppa_async_segment_t GLOBAL_COMM;
+const mppa_async_segment_t GLOBAL_COMM;
 
 void distributeTaskSizes(int _start, int _end) {
 	startnum = _start;
@@ -55,32 +55,37 @@ int friendly_numbers(int _start, int _end) {
 
 	async_master_init();
 
-	//spawn_slaves();
+	int image_size = 2*sizeof(int);
+	int *image_buffer = malloc(image_size);
+	char str_buff[50];
+	sprintf(str_buff, "%lld", (uint64_t)(uintptr_t)image_buffer);
+	char *args[2];
+	args[0] = str_buff;
+	args[1] = NULL; 
 
-	char arg0[10];  /* Argument 0. */
-	char arg1[10];	/* Argument 1. */
-	char *args[3];  /* Arguments.  */
+	/* Spawning PE0 of each cluster */
+	for (int i = 0; i < nclusters; i++)
+		spawn_slave(i, args);
 
-	sprintf(arg0, "%d", p->start);
-	sprintf(arg1, "%d", p->end);
-	args[0] = arg0;
-	args[1] = arg1;
-	args[2] = NULL;
+	inform_clusters_started();
 
 	async_master_start();
-	
-	mppa_power_base_spawn(0, "cluster_bin", (const char **)args , NULL, MPPA_POWER_SHUFFLING_ENABLED);
 
-	off64_t offset;
-	mppa_async_segment_create (&GLOBAL_COMM, 10, &offset, 2 * sizeof(int), 0, 0, NULL);
+	printf("IO%d image_buffer %p\n", __k1_get_cluster_id()/192, image_buffer);
+
+	for(int i = 0; i < 2; i++)
+		image_buffer[i] = i;
+
+	mppa_async_segment_t image_segment;
+	mppa_async_segment_create(&image_segment, 10, image_buffer, image_size, 0, 0, NULL);
 
 	/* Wait all distribution threads terminate their calculation before
 	   send work to clusters */
 	//sendWork();
 
-	int ret;
-	mppa_power_base_waitpid(0, &ret, 0);
-	//join_slaves();
+	/* Waiting for PE0 of each cluster to end */
+	for (int i = 0; i < nclusters; i++)
+		join_slave(i);
 
 	async_master_finalize();
 }

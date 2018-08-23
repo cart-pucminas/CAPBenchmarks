@@ -10,8 +10,10 @@
 #include <unistd.h> 
 
 /* Async Communicator. */
-mppa_async_segment_t GLOBAL_COMM;
+static mppa_async_segment_t image_segment;
 
+/* Pointer to ddr buffer */
+static void *image_ddr_ptr = NULL;
 
 void* task(void *arg) {
 	
@@ -20,14 +22,27 @@ void* task(void *arg) {
 int main(int argc , const char **argv) {
 	async_slave_init();
 
-	int startnum = atoi(argv[0]);
-	int endnum = atoi(argv[1]);
+	int cid = __k1_get_cluster_id();
+	image_ddr_ptr = (void*)(uintptr_t)atoll(argv[0]);
 
-	off64_t offset;
-	mppa_async_segment_clone(&GLOBAL_COMM, 10, &offset, 2 * (sizeof(int)), NULL);
+	if (cid == 0)
+		printf("Cluster 0 image_buffer %p\n", image_ddr_ptr);
 
-	printf("StartNum = %d and EndNum = %d\n", startnum, endnum);
-	
+	mppa_async_segment_clone(&image_segment, 10, 0, 0, 0);
+
+	mppa_rpc_barrier_all();		/*  synchronize all PE0 of all booted cluster */
+
+	int image_size = 2*sizeof(int);
+	int *image_buffer = malloc(image_size);
+
+	/* DDR -> Cluster */
+	off64_t res;
+	mppa_async_offset(&image_segment, image_ddr_ptr, &res);
+	mppa_async_get(image_buffer, &image_segment, res, image_size, NULL);
+
+	for (int i = 0; i < 2; i++) 
+		printf("Image Buffer [0] = %d\n",image_buffer[i]);
+
 	async_slave_finalize();
 	return 0;
 }
