@@ -27,9 +27,9 @@ uint64_t timer_get(void)
 /*
  * Computers the difference between two timers.
  */
-uint64_t timer_diff(uint64_t t1, uint64_t t2)
+float timer_diff(uint64_t t1, uint64_t t2)
 {
-	return (t2 - t1 - timer_error)/MPPA_FREQUENCY;
+	return ((float)(t2 - t1 - timer_error))/((float)MPPA_FREQUENCY);
 }
 
 /*

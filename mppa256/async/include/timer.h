@@ -16,7 +16,7 @@
 /*
  * Computers the difference between two times
  */
-extern uint64_t timer_diff(uint64_t t1, uint64_t t2);
+extern float timer_diff(uint64_t t1, uint64_t t2);
 
 /*
  * Gets the current timer value

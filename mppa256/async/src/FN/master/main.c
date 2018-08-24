@@ -8,6 +8,7 @@
 /* C And MPPA Library Includes*/
 #include <stdio.h>
 #include <stdlib.h>
+#include <vbsp.h>
 
 /* Problem initials and FullName */
 char *bench_initials = "FN";
@@ -17,7 +18,7 @@ char *bench_fullName = "Friendly Numbers Benchmark Kernel";
 uint64_t master = 0;          /* Time spent on master.        */
 uint64_t slave[NUM_CLUSTERS]; /* Time spent on slaves.        */
 uint64_t communication = 0;   /* Time spent on communication. */
-uint64_t total = 0;           /* Total time.                  */
+float total = 0;           /* Total time.                  */
 
 /* Data exchange statistics. */
 size_t data_sent = 0;     /* Number of bytes received. */

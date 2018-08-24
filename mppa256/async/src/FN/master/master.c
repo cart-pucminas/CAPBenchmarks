@@ -23,21 +23,21 @@ typedef struct {
 
 static Item *finishedTasks;
 static Item *task;
+static int *buffer;
 
 /* Parameters.*/
-static int startnum;               /* Start number.      */
-static int endnum;                 /* End number.        */
-static int tasksize[NUM_CLUSTERS]; /* Task size.         */
-static int avgtasksize;            /* Average task size. */
-
-/* Async Communicator. */
-const mppa_async_segment_t GLOBAL_COMM;
+static int startnum;     /* Start number.      */
+static int endnum;       /* End number.        */
+static int problemsize;  /* Total task size    */
+static int avgtasksize;  /* Average task size. */
+static int *tasksize;    /* Task size.         */
 
 void distributeTaskSizes(int _start, int _end) {
+	tasksize = (int*) malloc(nclusters * sizeof(int));
 	startnum = _start;
 	endnum = _end;
 
-	int problemsize = (_end - _start + 1);
+	problemsize = (_end - _start + 1);
 
 	if (problemsize > MAX_TASK_SIZE)
 		problemsize = MAX_TASK_SIZE;
@@ -55,33 +55,52 @@ int friendly_numbers(int _start, int _end) {
 
 	async_master_init();
 
-	int image_size = 2*sizeof(int);
-	int *image_buffer = malloc(image_size);
-	char str_buff[50];
-	sprintf(str_buff, "%lld", (uint64_t)(uintptr_t)image_buffer);
-	char *args[2];
-	args[0] = str_buff;
-	args[1] = NULL; 
+	buffer = malloc(problemsize * sizeof(int));
 
-	/* Spawning PE0 of each cluster */
-	for (int i = 0; i < nclusters; i++)
+	for (int i = 0; i < problemsize; i++)
+		buffer[i] = i;
+
+	int cont = 0;
+	for (int i = 0; i < nclusters; i++) {
+		char str_size[10];
+		char str_buff[50];
+		sprintf(str_buff, "%lld", (uint64_t)(uintptr_t)(&buffer[cont]));
+		sprintf(str_size, "%d", tasksize[i]);
+		char *args[3];
+		args[0] = str_size;
+		args[1] = str_buff;
+		args[2] = NULL; 
+
+		/* Spawning PE0 of cluster i*/
 		spawn_slave(i, args);
+		if (i+1 < nclusters)
+			cont += tasksize[i+1];
+	}
 
 	inform_clusters_started();
 
 	async_master_start();
 
-	printf("IO%d image_buffer %p\n", __k1_get_cluster_id()/192, image_buffer);
+	mppa_async_segment_t segments[nclusters];
 
-	for(int i = 0; i < 2; i++)
-		image_buffer[i] = i;
+	__builtin_k1_wpurge();
+	__builtin_k1_fence();
 
-	mppa_async_segment_t image_segment;
-	mppa_async_segment_create(&image_segment, 10, image_buffer, image_size, 0, 0, NULL);
+	cont = 0;
+	for (int i = 0; i < nclusters; i++) {
+		mppa_async_segment_create(&segments[i], i+1, &buffer[cont], tasksize[i]*sizeof(int), 0, 0, NULL);
+		if (i+1 < nclusters)
+			cont += tasksize[i+1];
+	}
 
 	/* Wait all distribution threads terminate their calculation before
 	   send work to clusters */
 	//sendWork();
+
+	int a = 0;
+	mppa_async_get(&a, &segments[0], (off64_t)0*sizeof(int), sizeof(int), NULL);
+
+	printf("Tentando Cluster -> Put -> IO -> Get ==> Buff[0] = %d\n", a);
 
 	/* Waiting for PE0 of each cluster to end */
 	for (int i = 0; i < nclusters; i++)

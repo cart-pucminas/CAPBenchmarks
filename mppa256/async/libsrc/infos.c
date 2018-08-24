@@ -46,8 +46,8 @@ void inform_usage() {
 }
 
 void inform_statistics() {
-	printf("  total time: %f microseconds \n", total*MICROSEC);
-	/*printf("timing statistics of %s (in microseconds):\n", initials);
+	printf("  total time: %f seconds\n", total*MICROSEC);
+	/*printf("timing statistics of %s (in seconds):\n", initials);
 	printf("  master:        %f\n", master*MICROSEC);
 	for (int i = 0; i < nclusters; i++)
 		printf("  slave %d:      %f\n", i, slave[i]*MICROSEC);

@@ -8,7 +8,7 @@ cflags := -O3 -std=gnu99 -g -mhypervisor -I $(INCDIR) -Wall -Wextra -Winit-self 
 generalMPPAFlags := -g -lvbsp -lutask -lmppa_remote -lmppa_async -lmppa_request_engine -lmppapower -lmppanoc -lmpparouting -mhypervisor -Wl,--defsym=_LIBNOC_DISABLE_FIFO_FULL_CHECK=0
 
 CLASS := tiny
-nprocs := 1
+nprocs := 16
 nPES := 16
 ARGS := --verbose --class ${CLASS} --nclusters ${nprocs} --nthreads ${nPES}
 

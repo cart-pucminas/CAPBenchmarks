@@ -31,6 +31,6 @@
 /*
  * Frequency of cores.
  */
-#define MPPA_FREQUENCY __bsp_frequency
+#define MPPA_FREQUENCY 400 // 400 mhz
 
 #endif /* ARCH_H_ */

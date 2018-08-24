@@ -15,9 +15,6 @@
 #include <stdint.h>
 #include <mppa_async.h>
 
-// Segment to async communication
-extern const mppa_async_segment_t GLOBAL_COMM;
-
 //	Be verbose?
 extern int verbose;
 
@@ -34,7 +31,7 @@ extern int rank;
 extern uint64_t master;
 extern uint64_t slave[NUM_CLUSTERS];
 extern uint64_t communication;
-extern uint64_t total;
+extern float total;
 extern size_t data_sent;
 extern size_t data_received;
 extern unsigned nsend;
