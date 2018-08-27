@@ -3,14 +3,13 @@
 #
 system-name := bare
 
-cflags := -O3 -std=gnu99 -g -mhypervisor -I $(INCDIR) -Wall -Wextra -Winit-self -Wswitch-default -Wfloat-equal -Wundef -Wshadow -Wuninitialized #Werror
+cflags := -fopenmp -O3 -std=gnu99 -g -mhypervisor -I $(INCDIR) -Wall -Wextra -Winit-self -Wswitch-default -Wfloat-equal -Wundef -Wshadow -Wuninitialized #Werror
 
-generalMPPAFlags := -g -lvbsp -lutask -lmppa_remote -lmppa_async -lmppa_request_engine -lmppapower -lmppanoc -lmpparouting -mhypervisor -Wl,--defsym=_LIBNOC_DISABLE_FIFO_FULL_CHECK=0
+generalMPPAFlags := -g -lvbsp -lutask -lgomp -lmppa_remote -lmppa_async -lmppa_request_engine -lmppapower -lmppanoc -lmpparouting -mhypervisor -Wl,--defsym=_LIBNOC_DISABLE_FIFO_FULL_CHECK=0
 
 CLASS := tiny
-nprocs := 16
-nPES := 16
-ARGS := --verbose --class ${CLASS} --nclusters ${nprocs} --nthreads ${nPES}
+nprocs := 1
+ARGS := --verbose --class ${CLASS} --nclusters ${nprocs}
 
 io-bin := io_bin
 io_bin-cflags := -D_MASTER_ -D_FN_

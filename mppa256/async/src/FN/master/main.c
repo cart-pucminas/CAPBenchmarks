@@ -8,7 +8,6 @@
 /* C And MPPA Library Includes*/
 #include <stdio.h>
 #include <stdlib.h>
-#include <vbsp.h>
 
 /* Problem initials and FullName */
 char *bench_initials = "FN";

@@ -1,54 +1,52 @@
 /* Kernel Includes */
 #include <spawn_util.h>
 #include <async_util.h>
+#include <util.h>
 
 /* C And MPPA Library Includes*/
 #include <mppa_async.h>
 #include <utask.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h> 
+#include <unistd.h>
+
+typedef struct {
+	long int number;
+	long int numerator;
+	long int denominator;
+} Item;
+
+static Item *task;
+static int tasksize; 
 
 /* Async Communicator. */
-static mppa_async_segment_t sub_buff_seg;
+static mppa_async_segment_t work_segment;
+static mppa_async_segment_t finished_tasks_segment;
 
 /* Pointer to ddr buffer */
-static void *sub_buff_ddr_ptr = NULL;
-
-void* task(void *arg) {
-	
-}
+static void *adress = NULL;
 
 int main(int argc , const char **argv) {
 	async_slave_init();
-
 	int cid = __k1_get_cluster_id();
-	int sub_buff_size = atoi(argv[0]);
-	sub_buff_ddr_ptr = (void*)(uintptr_t)atoll(argv[1]);
+	tasksize = atoi(argv[0]);
 
-	mppa_rpc_barrier_all();	
+	mppa_async_segment_clone(&work_segment, cid+1, 0, 0, 0);
+	mppa_async_segment_clone(&finished_tasks_segment, cid+17, 0, 0, 0);
 
-	mppa_async_segment_clone(&sub_buff_seg, cid+1, 0, 0, 0);
-
-	mppa_rpc_barrier_all();	
-
-	int *sub_buff = malloc(sub_buff_size * sizeof(int));
+	task = smalloc(tasksize* sizeof(Item));
 
 	/* DDR -> Cluster */
-	off64_t offset;
-	mppa_async_offset(&sub_buff_seg, sub_buff_ddr_ptr, &offset);
-	mppa_async_get(sub_buff, &sub_buff_seg, offset, sub_buff_size * sizeof(int), NULL);
+	mppa_async_get(task, &work_segment, 0, tasksize * sizeof(Item), NULL);
 
 	/* Cluster -> DDR */
 	// OBS : TESTING
-	if(cid == 0) {
-		int a = 200;
-		sub_buff[0] = 100;
-		printf("Cluster SubBuff[0] = %d\n", sub_buff[0]);
-		mppa_async_put(&a, &sub_buff_seg, offset, sizeof(int), NULL);
-		mppa_async_get(sub_buff, &sub_buff_seg, offset, sizeof(int), NULL);
-		printf("Cluster SubBuff[0] = %d\n", sub_buff[0]);
-	}
+	
+	Item a[3];
+	for (int i = 0; i < 3; i++)
+		a[i].number = 19;
+	mppa_async_put(&a, &finished_tasks_segment, 0, 3 * sizeof(Item), NULL);
+	mppa_async_fence(&finished_tasks_segment, NULL);
 
 	async_slave_finalize();
 	return 0;

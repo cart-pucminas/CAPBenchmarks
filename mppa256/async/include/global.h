@@ -18,9 +18,6 @@
 //	Be verbose?
 extern int verbose;
 
-//	Number of threads on each cluster.
-extern int npes;
-
 //	Number of clusters to be used.
 extern int nclusters;
 

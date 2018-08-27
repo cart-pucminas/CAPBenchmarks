@@ -54,11 +54,6 @@ void readargs(int argc, char **argv) {
 					nclusters = atoi(arg);
 					state = READ_ARG;
 					break;
-				
-				case SET_threads:
-					npes = atoi(arg);
-					state = READ_ARG;
-					break;
 
 				default:
 					inform_usage();		
@@ -73,8 +68,6 @@ void readargs(int argc, char **argv) {
 			state = SET_nclusters;
 		else if (!strcmp(arg, "--class"))
 			state = SET_CLASS;
-		else if (!strcmp(arg, "--nthreads"))
-			state = SET_threads;
 		else
 			inform_usage();
 	}
