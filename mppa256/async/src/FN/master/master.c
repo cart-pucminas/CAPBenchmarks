@@ -3,7 +3,6 @@
 #include <spawn_util.h>
 #include <problem.h>
 #include <global.h> 
-#include <infos.h>
 #include <util.h>
 #include "master.h"
 
@@ -14,6 +13,26 @@
 #include <mppa_async.h>
 #include <unistd.h> 
 #include <mppa_power.h>
+
+/*
+ * Wrapper to data_send(). 
+ */
+#define data_send(b, c)                   \
+	{                                        \
+		data_sent += c;                      \
+		nsend++;                             \
+		communication += data_send(a, b, c); \
+	}                                        \
+
+/*
+ * Wrapper to data_receive(). 
+ */
+#define data_receive(b, c)                   \
+	{                                           \
+		data_received += c;                     \
+		nreceive++;                             \
+		communication += data_receive(a, b, c); \
+	}     
 
 typedef struct {
 	int number;
@@ -70,6 +89,12 @@ static void sendWork() {
 	}
 }
 
+static void syncNumbers() {
+	/* Work is done */
+	for (int i = 0; i < nclusters; i ++)
+		mppa_async_get(tasks, &segments[i], 0, tasksize[i] * sizeof(Item), NULL);
+}
+
 int friendly_numbers(int _start, int _end) {
 	/* Try to do it with pthreads (FASTER) */
 	distributeTaskSizes(_start, _end);
@@ -78,7 +103,7 @@ int friendly_numbers(int _start, int _end) {
 
 	async_master_start();
 
-	/* Initialize tasks and finishedTasks*/
+	/* Initialize tasks*/
 	int aux = startnum;
 	for (int i = 0; i < problemsize; i++)
 		tasks[i].number = aux++; 
@@ -86,15 +111,8 @@ int friendly_numbers(int _start, int _end) {
 	/* Spawns clusters and creates segments */
 	sendWork();
 
-	inform_clusters_started();
-
-	/* Work is done
-	for (int i = 0; i < nclusters; i ++)
-		mppa_async_get(tasks, &segments[i], 0, tasksize[i] * sizeof(Item), NULL);
-
-	printf("Cluster -> Put || IO -> Get ==> Teste = %d\n", tasks[0].number);
-	printf("Cluster -> Put || IO -> Get ==> Teste = %d\n", tasks[1].number);
-	fflush(stdout);*/
+	/* Get clusters work */
+	syncNumbers();
 
 	/* Waiting for PE0 of each cluster to end */
 	for (int i = 0; i < nclusters; i++)

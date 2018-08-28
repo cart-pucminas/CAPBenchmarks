@@ -3,9 +3,6 @@
 
 #ifdef _MASTER_
 
-extern char *bench_initials;
-extern char *bench_fullName;
-
 extern struct problem tiny;
 extern struct problem small;
 extern struct problem standard;

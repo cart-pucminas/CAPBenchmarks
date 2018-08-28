@@ -7,9 +7,6 @@
 #ifndef ARCH_H_
 #define ARCH_H_
 
-/* C And MPPA Library Includes*/
-#include <vbsp.h>
-
 /* Maximum cluster workload. */
 #define CLUSTER_WORKLOAD 0xfffff /* 1 MB */
 
@@ -31,6 +28,6 @@
 /*
  * Frequency of cores.
  */
-#define MPPA_FREQUENCY 400 // 400 mhz
+#define MPPA_FREQUENCY 400
 
 #endif /* ARCH_H_ */

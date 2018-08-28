@@ -1,5 +1,5 @@
 /* Kernel Includes */
-#include <infos.h>
+#include <util.h>
 #include <global.h>
 #include <timer.h>
 #include <problem.h>
@@ -17,7 +17,7 @@ char *bench_fullName = "Friendly Numbers Benchmark Kernel";
 uint64_t master = 0;          /* Time spent on master.        */
 uint64_t slave[NUM_CLUSTERS]; /* Time spent on slaves.        */
 uint64_t communication = 0;   /* Time spent on communication. */
-float total = 0;           /* Total time.                  */
+uint64_t total = 0;           /* Total time.                  */
 
 /* Data exchange statistics. */
 size_t data_sent = 0;     /* Number of bytes received. */
@@ -40,11 +40,11 @@ struct problem *p = &tiny; /* Problem Class */
 int main(int argc, const char **argv) {
 	uint64_t startTime, endTime;
 
-	timer_init();
-
 	readargs(argc, (char **) argv);
 
 	inform_actual_benchmark();
+
+	timer_init();
 
 	startTime = timer_get();
 	friendly_numbers(p->start, p->end);

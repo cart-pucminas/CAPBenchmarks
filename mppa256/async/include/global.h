@@ -21,14 +21,14 @@ extern int verbose;
 //	Number of clusters to be used.
 extern int nclusters;
 
-// Cluster rank.
-extern int rank;
+// Cluster ID.
+extern int cid;
 
 /* Timing statistics. */
 extern uint64_t master;
 extern uint64_t slave[NUM_CLUSTERS];
 extern uint64_t communication;
-extern float total;
+extern uint64_t total;
 extern size_t data_sent;
 extern size_t data_received;
 extern unsigned nsend;

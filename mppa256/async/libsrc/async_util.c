@@ -1,6 +1,5 @@
 /* Kernel Includes */
 #include <global.h>
-#include <infos.h>
 
 /* C And MPPA Library Includes*/
 #include <stddef.h> 
