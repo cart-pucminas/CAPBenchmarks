@@ -18,35 +18,30 @@ typedef struct {
 
 static Item *task;
 static int tasksize; 
+static int cid;
 
 /* Async Communicator. */
-static mppa_async_segment_t work_segment;
-static mppa_async_segment_t finished_tasks_segment;
+static mppa_async_segment_t segment;
 
-/* Pointer to ddr buffer */
-static void *adress = NULL;
+static void getWork() {
+	mppa_async_segment_clone(&segment, cid+1, 0, 0, 0);
+
+	/* DDR -> Cluster (Receive work) */
+	mppa_async_get(task, &segment, 0, tasksize * sizeof(Item), NULL);
+}
 
 int main(int argc , const char **argv) {
 	async_slave_init();
-	int cid = __k1_get_cluster_id();
-	tasksize = atoi(argv[0]);
 
-	mppa_async_segment_clone(&work_segment, cid+1, 0, 0, 0);
-	mppa_async_segment_clone(&finished_tasks_segment, cid+17, 0, 0, 0);
+	cid = __k1_get_cluster_id();
+	tasksize = atoi(argv[0]);
 
 	task = smalloc(tasksize* sizeof(Item));
 
-	/* DDR -> Cluster */
-	mppa_async_get(task, &work_segment, 0, tasksize * sizeof(Item), NULL);
+	getWork();
 
-	/* Cluster -> DDR */
-	// OBS : TESTING
-	
-	Item a[3];
-	for (int i = 0; i < 3; i++)
-		a[i].number = 19;
-	mppa_async_put(&a, &finished_tasks_segment, 0, 3 * sizeof(Item), NULL);
-	mppa_async_fence(&finished_tasks_segment, NULL);
+	/* DDR -> Cluster (Work is done) */
+	//mppa_async_put(task, &segment, 0, tasksize * sizeof(Item), NULL);
 
 	async_slave_finalize();
 	return 0;

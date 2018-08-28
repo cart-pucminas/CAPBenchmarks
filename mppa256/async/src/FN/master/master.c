@@ -23,10 +23,9 @@ typedef struct {
 
 #define MAX_TASK_SIZE 65536
 
-static Item *finishedTasks;
-static Item *tasks;
-static mppa_async_segment_t send_segments[NUM_CLUSTERS];
-static mppa_async_segment_t receive_segments[NUM_CLUSTERS];
+static Item tasks[MAX_TASK_SIZE];
+
+static mppa_async_segment_t segments[NUM_CLUSTERS];
 
 /* Parameters.*/
 static int startnum;               /* Start number.      */
@@ -35,7 +34,7 @@ static int problemsize;            /* Total task size    */
 static int avgtasksize;            /* Average task size. */
 static int tasksize[NUM_CLUSTERS]; /* Task size.         */
 
-void distributeTaskSizes(int _start, int _end) {
+static void distributeTaskSizes(int _start, int _end) {
 	startnum = _start;
 	endnum = _end;
 
@@ -51,7 +50,7 @@ void distributeTaskSizes(int _start, int _end) {
 		tasksize[i] = (i + 1 < nclusters)?avgtasksize:problemsize-i*avgtasksize;
 }
 
-void sendWork() {
+static void sendWork() {
 	int cont = 0;
 	for (int i = 0; i < nclusters; i++) {
 		char str_size[10];
@@ -61,10 +60,7 @@ void sendWork() {
 		args[1] = NULL; 
 
 		/* Creating segments to get tasks return values*/
-		mppa_async_segment_create(&send_segments[i], i+1, &tasks[cont], tasksize[i]*sizeof(Item), 0, 0, NULL);
-
-		/* Creating segment to receive values back */
-		mppa_async_segment_create(&receive_segments[i], i+17, &finishedTasks[cont], tasksize[i]*sizeof(Item), 0, 0, NULL);
+		mppa_async_segment_create(&segments[i], i+1, &tasks[cont], tasksize[i]*sizeof(Item), 0, 0, NULL);
 		
 		/* Spawning PE0 of cluster i*/
 		spawn_slave(i, args);
@@ -83,8 +79,6 @@ int friendly_numbers(int _start, int _end) {
 	async_master_start();
 
 	/* Initialize tasks and finishedTasks*/
-	tasks = smalloc(problemsize * sizeof(Item));
-	finishedTasks = smalloc(problemsize * sizeof(Item));
 	int aux = startnum;
 	for (int i = 0; i < problemsize; i++)
 		tasks[i].number = aux++; 
@@ -94,12 +88,13 @@ int friendly_numbers(int _start, int _end) {
 
 	inform_clusters_started();
 
-	Item teste[3];
-	mppa_async_get(&teste, &receive_segments[0], 0, 3 * sizeof(Item), NULL);
-	mppa_async_fence(&receive_segments[0], NULL);
-	
-	for (int i = 0; i < 3; i++)
-		printf("Cluster -> Put || IO -> Get ==> Teste = %d\n", teste[i].number);
+	/* Work is done
+	for (int i = 0; i < nclusters; i ++)
+		mppa_async_get(tasks, &segments[i], 0, tasksize[i] * sizeof(Item), NULL);
+
+	printf("Cluster -> Put || IO -> Get ==> Teste = %d\n", tasks[0].number);
+	printf("Cluster -> Put || IO -> Get ==> Teste = %d\n", tasks[1].number);
+	fflush(stdout);*/
 
 	/* Waiting for PE0 of each cluster to end */
 	for (int i = 0; i < nclusters; i++)
