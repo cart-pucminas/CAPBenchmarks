@@ -25,12 +25,17 @@ uint64_t communication = 0;
 uint64_t total = 0;
 
 static Item *task;
-
 static int tasksize; 
+static off64_t offset;
+
 int cid;
 
 /* Async Communicator. */
 static mppa_async_segment_t segment;
+
+/* Events */
+static mppa_async_event_t segClone_event;
+static mppa_async_event_t getWork_event;
 
 /*
  * Computes the Greatest Common Divisor of two numbers.
@@ -72,15 +77,12 @@ static int sumdiv(int n)
 }
 
 static void getWork() {
-	mppa_async_segment_clone(&segment, cid+1, 0, 0, 0);
-
-	/* DDR -> Cluster (Receive work) */
-	mppa_async_get(task, &segment, 0, tasksize * sizeof(Item), NULL);
+	mppa_async_segment_clone(&segment, 1, 0, 0, NULL);
+	mppa_async_get(task, &segment, offset, tasksize * sizeof(Item), NULL);
 }
 
 static void syncNumbers() {
-	/* DDR -> Cluster (Work is done) */
-	mppa_async_put(task, &segment, 0, tasksize * sizeof(Item), NULL);
+	mppa_async_put(task, &segment, offset, tasksize * sizeof(Item), NULL);
 }
 
 void friendly_numbers() {
@@ -105,22 +107,20 @@ int main(int argc , const char **argv) {
 
 	cid = __k1_get_cluster_id();
 	tasksize = atoi(argv[0]);
+	offset = atoll(argv[1]);
 
-	task = smalloc(tasksize* sizeof(Item));
+	task = smalloc(tasksize * sizeof(Item));
 
 	getWork();
 
 	timer_init();
-
 	start = timer_get();
 	friendly_numbers();
 	end = timer_get();
 
 	total = timer_diff(start, end);
-
+	
 	syncNumbers();
-
-	free(task);
 
 	async_slave_finalize();
 	return 0;

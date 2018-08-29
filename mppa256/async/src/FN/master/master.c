@@ -13,26 +13,27 @@
 #include <mppa_async.h>
 #include <unistd.h> 
 #include <mppa_power.h>
+#include <utask.h>
 
 /*
  * Wrapper to data_send(). 
  */
 #define data_send(b, c)                   \
-	{                                        \
-		data_sent += c;                      \
-		nsend++;                             \
-		communication += data_send(a, b, c); \
-	}                                        \
+{                                        \
+	data_sent += c;                      \
+	nsend++;                             \
+	communication += data_send(a, b, c); \
+}                                        \
 
 /*
  * Wrapper to data_receive(). 
  */
 #define data_receive(b, c)                   \
-	{                                           \
-		data_received += c;                     \
-		nreceive++;                             \
-		communication += data_receive(a, b, c); \
-	}     
+{                                           \
+	data_received += c;                     \
+	nreceive++;                             \
+	communication += data_receive(a, b, c); \
+}     
 
 typedef struct {
 	int number;
@@ -44,7 +45,7 @@ typedef struct {
 
 static Item tasks[MAX_TASK_SIZE];
 
-static mppa_async_segment_t segments[NUM_CLUSTERS];
+static mppa_async_segment_t segment;
 
 /* Parameters.*/
 static int startnum;               /* Start number.      */
@@ -69,54 +70,74 @@ static void distributeTaskSizes(int _start, int _end) {
 		tasksize[i] = (i + 1 < nclusters)?avgtasksize:problemsize-i*avgtasksize;
 }
 
-static void sendWork() {
-	int cont = 0;
-	for (int i = 0; i < nclusters; i++) {
-		char str_size[10];
-		sprintf(str_size, "%d", tasksize[i]);
-		char *args[2];
-		args[0] = str_size;
-		args[1] = NULL; 
+static void setTasks() {
+	int aux = startnum;
+	for (int i = 0; i < problemsize; i++)
+		tasks[i].number = aux++; 
+}
 
-		/* Creating segments to get tasks return values*/
-		mppa_async_segment_create(&segments[i], i+1, &tasks[cont], tasksize[i]*sizeof(Item), 0, 0, NULL);
+static void sendWork() {
+	/* Creating segments to get tasks return values*/
+	mppa_async_segment_create(&segment, 1, &tasks, problemsize * sizeof(Item), 0, 0, NULL);
+
+	off64_t offset = 0;
+	for (int i = 0; i < nclusters; i++) {
+		char str_size[10], str_offset[50];
+		sprintf(str_size, "%d", tasksize[i]);
+		sprintf(str_offset, "%lld", offset);
+		char *args[3];
+		args[0] = str_size;
+		args[1] = str_offset;
+		args[2] = NULL; 
 		
 		/* Spawning PE0 of cluster i*/
 		spawn_slave(i, args);
 		
-		if (i+1 < nclusters)
-			cont += tasksize[i+1];
+		offset += tasksize[i] * sizeof(Item);
 	}
 }
 
 static void syncNumbers() {
-	/* Work is done */
-	for (int i = 0; i < nclusters; i ++)
-		mppa_async_get(tasks, &segments[i], 0, tasksize[i] * sizeof(Item), NULL);
+	mppa_async_evalcond(&tasks[problemsize-1].num, 0, MPPA_ASYNC_COND_NE, 0);
+}
+
+static void joinAll() {
+	for (int i = 0; i < nclusters; i++)
+		join_slave(i);
+}
+
+static void test() {
+	int aux = 0;
+	for (int i = 0; i < nclusters; i++) {
+		for (int j = aux; j < aux + 10; j++)
+			printf("Task[%d] = %d || %d || %d\n", i, tasks[j].number, tasks[j].num, tasks[j].den);
+		aux += tasksize[i];
+	}
 }
 
 int friendly_numbers(int _start, int _end) {
-	/* Try to do it with pthreads (FASTER) */
+	/* Intervals to each cluster */
 	distributeTaskSizes(_start, _end);
 
+	/* Initializes async server */
 	async_master_init();
-
 	async_master_start();
 
-	/* Initialize tasks*/
-	int aux = startnum;
-	for (int i = 0; i < problemsize; i++)
-		tasks[i].number = aux++; 
+	/* Initializes tasks number values */
+	setTasks();
 
 	/* Spawns clusters and creates segments */
 	sendWork();
 
-	/* Get clusters work */
+	/* Wait clusters work */
 	syncNumbers();
 
+	test();
+
 	/* Waiting for PE0 of each cluster to end */
-	for (int i = 0; i < nclusters; i++)
-		join_slave(i);
+	joinAll();
 
 	async_master_finalize();
+
+	fflush(stdout);
 }
