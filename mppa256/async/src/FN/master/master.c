@@ -3,6 +3,7 @@
 #include <spawn_util.h>
 #include <problem.h>
 #include <global.h> 
+#include <timer.h>
 #include <util.h>
 #include "master.h"
 
@@ -14,6 +15,7 @@
 #include <unistd.h> 
 #include <mppa_power.h>
 #include <utask.h>
+#include <omp.h>
 
 /*
  * Wrapper to data_send(). 
@@ -45,7 +47,12 @@ typedef struct {
 
 static Item tasks[MAX_TASK_SIZE];
 
-static mppa_async_segment_t segment;
+/* Async Segments. */
+static mppa_async_segment_t times_segment;
+static mppa_async_segment_t tasks_segment;
+
+/* Slave tasks offsets */
+static off64_t offsets[NUM_CLUSTERS];
 
 /* Parameters.*/
 static int startnum;               /* Start number.      */
@@ -70,21 +77,33 @@ static void distributeTaskSizes(int _start, int _end) {
 		tasksize[i] = (i + 1 < nclusters)?avgtasksize:problemsize-i*avgtasksize;
 }
 
+static void setOffsets() {
+	off64_t offset = 0;
+	for (int i = 0; i < nclusters; i++) {
+		offsets[i] = offset;
+		offset += tasksize[i] * sizeof(Item);
+	}
+}
+
 static void setTasks() {
 	int aux = startnum;
 	for (int i = 0; i < problemsize; i++)
 		tasks[i].number = aux++; 
 }
 
-static void sendWork() {
-	/* Creating segments to get tasks return values*/
-	mppa_async_segment_create(&segment, 1, &tasks, problemsize * sizeof(Item), 0, 0, NULL);
+static void createSegments() {
+	mppa_async_segment_create(&tasks_segment, 1, &tasks, problemsize * sizeof(Item), 0, 0, NULL);
+	mppa_async_segment_create(&times_segment, 2, &slave, nclusters * sizeof(uint64_t), 0, 0, NULL);
+}
 
-	off64_t offset = 0;
-	for (int i = 0; i < nclusters; i++) {
+static void sendWork() {
+	int i;               /* Loop indexes. */
+	omp_set_dynamic(0);
+	#pragma omp parallel for private(i) default(shared) num_threads(3)
+	for (i = 0; i < nclusters; i++) {
 		char str_size[10], str_offset[50];
 		sprintf(str_size, "%d", tasksize[i]);
-		sprintf(str_offset, "%lld", offset);
+		sprintf(str_offset, "%lld", offsets[i]);
 		char *args[3];
 		args[0] = str_size;
 		args[1] = str_offset;
@@ -92,13 +111,14 @@ static void sendWork() {
 		
 		/* Spawning PE0 of cluster i*/
 		spawn_slave(i, args);
-		
-		offset += tasksize[i] * sizeof(Item);
 	}
+	omp_set_dynamic(1);
 }
 
-static void syncNumbers() {
-	mppa_async_evalcond(&tasks[problemsize-1].num, 0, MPPA_ASYNC_COND_NE, 0);
+static void waitCompletion() {
+	for (int i= 0; i < nclusters; i++)
+		mppa_async_evalcond((long long *)&slave[i], 0, MPPA_ASYNC_COND_GT, 0);
+	mppa_async_fence(&tasks_segment, NULL);
 }
 
 static void joinAll() {
@@ -106,16 +126,104 @@ static void joinAll() {
 		join_slave(i);
 }
 
+/*
+ * Thread's data.
+ */
+struct tdata
+{
+	/* Thread ID. */
+	pthread_t tid; 
+	 
+	struct
+	{
+		int i0;
+		int in;
+	} args;
+	
+	struct
+	{
+		int nfriends;
+	} result;
+} tdata[NUM_IO_CORES];
+
+/*
+ * Thread's main.
+ */
+static void *thread_main(void *args)
+{
+	int i, j;        /* Loop indexes.      */
+	int nfriends;    /* Number of friends. */
+	struct tdata *t; /* Thread data.       */
+	
+	t = args;
+	
+	/* Count number of friends. */
+	nfriends = 0;
+	for (i = t->args.i0; i < t->args.in; i++)
+	{
+		for (j = 0; j < i; j++)
+		{
+			/* Friends. */
+			if ((tasks[i].num == tasks[j].num) && 
+			(tasks[i].den == tasks[j].den))
+				nfriends++;
+		}	
+	}
+	
+	t->result.nfriends = nfriends;
+	
+	pthread_exit(NULL);
+	return (NULL);
+}
+
+/*
+ * Counts friendly numbers.
+ */
+static int count_friends(void)
+{
+	int i;               /* Loop index.       */
+	int nfriends;        /* Number friends.   */
+	uint64_t start, end; /* Timers.           */
+	int chunksize;       /* Thread work size. */
+	struct tdata *t;     /* Thread data.       */
+	
+	start = timer_get();
+	
+	/* Spwan slave threads. */
+	chunksize = (endnum - startnum + 1)/NUM_IO_CORES;
+	for (i = 0; i < NUM_IO_CORES; i++)
+	{
+		t[i].args.i0 = (i == 0) ? startnum + 1 : i*chunksize;
+		t[i].args.in = (i + 1 < NUM_IO_CORES) ? (i + 1)*chunksize :
+		(endnum - startnum + 1);
+		pthread_create(&t[i].tid, NULL, thread_main, (void *)&t[i]);
+	}
+	
+	/* Join threads. */
+	for (i = 0; i < NUM_IO_CORES; i++)
+		pthread_join(t[i].tid, NULL);	
+	
+	/* Reduce. */
+	nfriends = 0;
+	for (i = 0; i < NUM_IO_CORES; i++)
+		nfriends += t[i].result.nfriends;
+
+	end = timer_get();
+	master += timer_diff(start, end);
+
+	return (nfriends);
+}
+
 static void test() {
 	int aux = 0;
 	for (int i = 0; i < nclusters; i++) {
-		for (int j = aux; j < aux + 10; j++)
+		for (int j = aux; j < aux + 3; j++)
 			printf("Task[%d] = %d || %d || %d\n", i, tasks[j].number, tasks[j].num, tasks[j].den);
 		aux += tasksize[i];
 	}
 }
 
-int friendly_numbers(int _start, int _end) {
+void friendly_numbers(int _start, int _end) {
 	/* Intervals to each cluster */
 	distributeTaskSizes(_start, _end);
 
@@ -126,18 +234,23 @@ int friendly_numbers(int _start, int _end) {
 	/* Initializes tasks number values */
 	setTasks();
 
-	/* Spawns clusters and creates segments */
+	/* Set clusters tasks offsets */
+	setOffsets();
+
+	/* Creating segments to get tasks returns values*/
+	createSegments();
+
+	/* Spawns clusters and send them work */
 	sendWork();
 
-	/* Wait clusters work */
-	syncNumbers();
-
-	test();
+	/* Wait clusters put operation to complete */
+	waitCompletion();
 
 	/* Waiting for PE0 of each cluster to end */
 	joinAll();
 
+	/* Finalizes async server */
 	async_master_finalize();
 
-	fflush(stdout);
+	//printf("Numero de amigos = %d\n", count_friends());
 }

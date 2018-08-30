@@ -30,12 +30,9 @@ static off64_t offset;
 
 int cid;
 
-/* Async Communicator. */
-static mppa_async_segment_t segment;
-
-/* Events */
-static mppa_async_event_t segClone_event;
-static mppa_async_event_t getWork_event;
+/* Async Segments. */
+static mppa_async_segment_t time_segment;
+static mppa_async_segment_t task_segment;
 
 /*
  * Computes the Greatest Common Divisor of two numbers.
@@ -76,13 +73,18 @@ static int sumdiv(int n)
 	return (sum);
 }
 
+static void cloneSegments() {
+	mppa_async_segment_clone(&task_segment, 1, 0, 0, NULL);
+	mppa_async_segment_clone(&time_segment, 2, 0, 0, NULL);
+}
+
 static void getWork() {
-	mppa_async_segment_clone(&segment, 1, 0, 0, NULL);
-	mppa_async_get(task, &segment, offset, tasksize * sizeof(Item), NULL);
+	mppa_async_get(task, &task_segment, offset, tasksize * sizeof(Item), NULL);
 }
 
 static void syncNumbers() {
-	mppa_async_put(task, &segment, offset, tasksize * sizeof(Item), NULL);
+	mppa_async_put(task, &task_segment, offset, tasksize * sizeof(Item), NULL);
+	mppa_async_put(&total, &time_segment, cid * sizeof(uint64_t), sizeof(uint64_t), NULL);
 }
 
 void friendly_numbers() {
@@ -103,25 +105,35 @@ void friendly_numbers() {
 }
 
 int main(int argc , const char **argv) {
+	/* Initializes async client */
 	async_slave_init();
-
+	
 	cid = __k1_get_cluster_id();
 	tasksize = atoi(argv[0]);
 	offset = atoll(argv[1]);
 
 	task = smalloc(tasksize * sizeof(Item));
 
+	/* Clone remote segments from IO */
+	cloneSegments();
+
+	/* Get tasks from the remote segment */
 	getWork();
 
+	/* Synchronization of timer */
 	timer_init();
+
 	start = timer_get();
 	friendly_numbers();
 	end = timer_get();
 
+	/* Total slave time */
 	total = timer_diff(start, end);
 	
+	/* Send back the finished tasks to IO */
 	syncNumbers();
 
+	/* Finalizes async client */
 	async_slave_finalize();
 	return 0;
 }
