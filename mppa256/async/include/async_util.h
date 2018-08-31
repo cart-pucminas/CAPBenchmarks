@@ -2,7 +2,6 @@
 #define ASYNC_UTIL_H_
 
 #ifdef _MASTER_
-extern void async_master_init();
 extern void async_master_start();
 extern void async_master_finalize();
 #else

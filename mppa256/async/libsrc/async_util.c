@@ -12,12 +12,10 @@
 /* 	Initialization of async calling all necessary pre
 	and pos functions 
 */
-void async_master_init(){
+void async_master_start(){
 	mppa_rpc_server_init(1, 0, nclusters);
 	mppa_async_server_init();
-}
 
-void async_master_start() {
 	utask_t t;
 	utask_create(&t, NULL, (void*)mppa_rpc_server_start, NULL);
 }

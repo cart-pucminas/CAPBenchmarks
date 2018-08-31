@@ -12,11 +12,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-typedef struct {
-	long int number;
-	long int numerator;
-	long int denominator;
-} Item;
+#define MAX_TASK_SIZE 65536
 
 /* Timing statistics. */
 uint64_t start;
@@ -24,84 +20,89 @@ uint64_t end;
 uint64_t communication = 0;
 uint64_t total = 0;
 
-static Item *task;
+static float task[MAX_TASK_SIZE];
+static float allAbundancys[MAX_TASK_SIZE];
+
 static int tasksize; 
-static off64_t offset;
+static int problemsize;
+static int parcial_friendly_sum;
+
+static int offset;
 
 int cid;
 
 /* Async Segments. */
 static mppa_async_segment_t time_segment;
 static mppa_async_segment_t task_segment;
+static mppa_async_segment_t parcSum_segment;
 
-/*
- * Computes the Greatest Common Divisor of two numbers.
- */
-static int gcd(int a, int b)
-{
-	int c;
-
-  /* Compute greatest common divisor. */
-	while (a != 0)
-	{
-		c = a;
-		a = b%a;
-		b = c;
-	}
-
-	return (b);
-}
+/* Async events */
+static mppa_async_event_t getAllAbundances_event;
 
 /*
  * Some of divisors.
  */
-static int sumdiv(int n)
-{
-	int sum;    /* Sum of divisors. */
-	int factor; /* Working factor.  */
-	
+static int sumdiv(int n) {
+	int sum;    /* Sum of divisors.     */
+	int factor; /* Working factor.      */
+	int maxD; 	/* Max divisor before n */
+
+	maxD = (int)n/2;
 	sum = 1 + n;
 	
 	/* Compute sum of divisors. */
-	for (factor = 2; factor < n; factor++)
-	{
+	for (factor = 2; factor <= maxD; factor++) {
 		/* Divisor found. */
-		if ((n%factor) == 0)
+		if ((n % factor) == 0)
 			sum += factor;
 	}
-	
 	return (sum);
 }
 
 static void cloneSegments() {
 	mppa_async_segment_clone(&task_segment, 1, 0, 0, NULL);
 	mppa_async_segment_clone(&time_segment, 2, 0, 0, NULL);
+	mppa_async_segment_clone(&parcSum_segment, 3, 0, 0, NULL);
 }
 
 static void getWork() {
-	mppa_async_get(task, &task_segment, offset, tasksize * sizeof(Item), NULL);
+	mppa_async_get(task, &task_segment, offset * sizeof(float), tasksize * sizeof(float), NULL);
 }
 
-static void syncNumbers() {
-	mppa_async_put(task, &task_segment, offset, tasksize * sizeof(Item), NULL);
-	mppa_async_put(&total, &time_segment, cid * sizeof(uint64_t), sizeof(uint64_t), NULL);
+static void syncAbundances() {
+	mppa_async_put(task, &task_segment, offset * sizeof(float), tasksize * sizeof(float), NULL);
+	mppa_rpc_barrier_all();
+	mppa_async_fence(&task_segment, NULL);
+	mppa_async_get(allAbundancys, &task_segment, 0, problemsize * sizeof(float), &getAllAbundances_event);
 }
 
 void friendly_numbers() {
-	int n; /* Divisor.      */
 	int i; /* Loop indexes. */
 
 	/* Compute abundances. */
-	#pragma omp parallel for private(i, n) default(shared)
-	for (i = 0; i < tasksize; i++) 
-	{		
-		task[i].numerator = sumdiv(task[i].number);
-		task[i].denominator = i;
+	#pragma omp parallel for private(i) default(shared)
+	for (i = 0; i < tasksize; i++) 	
+		task[i] =  (float)sumdiv(task[i])/task[i];
+}
 
-		n = gcd(task[i].numerator, task[i].denominator);
-		task[i].numerator /= n;
-		task[i].denominator /= n;
+
+static void countFriends() {
+	int i; /* Loop indexes. */
+
+	mppa_async_event_wait(&getAllAbundances_event);
+
+	#pragma omp parallel for private(i) default(shared) reduction(+: parcial_friendly_sum)
+	for (i = offset; i < tasksize; i++) {
+		for (int j = 0; j < problemsize; j++) {
+			if (allAbundancys[i] == allAbundancys[j])
+				parcial_friendly_sum++;
+		}
 	}
+}
+
+static void sendFinishedTask() {
+	mppa_async_put(&parcial_friendly_sum, &parcSum_segment, cid * sizeof(int), sizeof(int), NULL);
+	mppa_async_put(&total, &time_segment, cid * sizeof(uint64_t), sizeof(uint64_t), NULL);
 }
 
 int main(int argc , const char **argv) {
@@ -109,10 +110,9 @@ int main(int argc , const char **argv) {
 	async_slave_init();
 	
 	cid = __k1_get_cluster_id();
-	tasksize = atoi(argv[0]);
-	offset = atoll(argv[1]);
-
-	task = smalloc(tasksize * sizeof(Item));
+	problemsize = atoi(argv[0]);
+	tasksize = atoi(argv[1]);
+	offset = atoi(argv[2]);
 
 	/* Clone remote segments from IO */
 	cloneSegments();
@@ -128,12 +128,17 @@ int main(int argc , const char **argv) {
 	end = timer_get();
 
 	/* Total slave time */
-	total = timer_diff(start, end);
+	total += timer_diff(start, end);
 	
-	/* Send back the finished tasks to IO */
-	syncNumbers();
+	/* Synchronization of all abundances */
+	syncAbundances();
 
-	/* Finalizes async client */
+	/* Count parcial sum of friends */
+	countFriends();
+
+	/* Sends back to IO parcial sums and exec time */
+	sendFinishedTask();
+
 	async_slave_finalize();
 	return 0;
 }
