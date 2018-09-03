@@ -51,6 +51,9 @@ static int offsets[NUM_CLUSTERS];
 /* Parcials sums of friendly number pairs */
 static int parcialSums[NUM_CLUSTERS];
 
+/* Total of friendly pairs */
+static int friendlyNumbers = 0;
+
 /* Parameters.*/
 static int startnum;               /* Start number.      */
 static int endnum;                 /* End number.        */
@@ -121,30 +124,24 @@ static void waitCompletion() {
 	mppa_async_fence(&parcialsFSum_segement, NULL);
 }
 
+static void sumAll() {
+	for (int i = 0; i < nclusters; i++)
+		friendlyNumbers += parcialSums[i];
+}
+
 static void joinAll() {
 	for (int i = 0; i < nclusters; i++)
 		join_slave(i);
 }
 
 static void test() {
-	int aux = 0;
-	for (int i = 0; i < nclusters; i++) {
-		for (int j = aux; j < aux + 10; j++) {
-			printf("Task[%d] = %f\n", j, tasks[j]);
-			fflush(stdout);
-		}
-		aux += tasksize[i];
-	}
-}
-
-static void test2() {
 	for (int i = 0; i < nclusters; i++) {
 		printf("SumPart[%d] = %d\n", i, parcialSums[i]);
 		fflush(stdout);
 	}
 }
 
-void friendly_numbers(int _start, int _end) {
+int friendly_numbers(int _start, int _end) {
 	/* Intervals to each cluster */
 	distributeTaskSizes(_start, _end);
 
@@ -166,12 +163,17 @@ void friendly_numbers(int _start, int _end) {
 	/* Waits slaves parcial sum */
 	waitCompletion();
 
+	test();
+
+	/* Sum all partial sums */
+	sumAll();
+
 	/* Waiting for PE0 of each cluster to end */
 	joinAll();
 
-	test();
-	test2();
-
 	/* Finalizes async server */
 	async_master_finalize();
+
+	printf("Total = %d\n",friendlyNumbers);
+	return friendlyNumbers;
 }

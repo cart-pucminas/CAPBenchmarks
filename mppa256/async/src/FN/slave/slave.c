@@ -21,11 +21,11 @@ uint64_t communication = 0;
 uint64_t total = 0;
 
 static float task[MAX_TASK_SIZE];
-static float allAbundancys[MAX_TASK_SIZE];
+static float allAbundances[MAX_TASK_SIZE];
 
 static int tasksize; 
 static int problemsize;
-static int parcial_friendly_sum;
+static int parcial_friendly_sum = 0;
 
 static int offset;
 
@@ -73,16 +73,23 @@ static void syncAbundances() {
 	mppa_async_put(task, &task_segment, offset * sizeof(float), tasksize * sizeof(float), NULL);
 	mppa_rpc_barrier_all();
 	mppa_async_fence(&task_segment, NULL);
-	mppa_async_get(allAbundancys, &task_segment, 0, problemsize * sizeof(float), &getAllAbundances_event);
+	mppa_async_get(allAbundances, &task_segment, 0, problemsize * sizeof(float), &getAllAbundances_event);
 }
 
-void friendly_numbers() {
+void calc_abundances() {
 	int i; /* Loop indexes. */
+
+	start = timer_get();
 
 	/* Compute abundances. */
 	#pragma omp parallel for private(i) default(shared)
 	for (i = 0; i < tasksize; i++) 	
 		task[i] =  (float)sumdiv(task[i])/task[i];
+
+	end = timer_get();
+
+	/* Total slave time */
+	total += timer_diff(start, end);
 }
 
 
@@ -91,13 +98,20 @@ static void countFriends() {
 
 	mppa_async_event_wait(&getAllAbundances_event);
 
+	start = timer_get();
+
 	#pragma omp parallel for private(i) default(shared) reduction(+: parcial_friendly_sum)
-	for (i = offset; i < tasksize; i++) {
-		for (int j = 0; j < problemsize; j++) {
-			if (allAbundancys[i] == allAbundancys[j])
+	for (i = offset; i < offset + tasksize; i++) {
+		for (int j = i+1; j < problemsize; j++) {
+			if (allAbundances[i] == allAbundances[j])
 				parcial_friendly_sum++;
 		}
 	}
+
+	end = timer_get();
+
+	/* Total slave time */
+	total += timer_diff(start, end);
 }
 
 static void sendFinishedTask() {
@@ -109,6 +123,7 @@ int main(int argc , const char **argv) {
 	/* Initializes async client */
 	async_slave_init();
 	
+	/* Problem information */
 	cid = __k1_get_cluster_id();
 	problemsize = atoi(argv[0]);
 	tasksize = atoi(argv[1]);
@@ -123,17 +138,13 @@ int main(int argc , const char **argv) {
 	/* Synchronization of timer */
 	timer_init();
 
-	start = timer_get();
-	friendly_numbers();
-	end = timer_get();
+	/* Calculation of all numbers abundances */
+	calc_abundances();
 
-	/* Total slave time */
-	total += timer_diff(start, end);
-	
 	/* Synchronization of all abundances */
 	syncAbundances();
 
-	/* Count parcial sum of friends */
+	/* Count parcial sum of friendly pairs */
 	countFriends();
 
 	/* Sends back to IO parcial sums and exec time */
