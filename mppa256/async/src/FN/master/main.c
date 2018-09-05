@@ -15,15 +15,16 @@ char *bench_fullName = "Friendly Numbers Benchmark Kernel";
 
 /* Timing statistics. */
 uint64_t master = 0;          /* Time spent on master.        */
+uint64_t spawn = 0;           /* Time spent spawning slaves   */
 uint64_t slave[NUM_CLUSTERS]; /* Time spent on slaves.        */
 uint64_t communication = 0;   /* Time spent on communication. */
 uint64_t total = 0;           /* Total time.                  */
 
 /* Data exchange statistics. */
 size_t data_sent = 0;     /* Number of bytes received. */
-unsigned nsend = 0;       /* Number of sends.          */
+unsigned nsent = 0;       /* Number of sends.          */
 size_t data_received = 0; /* Number of bytes sent.     */
-unsigned nreceive = 0;    /* Number of receives.       */
+unsigned nreceived = 0;   /* Number of receives.       */
 
 struct problem tiny     =  { 8000001, 8004096 };
 struct problem small    =  { 8000001, 8008192 };

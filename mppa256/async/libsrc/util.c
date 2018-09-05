@@ -71,13 +71,14 @@ void inform_statistics() {
 	printf("  master:        %f\n", master*MICROSEC);
 	for (int i = 0; i < nclusters; i++)
 		printf("  slave %d:      %f\n", i, slave[i]*MICROSEC);
+	printf("  spawn %d CC:   %f\n", nclusters, spawn*MICROSEC);
 	printf("  communication: %f\n", communication*MICROSEC);
 	printf("  total time:    %f\n", total*MICROSEC);
 	printf("data exchange statistics:\n");
 	printf("  data sent:            %d\n", data_sent);
-	printf("  number sends:         %u\n", nsend);
+	printf("  number sends:         %u\n", nsent);
 	printf("  data received:        %d\n", data_received);
-	printf("  number receives:      %u\n", nreceive);
+	printf("  number receives:      %u\n", nreceived);
 	fflush(stdout);
 }
 

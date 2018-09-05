@@ -17,41 +17,22 @@
 #include <utask.h>
 #include <omp.h>
 
-/*
- * Wrapper to data_send(). 
- */
-#define data_send(b, c)                   \
-{                                        \
-	data_sent += c;                      \
-	nsend++;                             \
-	communication += data_send(a, b, c); \
-}                                        \
-
-/*
- * Wrapper to data_receive(). 
- */
-#define data_receive(b, c)                   \
-{                                           \
-	data_received += c;                     \
-	nreceive++;                             \
-	communication += data_receive(a, b, c); \
-}     
+/* Timing statistics. */
+uint64_t start;
+uint64_t end;
 
 #define MAX_TASK_SIZE 65536
 
 /* Async Segments. */
-static mppa_async_segment_t times_segment;
+static mppa_async_segment_t infos_segment;
 static mppa_async_segment_t tasks_segment;
-static mppa_async_segment_t parcialsFSum_segement;
 
-/* Slave tasks and offsets */
-static float tasks[MAX_TASK_SIZE];
+/* Slave offsets, tasks and work done */
 static int offsets[NUM_CLUSTERS];
+static Item tasks[MAX_TASK_SIZE];
+static Info tasksFinished[NUM_CLUSTERS];
 
-/* Parcials sums of friendly number pairs */
-static int parcialSums[NUM_CLUSTERS];
-
-/* Total of friendly pairs */
+/* Total of friendly numbers */
 static int friendlyNumbers = 0;
 
 /* Parameters.*/
@@ -62,6 +43,8 @@ static int avgtasksize;            /* Average task size. */
 static int tasksize[NUM_CLUSTERS]; /* Task size.         */
 
 static void distributeTaskSizes(int _start, int _end) {
+	start = timer_get();
+
 	startnum = _start;
 	endnum = _end;
 
@@ -75,31 +58,48 @@ static void distributeTaskSizes(int _start, int _end) {
 	/* Distribute task sizes. */
 	for (int i = 0; i < nclusters; i++)
 		tasksize[i] = (i + 1 < nclusters)?avgtasksize:problemsize-i*avgtasksize;
+
+	end = timer_get();
+
+	master += timer_diff(start, end);
 }
 
 static void setOffsets() {
+	start = timer_get();
+
 	int offset = 0;
 	for (int i = 0; i < nclusters; i++) {
 		offsets[i] = offset;
 		offset += tasksize[i];
 	}
+
+	end = timer_get();
+
+	master += timer_diff(start, end);
 }
 
 static void setTasks() {
+	start = timer_get();
+
 	int aux = startnum;
 	for (int i = 0; i < problemsize; i++)
-		tasks[i] = aux++; 
+		tasks[i].number = aux++; 
+
+	end = timer_get();
+
+	master += timer_diff(start, end);
 }
 
 static void createSegments() {
-	mppa_async_segment_create(&tasks_segment, 1, &tasks, problemsize * sizeof(float), 0, 0, NULL);
-	mppa_async_segment_create(&times_segment, 2, &slave, nclusters * sizeof(uint64_t), 0, 0, NULL);
-	mppa_async_segment_create(&parcialsFSum_segement, 3, &parcialSums, nclusters * sizeof(int), 0, 0, NULL);
+	mppa_async_segment_create(&tasks_segment, 1, &tasks, problemsize * sizeof(Item), 0, 0, NULL);
+	mppa_async_segment_create(&infos_segment, 2, &tasksFinished, nclusters * sizeof(Info), 0, 0, NULL);
 }
 
 static void sendWork() {
 	int i;               /* Loop indexes. */
-	omp_set_dynamic(0);
+
+	start = timer_get();
+
 	#pragma omp parallel for private(i) default(shared) num_threads(3)
 	for (i = 0; i < nclusters; i++) {
 		char str_prb_size[10], str_size[10], str_offset[10];
@@ -111,22 +111,43 @@ static void sendWork() {
 		args[1] = str_size;
 		args[2] = str_offset;
 		args[3] = NULL; 
-		
+
 		/* Spawning PE0 of cluster i*/
 		spawn_slave(i, args);
 	}
-	omp_set_dynamic(1);
+
+	end = timer_get();
+
+	spawn = timer_diff(start, end);
 }
 
 static void waitCompletion() {
+	start = timer_get();
+
 	for (int i= 0; i < nclusters; i++)
-		mppa_async_evalcond((long long *)&slave[i], 0, MPPA_ASYNC_COND_GT, 0);
-	mppa_async_fence(&parcialsFSum_segement, NULL);
+		mppa_async_evalcond((long long *)&tasksFinished[i].slave, 0, MPPA_ASYNC_COND_GT, NULL);
+
+	end = timer_get();
+
+	nreceived += nclusters;
+	data_received += nreceived * sizeof(Info);
+	communication += timer_diff(start, end);
 }
 
 static void sumAll() {
+	start = timer_get();
+
 	for (int i = 0; i < nclusters; i++)
-		friendlyNumbers += parcialSums[i];
+		friendlyNumbers += tasksFinished[i].parcial_sum;
+
+	/* We calculated only the friendly pairs, so now
+	   we have to multiply the result by 2 in order
+	   to get all numbers that are friendly          */
+	friendlyNumbers *= 2;
+
+	end = timer_get();
+
+	master += timer_diff(start, end);
 }
 
 static void joinAll() {
@@ -134,11 +155,20 @@ static void joinAll() {
 		join_slave(i);
 }
 
-static void test() {
+static void setAllStatistics() {
+	uint64_t comm_Sum = 0;
+	uint64_t comm_Average = 0;
 	for (int i = 0; i < nclusters; i++) {
-		printf("SumPart[%d] = %d\n", i, parcialSums[i]);
-		fflush(stdout);
+		slave[i] = tasksFinished[i].slave;
+		comm_Sum += tasksFinished[i].communication;
+		data_sent += tasksFinished[i].data_sent;
+		data_received += tasksFinished[i].data_received;
+		nsent += tasksFinished[i].nsent;
+		nreceived += tasksFinished[i].nreceived;
 	}
+
+	comm_Average = (uint64_t)comm_Sum/nclusters;
+	communication += comm_Average;
 }
 
 int friendly_numbers(int _start, int _end) {
@@ -163,8 +193,6 @@ int friendly_numbers(int _start, int _end) {
 	/* Waits slaves parcial sum */
 	waitCompletion();
 
-	test();
-
 	/* Sum all partial sums */
 	sumAll();
 
@@ -174,6 +202,8 @@ int friendly_numbers(int _start, int _end) {
 	/* Finalizes async server */
 	async_master_finalize();
 
-	printf("Total = %d\n",friendlyNumbers);
+	/* Set statistics received by slaves */
+	setAllStatistics();
+
 	return friendlyNumbers;
 }
