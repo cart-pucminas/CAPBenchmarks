@@ -1,6 +1,5 @@
 /* Kernel Includes */
 #include <async_util.h>
-#include <spawn_util.h>
 #include <problem.h>
 #include <global.h> 
 #include <timer.h>
@@ -11,11 +10,7 @@
 #include <stdio.h>
 #include <stdint.h> 
 #include <stdlib.h> 
-#include <mppa_async.h>
 #include <unistd.h> 
-#include <mppa_power.h>
-#include <utask.h>
-#include <omp.h>
 
 /* Timing statistics. */
 uint64_t start;
@@ -91,8 +86,8 @@ static void setTasks() {
 }
 
 static void createSegments() {
-	mppa_async_segment_create(&tasks_segment, 1, &tasks, problemsize * sizeof(Item), 0, 0, NULL);
-	mppa_async_segment_create(&infos_segment, 2, &tasksFinished, nclusters * sizeof(Info), 0, 0, NULL);
+	createSegment(&tasks_segment, 1, &tasks, problemsize * sizeof(Item), 0, 0, NULL);
+	createSegment(&infos_segment, 2, &tasksFinished, nclusters * sizeof(Info), 0, 0, NULL);
 }
 
 static void sendWork() {
@@ -125,7 +120,7 @@ static void waitCompletion() {
 	start = timer_get();
 
 	for (int i= 0; i < nclusters; i++)
-		mppa_async_evalcond((long long *)&tasksFinished[i].slave, 0, MPPA_ASYNC_COND_GT, NULL);
+		waitCondition((long long *)&tasksFinished[i].slave, 0, MPPA_ASYNC_COND_GT, NULL);
 
 	end = timer_get();
 

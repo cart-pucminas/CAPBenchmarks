@@ -19,7 +19,7 @@ struct problem {
 	int end;   // Final number of invertal
 };
 
-//#elif
+//#elif _IS_...
 
 #endif /* Benchmarks */
 

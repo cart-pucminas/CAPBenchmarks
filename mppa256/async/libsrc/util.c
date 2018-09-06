@@ -4,6 +4,8 @@
 #include <util.h>
 
 /* C And MPPA Library Includes*/
+#include <mppa_power.h>
+#include <mppa_rpc.h>
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -50,6 +52,17 @@ void *smalloc(size_t size)
 
 #ifdef _MASTER_
 
+void spawn_slave(int nCluster, char **args) {
+	if (mppa_power_base_spawn(nCluster, "cluster_bin", (const char **)args, NULL, MPPA_POWER_SHUFFLING_ENABLED) == -1)
+		error("Error while spawning clusters\n");
+}
+
+void join_slave(int nCluster) {
+	int ret;
+	if (mppa_power_base_waitpid(nCluster, &ret, 0) < 0)
+		error("Error while trying to join\n");
+}
+
 void inform_usage() {
 	printf("Usage: %s [options]\n", bench_initials);
 	printf("Brief: %s Kernel\n", bench_fullName);
@@ -87,6 +100,12 @@ void inform_actual_benchmark() {
 		printf(" Computing %s ... \n", bench_fullName);
 		fflush(stdout);
 	}
+}
+
+#else
+
+void slave_barrier() {
+	mppa_rpc_barrier_all();
 }
 
 #endif

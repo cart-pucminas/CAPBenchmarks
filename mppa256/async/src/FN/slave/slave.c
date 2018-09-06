@@ -1,5 +1,4 @@
 /* Kernel Includes */
-#include <spawn_util.h>
 #include <async_util.h>
 #include <problem.h>
 #include <global.h>
@@ -7,19 +6,20 @@
 #include <util.h>
 
 /* C And MPPA Library Includes*/
-#include <mppa_async.h>
 #include <utask.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-typedef struct {
-    long int number; /* Number      */
-    long int num; 	/* Numerator   */
-    long int den; 	/* Denominator */
-} Item;
+/* Individual Slave statistics. */
+uint64_t total = 0;         /* Time spent on slave.      */
+uint64_t communication = 0; /* Time spent on comms.      */               
+size_t data_sent = 0;       /* Number of bytes received. */
+size_t data_received = 0;   /* Number of bytes sent.     */
+unsigned nsent = 0;         /* Number of sends.          */
+unsigned nreceived = 0;     /* Number of receives.       */
 
-/* Timing statistics and parcial sum result */
+/* Statistics and parcial sum results */
 typedef struct {
 	size_t data_sent;
 	size_t data_received;
@@ -30,11 +30,14 @@ typedef struct {
 	int parcial_sum;
 } Info;
 
-#define MAX_TASK_SIZE 65536
+/* Problem structure : number and abundances */
+typedef struct {
+    long int number; /* Number      */
+    long int num; 	/* Numerator   */
+    long int den; 	/* Denominator */
+} Item;
 
-/* Timing statistics aux */
-uint64_t start;
-uint64_t end;
+#define MAX_TASK_SIZE 65536
 
 /* Task sent by IO */
 static Item task[MAX_TASK_SIZE];
@@ -51,6 +54,9 @@ static int offset;
 static int tasksize; 
 static int problemsize;
 static int parcial_friendly_sum = 0;
+
+/* Timing auxiliars */
+static uint64_t start, end;
 
 /* Compute Cluster ID */
 int cid;
@@ -98,40 +104,24 @@ static int sumdiv(int n) {
 }
 
 static void cloneSegments() {
-	mppa_async_segment_clone(&task_segment, 1, 0, 0, NULL);
-	mppa_async_segment_clone(&info_segment, 2, 0, 0, NULL);
+	cloneSegment(&task_segment, 1, 0, 0, NULL);
+	cloneSegment(&info_segment, 2, 0, 0, NULL);
 }
 
 static void getWork() {
-	start = timer_get();
-
-	mppa_async_get(task, &task_segment, offset * sizeof(Item), tasksize * sizeof(Item), NULL);
-
-	end = timer_get();
-
-	finishedTask.nreceived += tasksize-1;
-	finishedTask.data_received += tasksize * sizeof(Item);
-	finishedTask.communication += timer_diff(start, end);	
+	async_dataReceive(task, &task_segment, offset, tasksize, sizeof(Item), NULL);
 }
 
+void testAllTasks();
+
 static void syncAbundances() {
-	start = timer_get();
+	async_dataSend(task, &task_segment, offset, tasksize, sizeof(Item), NULL);
 
-	mppa_async_put(task, &task_segment, offset * sizeof(Item), tasksize * sizeof(Item), NULL);
+	slave_barrier();
 
-	mppa_rpc_barrier_all();
+	waitAllOpCompletion(&task_segment, NULL);
 
-	mppa_async_fence(&task_segment, NULL);
-
-	mppa_async_get(allTasks, &task_segment, 0, problemsize * sizeof(Item), NULL);
-
-	end = timer_get();
-
-	finishedTask.nsent += tasksize;
-	finishedTask.data_sent += tasksize * sizeof(Item);
-	finishedTask.nreceived += problemsize;
-	finishedTask.data_received += problemsize * sizeof(Item);
-	finishedTask.communication += timer_diff(start, end);
+	async_dataReceive(allTasks, &task_segment, 0, problemsize, sizeof(Item), NULL);
 }
 
 static void calc_abundances() {
@@ -157,7 +147,7 @@ static void calc_abundances() {
 	end = timer_get();
 
 	/* Total slave time */
-	finishedTask.slave += timer_diff(start, end);
+	total += timer_diff(start, end);
 }
 
 
@@ -177,17 +167,24 @@ static void countFriends() {
 	end = timer_get();
 
 	/* Total slave time */
-	finishedTask.slave += timer_diff(start, end);
+	total += timer_diff(start, end);
+}
+
+static void setFinishedTask() {
+	finishedTask.data_sent = data_sent;
+	finishedTask.data_received = data_received;
+	finishedTask.nsent = nsent;
+	finishedTask.nreceived = nreceived;
+	finishedTask.slave = total;
+	finishedTask.communication = communication;
+	finishedTask.parcial_sum = parcial_friendly_sum;
 }
 
 static void sendFinishedTask() {
-	finishedTask.nsent++;
-	finishedTask.data_sent += sizeof(Info);
-
-	mppa_async_put(&finishedTask, &info_segment, cid * sizeof(Info), sizeof(Info), NULL);
+	async_dataSend(&finishedTask, &info_segment, cid, 1, sizeof(Info), NULL);
 }
 
-int main(int argc , const char **argv) {
+int main(__attribute__((unused)) int argc , const char **argv) {
 	/* Initializes async client */
 	async_slave_init();
 
@@ -214,6 +211,9 @@ int main(int argc , const char **argv) {
 
 	/* Count parcial sum of friendly pairs */
 	countFriends();
+
+	/* Set statistics and parcial sum in finishedTask */
+	setFinishedTask();
 
 	/* Sends back to IO parcial sums, exec and comm time */
 	sendFinishedTask();
