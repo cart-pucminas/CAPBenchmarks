@@ -95,13 +95,6 @@ void inform_statistics() {
 	fflush(stdout);
 }
 
-void inform_actual_benchmark() {
-	if (verbose) {
-		printf(" Computing %s ... \n", bench_fullName);
-		fflush(stdout);
-	}
-}
-
 #else
 
 void slave_barrier() {

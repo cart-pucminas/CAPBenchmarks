@@ -36,19 +36,17 @@ struct problem huge     =  { 8000001, 8065536 };
 int verbose = 0;   /* Display informations? 	   */
 int nclusters = 1; /* Quantity of Clusters spawned */
 int npes = 1; /* Number of threads on each cluster */
-struct problem *p = &tiny; /* Problem Class */
+struct problem *prob = &tiny; /* Problem Class */
 
 int main(int argc, const char **argv) {
 	uint64_t startTime, endTime;
 
 	readargs(argc, (char **) argv);
 
-	inform_actual_benchmark();
-
 	timer_init();
 
 	startTime = timer_get();
-	friendly_numbers(p->start, p->end);
+	friendly_numbers(prob->start, prob->end);
 	endTime = timer_get();
 	total = timer_diff(startTime, endTime);
 

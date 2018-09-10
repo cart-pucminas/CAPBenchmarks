@@ -30,9 +30,6 @@ extern void inform_usage();
 /* Show timing and data exchange statistics */
 extern void inform_statistics();
 
-/* Show what benchmark is executing */
-extern void inform_actual_benchmark();
-
 #else /* Slaves only functions */
 
 /* Synchronization of all slaves */

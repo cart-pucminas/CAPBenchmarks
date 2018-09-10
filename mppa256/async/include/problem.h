@@ -9,7 +9,7 @@ extern struct problem standard;
 extern struct problem large;
 extern struct problem huge;
 
-extern struct problem *p;
+extern struct problem *prob;
 extern void readargs(int argc, char **argv);
 
 #ifdef _FN_

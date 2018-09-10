@@ -35,15 +35,15 @@ void readargs(int argc, char **argv) {
 				/* Set problem class. */
 				case SET_CLASS :
 					if (!strcmp(argv[i], "tiny"))
-						p = &tiny;
+						prob = &tiny;
 					else if (!strcmp(argv[i], "small"))
-						p = &small;
+						prob = &small;
 					else if (!strcmp(argv[i], "standard"))
-						p = &standard;
+						prob = &standard;
 					else if (!strcmp(argv[i], "large"))
-						p = &large;
+						prob = &large;
 					else if (!strcmp(argv[i], "huge"))
-						p = &huge;
+						prob = &huge;
 					else 
 						inform_usage();
 					state = READ_ARG;
