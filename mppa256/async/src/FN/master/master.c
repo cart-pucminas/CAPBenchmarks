@@ -9,8 +9,6 @@
 /* C And MPPA Library Includes*/
 #include <stdio.h>
 #include <stdint.h> 
-#include <stdlib.h> 
-#include <unistd.h> 
 
 /* Timing statistics. */
 uint64_t start;

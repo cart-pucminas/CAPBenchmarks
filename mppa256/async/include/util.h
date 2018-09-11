@@ -12,6 +12,12 @@ extern void *scalloc(size_t nmemb, size_t size);
 /* Safe malloc(). */
 extern void *smalloc(size_t size);
 
+/* Initializes the random number generator. */
+extern void srandnum(int seed);
+
+/* Generates a random number. */
+extern unsigned randnum();
+
 #ifdef _MASTER_ /* Masters only functions */
 
 /* Spawns CC with nCluster ID */
@@ -35,6 +41,6 @@ extern void inform_statistics();
 /* Synchronization of all slaves */
 void slave_barrier();
 
-#endif
+#endif /* _MASTER_ */
 
-#endif
+#endif /* UTIL_H_ */

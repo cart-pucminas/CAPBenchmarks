@@ -7,17 +7,15 @@
 
 /* C And MPPA Library Includes*/
 #include <utask.h>
-#include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 
 /* Individual Slave statistics. */
-uint64_t total = 0;         /* Time spent on slave.      */
-uint64_t communication = 0; /* Time spent on comms.      */               
-size_t data_sent = 0;       /* Number of bytes received. */
-size_t data_received = 0;   /* Number of bytes sent.     */
-unsigned nsent = 0;         /* Number of sends.          */
-unsigned nreceived = 0;     /* Number of receives.       */
+uint64_t total = 0;         /* Time spent on slave.    */
+uint64_t communication = 0; /* Time spent on comms.    */               
+size_t data_sent = 0;       /* Number of bytes put.    */
+size_t data_received = 0;   /* Number of bytes gotten. */
+unsigned nsent = 0;         /* Number of items put.    */
+unsigned nreceived = 0;     /* Number of items gotten. */
 
 /* Statistics and parcial sum results */
 typedef struct {

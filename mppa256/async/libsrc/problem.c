@@ -18,7 +18,6 @@ void readargs(int argc, char **argv) {
 	#define READ_ARG     0 /* Read argument.         */
 	#define SET_nclusters 1 /* Set number of clusters. */
 	#define SET_CLASS    2 /* Set problem class.     */
-	#define SET_threads 3 /* Set number of threads */
 	
 	state = READ_ARG;
 	

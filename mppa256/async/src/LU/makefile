@@ -1,5 +1,5 @@
 # Executable.
-EXEC = fn
+EXEC = lu
 
 # Use bare libraries
 system-name := bare
@@ -10,7 +10,7 @@ MPPAFlags := -g -lvbsp -lutask -lgomp -lmppa_remote -lmppa_async -lmppa_request_
 
 # Builds master binary.
 io-bin := io_bin
-io_bin-cflags := -D_MASTER_ -D_FN_
+io_bin-cflags := -D_MASTER_ -D_LU_
 io_bin-lflags := $(MPPAFlags) -lpcie_queue 
 io_bin-srcs := $(wildcard master/*.c) $(wildcard $(LIBSRCDIR)/*.c)
 
