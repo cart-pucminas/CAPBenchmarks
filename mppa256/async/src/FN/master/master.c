@@ -11,8 +11,8 @@
 #include <stdint.h> 
 
 /* Timing statistics. */
-uint64_t start;
-uint64_t end;
+static uint64_t start;
+static uint64_t end;
 
 #define MAX_TASK_SIZE 65536
 
@@ -88,13 +88,11 @@ static void createSegments() {
 	createSegment(&infos_segment, 2, &tasksFinished, nclusters * sizeof(Info), 0, 0, NULL);
 }
 
-static void sendWork() {
-	int i;               /* Loop indexes. */
-
+static void spawnSlaves() {
 	start = timer_get();
 
-	#pragma omp parallel for private(i) default(shared) num_threads(3)
-	for (i = 0; i < nclusters; i++) {
+	#pragma omp parallel for default(shared) num_threads(3)
+	for (int i = 0; i < nclusters; i++) {
 		char str_prb_size[10], str_size[10], str_offset[10];
 		sprintf(str_prb_size, "%d", problemsize);
 		sprintf(str_size, "%d", tasksize[i]);
@@ -122,8 +120,6 @@ static void waitCompletion() {
 
 	end = timer_get();
 
-	nreceived += nclusters;
-	data_received += nreceived * sizeof(Info);
 	communication += timer_diff(start, end);
 }
 
@@ -143,21 +139,16 @@ static void sumAll() {
 	master += timer_diff(start, end);
 }
 
-static void joinAll() {
-	for (int i = 0; i < nclusters; i++)
-		join_slave(i);
-}
-
 static void setAllStatistics() {
 	uint64_t comm_Sum = 0;
 	uint64_t comm_Average = 0;
 	for (int i = 0; i < nclusters; i++) {
 		slave[i] = tasksFinished[i].slave;
 		comm_Sum += tasksFinished[i].communication;
-		data_sent += tasksFinished[i].data_sent;
-		data_received += tasksFinished[i].data_received;
-		nsent += tasksFinished[i].nsent;
-		nreceived += tasksFinished[i].nreceived;
+		data_put += tasksFinished[i].data_put;
+		data_get += tasksFinished[i].data_get;
+		nput += tasksFinished[i].nput;
+		nget += tasksFinished[i].nget;
 	}
 
 	comm_Average = (uint64_t)comm_Sum/nclusters;
@@ -180,8 +171,8 @@ int friendly_numbers(int _start, int _end) {
 	/* Creating segments to get tasks returns values*/
 	createSegments();
 
-	/* Spawns clusters and send them work */
-	sendWork();
+	/* Spawns all "nclusters" clusters */
+	spawnSlaves();
 
 	/* Waits slaves parcial sum */
 	waitCompletion();
@@ -190,7 +181,7 @@ int friendly_numbers(int _start, int _end) {
 	sumAll();
 
 	/* Waiting for PE0 of each cluster to end */
-	joinAll();
+	join_slaves();
 
 	/* Finalizes async server */
 	async_master_finalize();

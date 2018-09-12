@@ -1,16 +1,12 @@
 #ifndef MASTER_H_
 #define MASTER_H_
 
-extern void async_start();
-extern void spawn_slave(int nCluster, char **args);
-extern void join_slave(int nCluster);
-
 /* Timing statistics and parcial sum result of slaves */
 typedef struct {
-	size_t data_sent;
-	size_t data_received;
-	unsigned nsent;
-	unsigned nreceived;
+	size_t data_put;
+	size_t data_get;
+	unsigned nput;
+	unsigned nget;
 	uint64_t slave;
 	uint64_t communication;
 	int parcial_sum;

@@ -6,6 +6,9 @@
 /* Prints an error message and exits. */
 extern void error(const char *msg);
 
+/* Prints an warning message */
+extern void warning(const char *msg);
+
 /* Safe calloc(). */
 extern void *scalloc(size_t nmemb, size_t size);
 
@@ -22,6 +25,9 @@ extern unsigned randnum();
 
 /* Spawns CC with nCluster ID */
 extern void spawn_slave(int nCluster, char **args);
+
+/* Wait finalization of all CC */
+extern void join_slaves();
 
 /* Wait finalization of CC with nCluster ID */
 extern void join_slave(int nCluster);

@@ -30,9 +30,9 @@ extern uint64_t slave[NUM_CLUSTERS];
 extern uint64_t communication;
 extern uint64_t total;
 extern uint64_t spawn;
-extern size_t data_sent;
-extern size_t data_received;
-extern unsigned nsent;
-extern unsigned nreceived;
+extern size_t data_put;
+extern size_t data_get;
+extern unsigned nput;
+extern unsigned nget;
 
 #endif /* GLOBAL_H_ */

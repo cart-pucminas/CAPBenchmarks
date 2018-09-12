@@ -17,7 +17,7 @@ void cloneSegment(mppa_async_segment_t *segment, unsigned long long ident, void 
 	mppa_async_segment_clone(segment, ident, global, size, event);
 }
 
-void async_dataSend(void *item, mppa_async_segment_t *segment, int offset, int nItems, size_t type_size, mppa_async_event_t *event) {
+void dataPut(void *item, mppa_async_segment_t *segment, int offset, int nItems, size_t type_size, mppa_async_event_t *event) {
 	int start, end; /* Timing auxiliars */
 
 	start = timer_get();
@@ -26,12 +26,12 @@ void async_dataSend(void *item, mppa_async_segment_t *segment, int offset, int n
 
 	end = timer_get();
 
-	nsent += nItems;
-	data_sent += nItems * type_size;
+	nput++;
+	data_put += nItems * type_size;
 	communication += timer_diff(start, end);
 }
 
-void async_dataReceive(void *item,  mppa_async_segment_t *segment, int offset, int nItems, size_t type_size, mppa_async_event_t *event) {
+void dataGet(void *item,  mppa_async_segment_t *segment, int offset, int nItems, size_t type_size, mppa_async_event_t *event) {
 	int start, end; /* Timing auxiliars */
 
 	start = timer_get();
@@ -40,8 +40,8 @@ void async_dataReceive(void *item,  mppa_async_segment_t *segment, int offset, i
 
 	end = timer_get();
 
-	nreceived += nItems;
-	data_received += nItems * type_size;
+	nget++;
+	data_get += nItems * type_size;
 	communication += timer_diff(start, end);
 }
 

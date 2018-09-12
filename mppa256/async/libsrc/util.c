@@ -15,6 +15,11 @@ void error(const char *msg) {
 	exit(EXIT_FAILURE);
 }
 
+/* Prints a warning message. */
+void warning(const char *msg) {
+	fprintf(stderr, "warning: %s\n", msg);
+}
+
 /* Safe calloc(). */
 void *scalloc(size_t nmemb, size_t size) {
 	void *p;
@@ -77,6 +82,13 @@ void spawn_slave(int nCluster, char **args) {
 		error("Error while spawning clusters\n");
 }
 
+/* Wait finalization of all CC */
+void join_slaves() {
+	#pragma omp parallel for default(shared) num_threads(3)
+	for (int i = 0; i < nclusters; i++)
+		join_slave(i);
+}
+
 /* Wait finalization of CC with nCluster ID */
 void join_slave(int nCluster) {
 	int ret;
@@ -110,11 +122,11 @@ void inform_statistics() {
 	printf("  spawn %d CC:   %f\n", nclusters, spawn*MICROSEC);
 	printf("  communication: %f\n", communication*MICROSEC);
 	printf("  total time:    %f\n", total*MICROSEC);
-	printf("data exchange statistics:\n");
-	printf("  data sent:            %d\n", data_sent);
-	printf("  number sends:         %u\n", nsent);
-	printf("  data received:        %d\n", data_received);
-	printf("  number receives:      %u\n", nreceived);
+	printf("asynchronous operations statistics:\n");
+	printf("  data put:         %d\n", data_put);
+	printf("  data got:         %d\n", data_get);
+	printf("  number of puts:   %u\n", nput);
+	printf("  number of gets:   %u\n", nget);
 	fflush(stdout);
 }
 

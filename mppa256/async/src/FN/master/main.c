@@ -17,10 +17,10 @@ uint64_t communication = 0;   /* Time spent on communication. */
 uint64_t total = 0;           /* Total time.                  */
 
 /* Data exchange statistics. */
-size_t data_sent = 0;     /* Number of bytes put.    */
-unsigned nsent = 0;       /* Number of bytes gotten. */
-size_t data_received = 0; /* Number of items put.    */
-unsigned nreceived = 0;   /* Number of items gotten. */
+size_t data_put = 0;      /* Number of bytes put.    */
+unsigned nput = 0;        /* Number of bytes gotten. */
+size_t data_get = 0; /* Number of items put.    */
+unsigned nget = 0;        /* Number of items gotten. */
 
 /* Problem sizes */
 struct problem tiny     =  { 8000001, 8004096 };

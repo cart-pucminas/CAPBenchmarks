@@ -23,6 +23,15 @@ struct matrix *matrix_create(int height, int width) {
 	return (m);
 }
 
+/* Destroys a matrix. */
+void matrix_destroy(struct matrix *m) {
+	if (m == NULL)
+		error("Null Matrix");
+	
+	free(m->elements);
+	free(m);
+}
+
 /* Fills up a matrix with random numbers. */
 void matrix_random(struct matrix *m) {
 	if (m == NULL)
@@ -33,13 +42,4 @@ void matrix_random(struct matrix *m) {
 		for (int j = 0; j < m->width; j++)
 			MATRIX(m, i, j) = randnum();
 	}
-}
-
-/* Destroys a matrix. */
-void matrix_destroy(struct matrix *m) {
-	if (m == NULL)
-		error("Null Matrix");
-	
-	free(m->elements);
-	free(m);
 }

@@ -20,10 +20,10 @@ uint64_t communication = 0;   /* Time spent on communication. */
 uint64_t total = 0;           /* Total time.                  */
 
 /* Data exchange statistics. */
-size_t data_sent = 0;     /* Number of bytes put.    */
-unsigned nsent = 0;       /* Number of bytes gotten. */
-size_t data_received = 0; /* Number of items put.    */
-unsigned nreceived = 0;   /* Number of items gotten. */
+size_t data_put = 0; /* Number of bytes put.    */
+unsigned nput = 0;   /* Number of bytes gotten. */
+size_t data_get = 0; /* Number of items put.    */
+unsigned nget = 0;   /* Number of items gotten. */
 
 /* Problem sizes. */
 struct problem tiny     =  {  512,  512 };
@@ -35,8 +35,18 @@ struct problem huge     =  { 2560, 2560 };
 /* Benchmark parameters. */
 int verbose = 0;              /* Display informations? */
 int nclusters = 1;            /* Number of clusters.   */
-static int seed = 1;          /* Seed value.        */
+static int seed = 1;          /* Seed value.           */
 struct problem *prob = &tiny; /* Problem class.        */
+
+/* Statistics results of slaves */
+typedef struct {
+	size_t data_put;         /* Number of bytes put.    */
+	size_t data_get;         /* Number of bytes gotten. */
+	unsigned nput;           /* Number of put op.       */
+	unsigned nget;	         /* Number of get op.      */
+	uint64_t slave;          /* Time spent on slave.    */
+	uint64_t communication;  /* Time spent on comms.    */
+} Info;
 
 int main(int argc, char **argv) {
 	uint64_t startTime, endTime; /* Start and End time.     */

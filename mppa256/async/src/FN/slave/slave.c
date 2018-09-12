@@ -12,17 +12,17 @@
 /* Individual Slave statistics. */
 uint64_t total = 0;         /* Time spent on slave.    */
 uint64_t communication = 0; /* Time spent on comms.    */               
-size_t data_sent = 0;       /* Number of bytes put.    */
-size_t data_received = 0;   /* Number of bytes gotten. */
-unsigned nsent = 0;         /* Number of items put.    */
-unsigned nreceived = 0;     /* Number of items gotten. */
+size_t data_put = 0;        /* Number of bytes put.    */
+size_t data_get = 0;        /* Number of bytes gotten. */
+unsigned nput = 0;          /* Number of items put.    */
+unsigned nget = 0;          /* Number of items gotten. */
 
 /* Statistics and parcial sum results */
 typedef struct {
-	size_t data_sent;
-	size_t data_received;
-	unsigned nsent;
-	unsigned nreceived;
+	size_t data_put;
+	size_t data_get;
+	unsigned nput;
+	unsigned nget;
 	uint64_t slave;
 	uint64_t communication;
 	int parcial_sum;
@@ -107,19 +107,19 @@ static void cloneSegments() {
 }
 
 static void getWork() {
-	async_dataReceive(task, &task_segment, offset, tasksize, sizeof(Item), NULL);
+	dataGet(task, &task_segment, offset, tasksize, sizeof(Item), NULL);
 }
 
 void testAllTasks();
 
 static void syncAbundances() {
-	async_dataSend(task, &task_segment, offset, tasksize, sizeof(Item), NULL);
+	dataPut(task, &task_segment, offset, tasksize, sizeof(Item), NULL);
 
 	slave_barrier();
 
 	waitAllOpCompletion(&task_segment, NULL);
 
-	async_dataReceive(allTasks, &task_segment, 0, problemsize, sizeof(Item), NULL);
+	dataGet(allTasks, &task_segment, 0, problemsize, sizeof(Item), NULL);
 }
 
 static void calc_abundances() {
@@ -169,17 +169,17 @@ static void countFriends() {
 }
 
 static void setFinishedTask() {
-	finishedTask.data_sent = data_sent;
-	finishedTask.data_received = data_received;
-	finishedTask.nsent = nsent;
-	finishedTask.nreceived = nreceived;
+	finishedTask.data_put = data_put;
+	finishedTask.data_get = data_get;
+	finishedTask.nput = nput;
+	finishedTask.nget = nget;
 	finishedTask.slave = total;
 	finishedTask.communication = communication;
 	finishedTask.parcial_sum = parcial_friendly_sum;
 }
 
 static void sendFinishedTask() {
-	async_dataSend(&finishedTask, &info_segment, cid, 1, sizeof(Info), NULL);
+	dataPut(&finishedTask, &info_segment, cid, 1, sizeof(Info), NULL);
 }
 
 int main(__attribute__((unused)) int argc , const char **argv) {

@@ -29,16 +29,16 @@ extern matrix_t matrix_create(int height, int width);
 /* Destroys a matrix. */
 extern void matrix_destroy(matrix_t m);
 
-/* Performs LU factorization. */
-extern int matrix_lu(matrix_t m, matrix_t l, matrix_t u);
-
 /* Fills up a matrix with random numbers. */
 extern void matrix_random(matrix_t m);
 
-/* Kills slave processes. */
-extern void kill_slaves();
+/* Performs LU factorization. */
+extern int matrix_lu(matrix_t m, matrix_t l, matrix_t u);
 
-/* Waits for slaves to be ready. */
-extern void sync_slaves();
+/* Finds the pivot element. */
+extern float find_pivot(struct matrix *m, int i0, int j0);
+
+/* Applies the row reduction algorithm in a matrix. */
+extern void row_reduction(struct matrix *m, int i0);
 
 #endif /* MATRIX_H_ */

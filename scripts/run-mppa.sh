@@ -14,7 +14,7 @@ echo "Problem size = $CLASS"
 
 for kernel in lu; #fn
 do
-	echo "  ========== Running FN Kernel"
+	echo "  ========== Running $kernel kernel"
 	$K1DIR/k1-jtag-runner                               \
 		--multibinary=$BINDIR/$kernel.img               \
 		--exec-multibin=IODDR0:io_bin                   \
