@@ -29,7 +29,9 @@ static void spawnSlaves() {
 	spawn = timer_diff(start, end);
 }
 
-static void applyElimination() {
+static void applyElimination(struct matrix *m) {
+	float pivot;         /* Pivot.      */
+
 	for (int i = 0; i < m->height - 1; i++) {
 		pivot = find_pivot(m, i, i);	
 
@@ -38,15 +40,12 @@ static void applyElimination() {
 			warning("cannot factorize matrix");
 			break;
 		}
-		row_reduction(m, i);
+		//row_reduction(m, i);
 	}
 }
 
 /* Performs LU factorization in a matrix */
 int matrix_lu(struct matrix *m, struct matrix *l, struct matrix *u) {
-	int i;               /* Loop index. */
-	float pivot;         /* Pivot.      */
-
 	/* Initializes async server */
 	async_master_start();
 
@@ -54,7 +53,7 @@ int matrix_lu(struct matrix *m, struct matrix *l, struct matrix *u) {
 	spawnSlaves();
 
 	/* Apply elimination on all rows */
-	applyElimination();
+	applyElimination(m);
 
 	/* Waiting for PE0 of each cluster to end */
 	join_slaves();

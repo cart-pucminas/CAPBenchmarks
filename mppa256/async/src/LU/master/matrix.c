@@ -38,6 +38,7 @@ void matrix_random(struct matrix *m) {
 		error("Null Matrix");
 	
 	/* Fill matrix. */
+	#pragma omp parallel for default(shared) num_threads(3)
 	for (int i = 0; i < m->height; i++) {
 		for (int j = 0; j < m->width; j++)
 			MATRIX(m, i, j) = randnum();

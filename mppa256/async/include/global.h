@@ -15,13 +15,13 @@
 #include <stdint.h>
 #include <mppa_async.h>
 
-//	Be verbose?
+/* Be verbose? */
 extern int verbose;
 
-//	Number of clusters to be used.
+/* Number of clusters to be used. */
 extern int nclusters;
 
-// Cluster ID.
+/* Cluster ID. */
 extern int cid;
 
 /* Timing statistics. */

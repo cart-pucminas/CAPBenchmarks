@@ -5,7 +5,7 @@ EXEC = lu
 system-name := bare
 
 # Compilation flags.
-cflags := -fopenmp -O3 -std=gnu99 -g -mhypervisor -I $(INCDIR) -Wall -Wextra -Winit-self -Wswitch-default -Wfloat-equal -Wshadow -Wuninitialized
+cflags := -fopenmp -O3 -std=gnu99 -g -mhypervisor -I $(INCDIR) -Wall -Wextra -Winit-self -Wswitch-default -Wshadow -Wuninitialized
 MPPAFlags := -g -lvbsp -lutask -lgomp -lmppa_remote -lmppa_async -lmppa_request_engine -lmppapower -lmppanoc -lmpparouting -mhypervisor
 
 # Builds master binary.
