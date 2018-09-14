@@ -4,6 +4,7 @@
 #include <global.h>
 #include <problem.h>
 #include "matrix.h"
+#include "master.h"
 
 /* C And MPPA Library Includes*/
 #include <stdio.h>
@@ -37,16 +38,6 @@ int verbose = 0;              /* Display informations? */
 int nclusters = 1;            /* Number of clusters.   */
 static int seed = 1;          /* Seed value.           */
 struct problem *prob = &tiny; /* Problem class.        */
-
-/* Statistics results of slaves */
-typedef struct {
-	size_t data_put;         /* Number of bytes put.    */
-	size_t data_get;         /* Number of bytes gotten. */
-	unsigned nput;           /* Number of put op.       */
-	unsigned nget;	         /* Number of get op.      */
-	uint64_t slave;          /* Time spent on slave.    */
-	uint64_t communication;  /* Time spent on comms.    */
-} Info;
 
 int main(int argc, char **argv) {
 	uint64_t startTime, endTime; /* Start and End time.     */

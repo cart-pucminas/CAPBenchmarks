@@ -10,7 +10,6 @@
 
 /* C And MPPA Library Includes*/
 #include <stdlib.h>
-#include <mppa_async.h>
 
 /* Message types. */
 #define DIE          0 /* Die.                */
@@ -32,12 +31,6 @@
 /* Pops a message from a list. */
 #define pop(l, msg)                 \
 { (msg) = (l); (l) = (msg)->next; } \
-
-/* Message segment identifier */
-#define MSG_SEG_ID 0
-
-/* Message segments */
-extern mppa_async_segment_t messages_segment;
 
 /* Message. */
 struct message {
@@ -91,21 +84,6 @@ struct message {
 	struct message *next;
 };
 
-#ifdef _MASTER_ /* MASTER SIDE */
-
-/* Messages in progres */
-extern struct message msgs_inProg[NUM_CLUSTERS];
-
-/* Initializes message exchange context */
-extern void create_message_segments();
-
-#else /* SLAVE SIDE */
-
-/* Be aware of message exchange context */
-extern void clone_message_segments();
-
-#endif
-
 /* Creates a message. */
 extern struct message *message_create(int type, ...);
 
@@ -113,9 +91,9 @@ extern struct message *message_create(int type, ...);
 extern void message_destroy(struct message *msg);
 
 /* Sends a message. */
-extern void message_put(struct message *msg);
+extern void message_put(struct message *msg, mppa_async_segment_t *seg, mppa_async_event_t *event);
 
 /* Receives a message. */
-extern struct message *message_get();
+extern void *message_get(struct message *msg, mppa_async_segment_t *seg, int offset, mppa_async_event_t *event);
 
 #endif /* MESSAGE_H_ */

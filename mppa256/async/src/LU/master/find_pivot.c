@@ -1,12 +1,15 @@
 /* Kernel Include */
+#include <async_util.h>
 #include <message.h>
 #include <global.h>
 #include <timer.h>
 #include <util.h>
 #include "matrix.h"
+#include "master.h"
 
 /* C And MPPA Library Includes*/
 #include <stdint.h>
+#include <stdio.h>
 #include <math.h>
 
 /* Lists. */
@@ -60,6 +63,7 @@ static void works_populate(struct matrix *m, int i0, int j0) {
 }
 
 float find_pivot(struct matrix *m, int i0, int j0) {
+	int i,j;             /* Loop index.              */
 	size_t n;            /* Number of bytes to send. */
 	int ipvt;            /* ith index of pivot.      */
 	int jpvt;            /* jth index of pivot.      */
@@ -70,12 +74,30 @@ float find_pivot(struct matrix *m, int i0, int j0) {
 	end = timer_get();
 	master += timer_diff(start, end);
 
+	i = 0;
+
 	/* Send work. */
-	//while(!empty(works)) {
-		/* Pops a message from the worklist */
+	while(!empty(works)) {
+		/* Pops a message from the worklist. */
 		pop(works, msg);
 
-		/* Puts a message on message segment. */
-		message_put(msg);
-	//}
+		/* Puts a message on the msg segment. */
+		works_inProg[i] = *msg;
+
+		/* MANDAR ENDEREÇO DE MEMORIA DO PRORIO
+		SEGMENTO DO CLUSTER PRA QUE ELE VERIFIQUE SOBRE AQUELE
+		ENDEREÇO || PEGAR O ENDEREÇO MPPA_ASYNC_ADRESS DO OFFSET
+		PASSADO AO CLUSTER */
+
+		/* Puts data on the data segment. */
+
+		message_destroy(msg);
+
+		/* All slaves working. Waiting for results. */
+		if (i == nclusters) {
+			
+		}
+	}
+
+	/* Receive results. */
 }

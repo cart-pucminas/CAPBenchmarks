@@ -4,6 +4,10 @@
 /* Kernel Includes */
 #include <mppa_async.h>
 
+/* Messages segments identifiers */
+#define MSG_SEG_0 1
+#define STATUS_SEG_0 2
+
 /*
  * Obs: You can delay the waiting of all wait functions
  * using the event param. It's present in all wait like 
@@ -23,10 +27,13 @@ extern void waitAllOpCompletion(mppa_async_segment_t *segment, mppa_async_event_
 /* Waits for some condition to occur (Use event to wait later) */
 extern void waitCondition(long long *local, long long value, mppa_async_cond_t cond, mppa_async_event_t *event);
 
+/* Waits an event to complete */
+extern void waitEvent(mppa_async_event_t *event);
+
 #ifdef _MASTER_
 
 /* Initializes a unique segment */
-extern void createSegment(mppa_async_segment_t*segment, unsigned long long ident, void *local, size_t size, unsigned flags, int multi, mppa_async_event_t *event);
+extern void createSegment(mppa_async_segment_t *segment, unsigned long long ident, void *local, size_t size, unsigned flags, int multi, mppa_async_event_t *event);
 
 /* Necessary func. calls to initialize async context */
 extern void async_master_start();
@@ -41,6 +48,9 @@ extern void cloneSegment(mppa_async_segment_t *segment, unsigned long long ident
 
 /* Be aware of some unique segment */
 extern void async_slave_init();
+
+/* Look at the contents of a remote segment. */
+void peek(mppa_async_segment_t *segment, off64_t offset, long long *result, mppa_async_event_t*event);
 
 /* Finalizes async context on slave */
 extern void async_slave_finalize();

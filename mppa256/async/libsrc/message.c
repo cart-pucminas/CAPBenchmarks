@@ -7,9 +7,6 @@
 /* C And MPPA Library Includes*/
 #include <stdarg.h>
 
-/* Message exchange segment */
-mppa_async_segment_t messages_segment;
-
 /* Creates a message. */
 struct message *message_create(int type, ...) {
 	va_list ap;          /* Arguments pointer. */
@@ -85,43 +82,17 @@ struct message *message_create(int type, ...) {
 	return (msg);
 }
 
-#ifdef _MASTER_ /* MASTER SIDE */
-
-/* Messages in progres */
-struct message msgs_inProg[NUM_CLUSTERS];
-
-/* Initializes message exchange context */
-void create_message_segments() {
-	createSegment(&messages_segment, MSG_SEG_ID, msgs_inProg, nclusters * sizeof(struct message), 0, 0, NULL);
-}
-
-#else /* SLAVE SIDE */
-
-/* Be aware of message exchange context */
-void clone_message_segments() {
-	cloneSegment(&messages_segment, MSG_SEG_ID, 0, 0, NULL);
-}
-
-#endif
-
 /* Destroys a message. */
 void message_destroy(struct message *msg) {
 	free(msg);
 }
 
 /* Sends a message. */
-void message_put(struct message *msg) {
-	dataPut(msg, &messages_segment, 0, 1, sizeof(struct message), NULL);
+void message_put(struct message *msg, mppa_async_segment_t *seg, mppa_async_event_t *event) {
+	dataPut(msg, seg, 0, 1, sizeof(struct message), event);
 }
 
 /* Receives a message. */
-struct message *message_get(int offset) {
-	size_t size = sizeof(struct message);
-	struct message *msg;
-	
-	msg = message_create(DIE);
-	
-	dataGet(msg, &messages_segment, offset*size, 1, size, NULL);
-	
-	return (msg);
+void *message_get(struct message *msg, mppa_async_segment_t *seg, int offset, mppa_async_event_t *event) {
+	dataGet(msg, seg, offset*sizeof(struct message), 1, sizeof(struct message), event);
 }
