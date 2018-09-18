@@ -2,6 +2,7 @@
 #include <global.h>
 #include <problem.h>
 #include <timer.h>
+#include <util.h>
 
 /* C And MPPA Library Includes*/
 #include <stddef.h> 
@@ -49,15 +50,11 @@ void waitCondition(long long *local, long long value, mppa_async_cond_t cond, mp
 	mppa_async_evalcond(local, value, cond, event);
 }
 
-/* Waits an event to complete */
+/* Waits an event to complete. */
 void waitEvent(mppa_async_event_t *event) {
 	mppa_async_event_wait(event);
 }
 
-/* Look at the contents of a remote segment. */
-void peek(mppa_async_segment_t *segment, off64_t offset, long long *result, mppa_async_event_t*event) {
-	mppa_async_peek(segment, offset, result, event);
-}
 
 #ifdef _MASTER_
 

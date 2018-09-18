@@ -81,16 +81,16 @@ float find_pivot(struct matrix *m, int i0, int j0) {
 		/* Pops a message from the worklist. */
 		pop(works, msg);
 
+		/* Puts data on the data segment. */
+		n = (msg->u.findwork.height)*(msg->u.findwork.width)*sizeof(float);
+
 		/* Puts a message on the msg segment. */
 		works_inProg[i] = *msg;
 
-		/* MANDAR ENDEREÇO DE MEMORIA DO PRORIO
-		SEGMENTO DO CLUSTER PRA QUE ELE VERIFIQUE SOBRE AQUELE
-		ENDEREÇO || PEGAR O ENDEREÇO MPPA_ASYNC_ADRESS DO OFFSET
-		PASSADO AO CLUSTER */
+		/* Sends "message ready" signal */
+		mppa_async_postadd(mppa_async_default_segment(i), sigOffsets[i], 1);
 
-		/* Puts data on the data segment. */
-
+		i++;
 		message_destroy(msg);
 
 		/* All slaves working. Waiting for results. */

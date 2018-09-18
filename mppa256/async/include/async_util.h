@@ -6,7 +6,7 @@
 
 /* Messages segments identifiers */
 #define MSG_SEG_0 1
-#define STATUS_SEG_0 2
+#define SIG_SEG_0 2
 
 /*
  * Obs: You can delay the waiting of all wait functions
@@ -43,14 +43,11 @@ extern void async_master_finalize();
 
 #else
 
-/* Initalizes async context on slave */
-extern void cloneSegment(mppa_async_segment_t *segment, unsigned long long ident, void *global, size_t size, mppa_async_event_t *event);
-
 /* Be aware of some unique segment */
 extern void async_slave_init();
 
-/* Look at the contents of a remote segment. */
-void peek(mppa_async_segment_t *segment, off64_t offset, long long *result, mppa_async_event_t*event);
+/* Initalizes async context on slave */
+extern void cloneSegment(mppa_async_segment_t *segment, unsigned long long ident, void *global, size_t size, mppa_async_event_t *event);
 
 /* Finalizes async context on slave */
 extern void async_slave_finalize();
