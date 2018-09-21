@@ -20,7 +20,7 @@ typedef struct matrix * matrix_t;
 ((matrix_t)(m))
 
 /* Returns the element [i][j] in a matrix. */
-#define MATRIX(m, i, j)                                 \
+#define MATRIX(m, i, j)                             \
 (MATRIXP(m)->elements[(i)*MATRIXP(m)->width + (j)]) \
 
 /* Creates a matrix. */

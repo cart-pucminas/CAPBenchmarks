@@ -88,11 +88,17 @@ void message_destroy(struct message *msg) {
 }
 
 /* Sends a message. */
-void message_put(struct message *msg, mppa_async_segment_t *seg, mppa_async_event_t *event) {
-	dataPut(msg, seg, 0, 1, sizeof(struct message), event);
+void message_put(struct message *msg, mppa_async_segment_t *seg, int offset, mppa_async_event_t *event) {
+	dataPut(msg, seg, offset, 1, sizeof(struct message), event);
 }
 
 /* Receives a message. */
-void *message_get(struct message *msg, mppa_async_segment_t *seg, int offset, mppa_async_event_t *event) {
-	dataGet(msg, seg, offset*sizeof(struct message), 1, sizeof(struct message), event);
+struct message *message_get(mppa_async_segment_t *seg, int offset, mppa_async_event_t *event) {
+	struct message *msg;
+
+	msg = message_create(DIE);
+
+	dataGet(msg, seg, offset, 1, sizeof(struct message), event);
+
+	return msg;
 }

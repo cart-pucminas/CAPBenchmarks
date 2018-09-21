@@ -124,7 +124,7 @@ void inform_statistics() {
 	printf("  total time:    %f\n", total*MICROSEC);
 	printf("asynchronous operations statistics:\n");
 	printf("  data put:         %d\n", data_put);
-	printf("  data got:         %d\n", data_get);
+	printf("  data get:         %d\n", data_get);
 	printf("  number of puts:   %u\n", nput);
 	printf("  number of gets:   %u\n", nget);
 	fflush(stdout);

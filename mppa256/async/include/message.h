@@ -32,6 +32,10 @@
 #define pop(l, msg)                 \
 { (msg) = (l); (l) = (msg)->next; } \
 
+/* Return the real index of element [i][j] in the matrix array. */
+#define OFFSET(width, i, j) \
+((i * width) + j)           \
+
 /* Message. */
 struct message {
 	int type; /* Message type (see above). */
@@ -91,9 +95,9 @@ extern struct message *message_create(int type, ...);
 extern void message_destroy(struct message *msg);
 
 /* Sends a message. */
-extern void message_put(struct message *msg, mppa_async_segment_t *seg, mppa_async_event_t *event);
+extern void message_put(struct message *msg, mppa_async_segment_t *seg, int offset, mppa_async_event_t *event);
 
 /* Receives a message. */
-extern void *message_get(struct message *msg, mppa_async_segment_t *seg, int offset, mppa_async_event_t *event);
+extern struct message *message_get(mppa_async_segment_t *seg, int offset, mppa_async_event_t *event);
 
 #endif /* MESSAGE_H_ */

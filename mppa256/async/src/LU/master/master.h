@@ -8,7 +8,7 @@
 /* C And MPPA Library Includes*/
 #include <mppa_async.h>
 
-#define ELEM_SEG 50
+#define MATRIX_SEG_0 3
 
 /* Message exchange context */
 extern mppa_async_segment_t messages_segment;
@@ -18,7 +18,11 @@ extern off64_t sigOffsets[NUM_CLUSTERS];
 
 /* Elements segment context. */
 extern mppa_async_segment_t elements_segment;
-extern float elements[NUM_CLUSTERS * CLUSTER_WORKLOAD/sizeof(float)];
+extern float *elements;
+
+/* Matrix blocks exchange. */
+extern mppa_async_segment_t matrix_segment;
+
 
 /* Slave statistics result */
 typedef struct {

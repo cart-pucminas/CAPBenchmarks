@@ -110,8 +110,6 @@ static void getWork() {
 	dataGet(task, &task_segment, offset, tasksize, sizeof(Item), NULL);
 }
 
-void testAllTasks();
-
 static void syncAbundances() {
 	dataPut(task, &task_segment, offset, tasksize, sizeof(Item), NULL);
 

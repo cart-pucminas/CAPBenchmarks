@@ -81,9 +81,6 @@ float find_pivot(struct matrix *m, int i0, int j0) {
 		/* Pops a message from the worklist. */
 		pop(works, msg);
 
-		/* Puts data on the data segment. */
-		n = (msg->u.findwork.height)*(msg->u.findwork.width)*sizeof(float);
-
 		/* Puts a message on the msg segment. */
 		works_inProg[i] = *msg;
 

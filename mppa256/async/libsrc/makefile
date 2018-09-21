@@ -1,8 +1,6 @@
 #
 # Copyright(C) 2014 Pedro H. Penna <pedrohenriquepenna@gmail.com>
 #
-
-# OBS: MAKEFILE NAO INTERFERINDO NA EXECUÇÃO ??
 	
 # Source files.
 SRC = $(wildcard *.c)

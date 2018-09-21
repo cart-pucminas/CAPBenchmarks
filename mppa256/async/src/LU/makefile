@@ -16,7 +16,7 @@ io_bin-srcs := $(wildcard master/*.c) $(wildcard $(LIBSRCDIR)/*.c)
 
 # Builds slave binary.
 cluster-bin := cluster_bin
-cluster-lflags := $(MPPAFlags)
+cluster-lflags := $(MPPAFlags) -lm
 cluster_bin-srcs := $(wildcard slave/*.c) $(wildcard $(LIBSRCDIR)/*.c)
 
 # Builds image (master + slave)
