@@ -40,6 +40,7 @@ struct message *message_create(int type, ...) {
 		msg->u.findwork.height = va_arg(ap, int);
 		msg->u.findwork.width = va_arg(ap, int);
 		msg->type = FINDWORK;
+		msg->signal = 0;
 		break;
 		
 		/* FINDRESULT. */
@@ -49,6 +50,7 @@ struct message *message_create(int type, ...) {
 		msg->u.findresult.ipvt = va_arg(ap, int);
 		msg->u.findresult.jpvt = va_arg(ap, int);
 		msg->type = FINDRESULT;
+		msg->signal = 1;
 		break;
 		
 		/* REDUCTWORK. */

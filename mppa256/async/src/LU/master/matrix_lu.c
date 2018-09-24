@@ -96,6 +96,8 @@ int matrix_lu(struct matrix *m, struct matrix *l, struct matrix *u) {
 	/* Wait for all clusters signal offset. */
 	waitSigOffsets();
 
+	// Destruir segmento dos offsets
+
 	/* Apply elimination on all rows */
 	applyElimination(m);
 

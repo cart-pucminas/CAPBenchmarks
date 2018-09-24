@@ -111,6 +111,7 @@ void inform_usage() {
 	printf("                       - huge\n");
 	printf("  --verbose          Be verbose\n");
 	fflush(stdout);
+	error("Wrong args");
 }
 
 /* Show timing and data exchange statistics */

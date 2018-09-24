@@ -38,7 +38,8 @@
 
 /* Message. */
 struct message {
-	int type; /* Message type (see above). */
+	int type;          /* Message type (see above). */
+	long long signal;  /* Message changed signal.   */
 
 	union {
 	    /* SORTWORK. */

@@ -35,11 +35,8 @@ uint64_t start, end;
 /* Matrix dimensions information. */
 static int m_width, m_height;
 
-/*
- * Returns the element [i][j] of the block.
- */
-#define BLOCK(i, j) \
-(block.elements[block.width*(i) + (j)])
+/* Compute Cluster ID */
+int cid;
 
 static void cloneSegments() {
 	cloneSegment(&sigOffsets_segment, SIG_SEG_0, 0, 0, NULL);
@@ -53,14 +50,7 @@ static void sendSigOffset() {
 	dataPut(&offset, &sigOffsets_segment, cid, 1, sizeof(off64_t), NULL);
 }
 
-static void waitMessageSignal() {
-	if (cid == 0)
-		waitCondition(&signal, 0, MPPA_ASYNC_COND_GT, NULL);
-}
-
-/*
- * Finds the pivot element.
- */
+/* Finds the pivot element. */
 static void _find_pivot(int *ipvt, int *jpvt)
 {
 	int tid;                             /* Thread ID.        */
@@ -106,11 +96,6 @@ static void _find_pivot(int *ipvt, int *jpvt)
 	*jpvt = _jpvt[0];
 }
 
-static void testFindWork(struct message *msg) {
-	printf("Type = %d || i0 = %d  || j0 = %d || height = %d || width = %d\n", msg->type, msg->u.findwork.i0, msg->u.findwork.j0, msg->u.findwork.height, msg->u.findwork.width);
-	fflush(stdout);
-}
-
 static int doWork() {
 	int i0, j0;    /* Block start.             */
 	int ipvt;      /* ith idex of pivot.       */
@@ -119,30 +104,25 @@ static int doWork() {
 	struct message *msg; /* Message.           */
 
 	/* Waits for message signal to continue. */
-	waitCondition(&signal, 1 , MPPA_ASYNC_COND_EQ, NULL);
+	mppa_async_evalcond(&signal, 1 , MPPA_ASYNC_COND_EQ, NULL);
+
+	/* Resets signal for the next message. */
+	signal = 0;
+
+	// Destruir segmento dos offsets após receber sinal
 
 	/* Get message from messages remote segment. */
-	mppa_async_event_t msg_event;
-	msg = message_get(&messages_segment, cid, &msg_event);
-
-	/* Making sure that msg get completes before continue. */
-	waitEvent(&msg_event);
+	msg = message_get(&messages_segment, cid, NULL);
 	
 	// LEMBRAR DE RETIRAR O SIZEOF(FLOAT) DO N TODO CASO E PASSAR NO DATA GET
 	switch (msg->type)	{
 		/* FINDWORK. */
 		case FINDWORK:
-		//testFindWork(msg);
-
 		/* Receive matrix block. */
 		n = (msg->u.findwork.height)*(msg->u.findwork.width);             /* Number of elements.      */
 		
 		/* Get block from matrix segment. */
-		mppa_async_event_t block_event;
-		dataGet(&block.elements, &matrix_segment, OFFSET(m_width, msg->u.findwork.i0, msg->u.findwork.j0), n, sizeof(float), &block_event);
-
-		/* Making sure that block get op was completed. */
-		waitEvent(&block_event);
+		dataGet(&block.elements, &matrix_segment, OFFSET(m_width, msg->u.findwork.i0, msg->u.findwork.j0), n, sizeof(float), NULL);
 
 		/* Extract message information. */
 		block.height = msg->u.findwork.height;
@@ -151,18 +131,18 @@ static int doWork() {
 		j0 = msg->u.findwork.j0;
 		message_destroy(msg);
 
-		
 		start = timer_get();
 		_find_pivot(&ipvt, &jpvt);
 		end = timer_get();
 		total += timer_diff(start, end);
 
-		/*
+		/* Send message back to IO. */
 		msg = message_create(FINDRESULT, i0, j0, ipvt, jpvt);
-		message_send(outfd, msg);
-		message_destroy(msg);*/
+		message_put(msg, &messages_segment, cid, NULL);
+		message_destroy(msg);
 
-		return 0;
+		/* Slave cant die yet. Needs to wait another message */
+		return 1;
 
 		/* REDUCTRESULT. */
 		case REDUCTWORK :

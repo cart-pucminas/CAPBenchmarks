@@ -62,6 +62,25 @@ static void works_populate(struct matrix *m, int i0, int j0) {
 	}
 }
 
+static void receiveResults(int *index, struct message *msg) {
+	int i = *index;
+
+	/* Waits new msg. sig. from the last working cluster. */
+	mppa_async_evalcond((long long *)&works_inProg[i-1].signal, 1, MPPA_ASYNC_COND_EQ, NULL);
+			
+	/* Ensures that all msg. put operations are done. */
+	mppa_async_fence(&messages_segment, NULL);
+
+	/* Receive results. */
+	for (/* NOOP */ ; i > 0; i--) {
+		msg = message_get(&messages_segment, i-1, NULL);
+		push(results,msg);
+	}
+
+	/* Sync i from find_pivot. */
+	*index = i;
+}
+
 float find_pivot(struct matrix *m, int i0, int j0) {
 	int i,j;             /* Loop index.              */
 	size_t n;            /* Number of bytes to send. */
@@ -84,17 +103,47 @@ float find_pivot(struct matrix *m, int i0, int j0) {
 		/* Puts a message on the msg segment. */
 		works_inProg[i] = *msg;
 
-		/* Sends "message ready" signal */
+		/* Sends "message ready" signal to cluster "i". */
 		mppa_async_postadd(mppa_async_default_segment(i), sigOffsets[i], 1);
 
 		i++;
 		message_destroy(msg);
 
 		/* All slaves working. Waiting for results. */
-		if (i == nclusters) {
-			
-		}
+		if (i == nclusters)
+			receiveResults(&i, msg);
 	}
 
-	/* Receive results. */
+	receiveResults(&i, msg);
+
+	start = timer_get();
+
+	/* Find pivot. */
+	ipvt = i0;
+	jpvt = j0;
+	while (!empty(results))
+	{
+		pop(results, msg);
+		
+		i = msg->u.findresult.ipvt + msg->u.findresult.i0;
+		j = msg->u.findresult.jpvt;
+		
+		if (fabs(MATRIX(m, i, j)) > fabs(MATRIX(m, ipvt, jpvt)))
+		{
+			ipvt = i;
+			jpvt = j;
+		}
+		
+		message_destroy(msg);
+	}
+
+	_swap_rows(m, i0, ipvt);
+	_swap_columns(m, j0, jpvt);
+	
+	
+	end = timer_get();
+	master += timer_diff(start, end);
+
+	return 0;
+	//return (MATRIX(m, ipvt, jpvt));
 }

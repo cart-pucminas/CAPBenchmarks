@@ -1,9 +1,6 @@
 #ifndef SLAVE_H_
 #define SLAVE_H_
 
-/* Compute Cluster ID */
-int cid;
-
 /* Statistics to send back to IO */
 typedef struct {
 	size_t data_put;         /* Number of bytes put.    */
