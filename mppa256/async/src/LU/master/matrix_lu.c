@@ -12,11 +12,6 @@
 #include <stdint.h>
 #include <stdio.h>
 
-/* Arguments sanity check. */
-#define SANITY_CHECK()                       \
-if (m == NULL) || (l == NULL) || (u == NULL) \
-	error("Null Matrix");                    \
-
 /* Message exchange context */
 mppa_async_segment_t messages_segment;
 mppa_async_segment_t sigOffsets_segment;
@@ -36,21 +31,12 @@ static void createSegments(struct matrix *m) {
 }
 
 static void spawnSlaves() {
-	/* Information for the slaves about matrix width and height. */
-	char str_height[10], str_width[10];
-	sprintf(str_height, "%d", prob->height);
-	sprintf(str_width, "%d", prob->width);
-	char *args[3];
-	args[0] = str_height;
-	args[1] = str_width;
-	args[2] = NULL;
-
 	start = timer_get();
 
 	/* Parallel spawning PE0 of cluster "i" */
 	#pragma omp parallel for default(shared) num_threads(3)
 	for (int i = 0; i < nclusters; i++)
-		spawn_slave(i, args);
+		spawn_slave(i, NULL);
 
 	end = timer_get();
 
@@ -73,7 +59,7 @@ static void applyElimination(struct matrix *m) {
 			warning("cannot factorize matrix");
 			break;
 		}
-		//row_reduction(m, i);
+		row_reduction(m, i);
 	}
 }
 
@@ -96,7 +82,8 @@ int matrix_lu(struct matrix *m, struct matrix *l, struct matrix *u) {
 	/* Wait for all clusters signal offset. */
 	waitSigOffsets();
 
-	// Destruir segmento dos offsets
+	/* Destroy signal offsets segment. */
+	mppa_async_segment_destroy(&sigOffsets_segment);
 
 	/* Apply elimination on all rows */
 	applyElimination(m);

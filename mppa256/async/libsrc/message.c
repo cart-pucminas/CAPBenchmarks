@@ -61,6 +61,7 @@ struct message *message_create(int type, ...) {
 		msg->u.reductwork.height = va_arg(ap, int);
 		msg->u.reductwork.width = va_arg(ap, int);
 		msg->type = REDUCTWORK;
+		msg->signal = 0;
 		break;
 		
 		/* REDUCTRESULT. */
@@ -70,6 +71,7 @@ struct message *message_create(int type, ...) {
 		msg->u.reductresult.height = va_arg(ap, int);
 		msg->u.reductresult.width = va_arg(ap, int);
 		msg->type = REDUCTRESULT;
+		msg->signal = 1;
 		break;
 		
 		/* DIE. */

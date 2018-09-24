@@ -9,7 +9,6 @@
 
 /* C And MPPA Library Includes*/
 #include <stdint.h>
-#include <stdio.h>
 #include <math.h>
 
 /* Lists. */
@@ -83,7 +82,6 @@ static void receiveResults(int *index, struct message *msg) {
 
 float find_pivot(struct matrix *m, int i0, int j0) {
 	int i,j;             /* Loop index.              */
-	size_t n;            /* Number of bytes to send. */
 	int ipvt;            /* ith index of pivot.      */
 	int jpvt;            /* jth index of pivot.      */
 	struct message *msg; /* Message.                 */
@@ -94,7 +92,6 @@ float find_pivot(struct matrix *m, int i0, int j0) {
 	master += timer_diff(start, end);
 
 	i = 0;
-
 	/* Send work. */
 	while(!empty(works)) {
 		/* Pops a message from the worklist. */
@@ -144,6 +141,5 @@ float find_pivot(struct matrix *m, int i0, int j0) {
 	end = timer_get();
 	master += timer_diff(start, end);
 
-	return 0;
-	//return (MATRIX(m, ipvt, jpvt));
+	return (MATRIX(m, ipvt, jpvt));
 }

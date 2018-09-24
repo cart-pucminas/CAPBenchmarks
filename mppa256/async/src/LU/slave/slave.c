@@ -10,6 +10,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 
 #define MATRIX_SEG_0 3
 
@@ -31,9 +32,6 @@ unsigned nget = 0;           /* Number of get ops.      */
 
 /* Timing statistics auxiliars. */
 uint64_t start, end;
-
-/* Matrix dimensions information. */
-static int m_width, m_height;
 
 /* Compute Cluster ID */
 int cid;
@@ -96,6 +94,29 @@ static void _find_pivot(int *ipvt, int *jpvt)
 	*jpvt = _jpvt[0];
 }
 
+/* Applies the row reduction algorithm in a matrix. */
+void row_reduction(void) {
+	int i, j;    /* Loop indexes.   */
+	float mult;  /* Row multiplier. */
+	float pivot; /* Pivot element.  */
+	
+	pivot = pvtline.elements[0];
+	
+	/* Apply row redution in some lines. */
+	#pragma omp parallel for private(i, j, mult) default(shared)
+	for (i = 0; i < block.height; i++)
+	{
+		mult = BLOCK(i, 0)/pivot;
+	
+		/* Store multiplier. */
+		BLOCK(i, 0) = mult;
+	
+		/* Iterate over columns. */
+		for (j = 1; j < block.width; j++)
+			BLOCK(i, j) = BLOCK(i, j) - mult*pvtline.elements[j];
+	}
+}
+
 static int doWork() {
 	int i0, j0;    /* Block start.             */
 	int ipvt;      /* ith idex of pivot.       */
@@ -109,8 +130,6 @@ static int doWork() {
 	/* Resets signal for the next message. */
 	signal = 0;
 
-	// Destruir segmento dos offsets após receber sinal
-
 	/* Get message from messages remote segment. */
 	msg = message_get(&messages_segment, cid, NULL);
 	
@@ -119,10 +138,8 @@ static int doWork() {
 		/* FINDWORK. */
 		case FINDWORK:
 		/* Receive matrix block. */
-		n = (msg->u.findwork.height)*(msg->u.findwork.width);             /* Number of elements.      */
-		
-		/* Get block from matrix segment. */
-		dataGet(&block.elements, &matrix_segment, OFFSET(m_width, msg->u.findwork.i0, msg->u.findwork.j0), n, sizeof(float), NULL);
+		n = (msg->u.findwork.height)*(msg->u.findwork.width);        
+		dataGet(&block.elements, &matrix_segment, OFFSET(msg->u.findwork.width, msg->u.findwork.i0, msg->u.findwork.j0), n, sizeof(float), NULL);
 
 		/* Extract message information. */
 		block.height = msg->u.findwork.height;
@@ -146,7 +163,34 @@ static int doWork() {
 
 		/* REDUCTRESULT. */
 		case REDUCTWORK :
-		
+		/* Receive pivot line. */
+		n = msg->u.reductwork.width;
+		assert((n*sizeof(float)) <= sizeof(pvtline.elements));
+		dataGet(&pvtline.elements, &matrix_segment, OFFSET(msg->u.reductwork.width, msg->u.reductwork.ipvt, msg->u.reductwork.j0), n, sizeof(float), NULL);
+   		
+   		/* Receive matrix block. */
+		n = (msg->u.reductwork.height)*(msg->u.reductwork.width);
+		dataGet(&block.elements, &matrix_segment, OFFSET(msg->u.reductwork.width, msg->u.reductwork.i0, msg->u.reductwork.j0), n, sizeof(float), NULL);
+
+		/* Extract message information. */
+		block.height = msg->u.reductwork.height;
+		block.width = pvtline.width = msg->u.reductwork.width;
+		i0 = msg->u.reductwork.i0;
+		j0 = msg->u.reductwork.j0;
+		message_destroy(msg);
+
+		start = timer_get();
+		row_reduction();
+		end = timer_get();
+		total += timer_diff(start, end);
+
+		/* Send message back.*/
+		msg = message_create(REDUCTRESULT, i0, j0, block.height, block.width);
+		message_put(msg, &messages_segment, cid, NULL);
+		message_destroy(msg);
+
+		printf("i0 = %d || j0 = %d || height = %d || width = %d\n", msg->u.reductresult.i0, msg->u.reductresult.j0 , msg->u.reductresult.height, msg->u.reductresult.width);
+
 		return 0;
 
 		/* DIE. */
@@ -167,8 +211,6 @@ int main(__attribute__((unused))int argc, const char **argv) {
 
 	/* Util information for the problem. */
 	cid = __k1_get_cluster_id();
-	m_height = atoi(argv[0]);
-	m_width = atoi(argv[1]);
 
 	/* Clones message exchange and signal segments */
 	cloneSegments();
