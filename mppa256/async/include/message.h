@@ -12,7 +12,7 @@
 #include <stdlib.h>
 
 /* Message types. */
-#define DIE          0 /* Die.                */
+#define DIE          0 /* End.                */
 #define SORTWORK     1 /* Sort array.         */
 #define SORTRESULT   2 /* Sort array result.  */
 #define FINDWORK     3 /* Find pivot element. */
@@ -34,12 +34,11 @@
 
 /* Return the real index of element [i][j] in the matrix array. */
 #define OFFSET(width, i, j) \
-((i * width) + j)           \
+(((i) * width) + j)         \
 
 /* Message. */
 struct message {
 	int type;          /* Message type (see above). */
-	long long signal;  /* Message changed signal.   */
 
 	union {
 	    /* SORTWORK. */
@@ -56,9 +55,8 @@ struct message {
 
 		/* FINDWORK. */
 		struct {
-			int i0, j0; /* Block start.  */
+			int i0; /* Block start.  */
 			int height; /* Block height. */
-			int width;  /* Block width.  */
 		} findwork;
 
 		/* FINDRESULT. */
@@ -75,14 +73,6 @@ struct message {
 			int height; /* Block height.       */
 			int width;  /* Block width.        */
 		} reductwork;
-
-			/* REDUCTRESULT. */
-		struct {
-			int i0, j0; /* Block start.  */
-			int height; /* Block height. */
-			int width;  /* Block width.  */
-
-		} reductresult;
 	} u;
 
 	/* Next message of a list. */

@@ -12,7 +12,7 @@
 
 /* Put data on remote segment */
 void dataPut(void *item, mppa_async_segment_t *segment, int offset, int nItems, size_t type_size, mppa_async_event_t *event) {
-	int start, end; /* Timing auxiliars */
+	uint64_t start, end; /* Timing auxiliars */
 
 	start = timer_get();
 
@@ -27,7 +27,7 @@ void dataPut(void *item, mppa_async_segment_t *segment, int offset, int nItems, 
 
 /* Get data from remote segment */
 void dataGet(void *item,  mppa_async_segment_t *segment, int offset, int nItems, size_t type_size, mppa_async_event_t *event) {
-	int start, end; /* Timing auxiliars */
+	uint64_t start, end; /* Timing auxiliars */
 
 	start = timer_get();
 
@@ -75,6 +75,7 @@ void async_master_start() {
 /* Finalizes async context on master*/
 void async_master_finalize() {
 	mppa_async_server_final();
+	mppa_rpc_server_free();
 }
 
 #else

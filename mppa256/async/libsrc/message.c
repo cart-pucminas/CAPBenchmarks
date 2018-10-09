@@ -36,21 +36,14 @@ struct message *message_create(int type, ...) {
 		/* FINDWORK. */
 		case FINDWORK :
 		msg->u.findwork.i0 = va_arg(ap, int);
-		msg->u.findwork.j0 = va_arg(ap, int);
 		msg->u.findwork.height = va_arg(ap, int);
-		msg->u.findwork.width = va_arg(ap, int);
 		msg->type = FINDWORK;
-		msg->signal = 0;
 		break;
 		
 		/* FINDRESULT. */
 		case FINDRESULT :
-		msg->u.findresult.i0 = va_arg(ap, int);
-		msg->u.findresult.j0 = va_arg(ap, int);
 		msg->u.findresult.ipvt = va_arg(ap, int);
-		msg->u.findresult.jpvt = va_arg(ap, int);
 		msg->type = FINDRESULT;
-		msg->signal = 1;
 		break;
 		
 		/* REDUCTWORK. */
@@ -61,20 +54,9 @@ struct message *message_create(int type, ...) {
 		msg->u.reductwork.height = va_arg(ap, int);
 		msg->u.reductwork.width = va_arg(ap, int);
 		msg->type = REDUCTWORK;
-		msg->signal = 0;
 		break;
 		
-		/* REDUCTRESULT. */
-		case REDUCTRESULT :
-		msg->u.reductresult.i0 = va_arg(ap, int);
-		msg->u.reductresult.j0 = va_arg(ap, int);
-		msg->u.reductresult.height = va_arg(ap, int);
-		msg->u.reductresult.width = va_arg(ap, int);
-		msg->type = REDUCTRESULT;
-		msg->signal = 1;
-		break;
-		
-		/* DIE. */
+		/* Signal to proceed/end message. */
 		default :
 		msg->type = DIE;
 		break;

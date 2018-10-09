@@ -3,6 +3,7 @@
 #include <message.h>
 #include <global.h>
 #include <timer.h>
+#include <util.h>
 #include "slave.h"
 
 /* C And MPPA Library Includes*/
@@ -12,15 +13,21 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#define MATRIX_SEG_0 3
-
-/* Message exchange context. */
+/* Data exchange segments. */
+static mppa_async_segment_t matrix_segment;
 static mppa_async_segment_t messages_segment;
 static mppa_async_segment_t sigOffsets_segment;
-static long long signal;
 
-/* Matrix remote segment. */
-static mppa_async_segment_t matrix_segment;
+/* Information to send back to IO */
+static mppa_async_segment_t infos_segment;
+static Info info = {0, 0, 0, 0, 0, 0};
+
+/* Data exchange signals between IO and Clusters. */
+static long long io_signal;
+static off64_t sigback_offset;
+
+/* Matrix width for matrix dataPut and dataGet. */
+static int matrix_width;
 
 /* Individual Slave statistics. */
 uint64_t total = 0;          /* Time spent on slave.    */
@@ -31,132 +38,134 @@ unsigned nput = 0;           /* Number of put ops.      */
 unsigned nget = 0;           /* Number of get ops.      */
 
 /* Timing statistics auxiliars. */
-uint64_t start, end;
+static uint64_t start, end;
 
 /* Compute Cluster ID */
 int cid;
+
+static void sendStatisticsToIO() {
+	info.data_put = data_put;
+	info.data_get = data_get;
+	info.nput = nput;
+	info.nget = nget;
+	info.slave = total;
+	info.communication = communication;
+
+	dataPut(&info, &infos_segment, cid, 1, sizeof(Info), NULL);
+
+	/* Send stats. ready signal to IO. */
+	mppa_async_postadd(MPPA_ASYNC_DDR_0, sigback_offset, 1);
+}
 
 static void cloneSegments() {
 	cloneSegment(&sigOffsets_segment, SIG_SEG_0, 0, 0, NULL);
 	cloneSegment(&messages_segment, MSG_SEG_0, 0, 0, NULL);
 	cloneSegment(&matrix_segment, MATRIX_SEG_0, 0, 0, NULL);
+	cloneSegment(&infos_segment, INFOS_SEG_0, 0, 0, NULL);
 }
 
 static void sendSigOffset() {
 	off64_t offset = 0;
-	mppa_async_offset(mppa_async_default_segment(cid), &signal, &offset);
+	mppa_async_offset(mppa_async_default_segment(cid), &io_signal, &offset);
 	dataPut(&offset, &sigOffsets_segment, cid, 1, sizeof(off64_t), NULL);
 }
 
 /* Finds the pivot element. */
-static void _find_pivot(int *ipvt, int *jpvt)
-{
+static void _find_pivot(int *ipvt) {
 	int tid;                             /* Thread ID.        */
-	int i, j;                            /* Loop indexes.     */
 	int _ipvt[(NUM_CORES/NUM_CLUSTERS)]; /* Index i of pivot. */
-	int _jpvt[(NUM_CORES/NUM_CLUSTERS)]; /* Index j of pivot. */
-	
-	#pragma omp parallel private(i, j, tid) default(shared)
+
+	#pragma omp parallel private(tid) default(shared)
 	{
 		tid = omp_get_thread_num();
-	
+
 		_ipvt[tid] = 0;
-		_jpvt[tid] = 0;
-	
-		/* Find pivot element. */
+
 		#pragma omp for
-		for (i = 0; i < block.height; i++)
-		{
-			for (j = 0; j < block.width; j++)
-			{
-				/* Found. */
-				if (fabs(BLOCK(i, j)) > fabs(BLOCK(_ipvt[tid],_jpvt[tid])))
-				{
+		for (int i = 0; i < (block.height*matrix_width); i += matrix_width) {
+			/* Found. */
+			if (fabs(BLOCK(i, 0)) > fabs(BLOCK(_ipvt[tid],0)))
 					_ipvt[tid] = i;
-					_jpvt[tid] = j;
-				}
-			}
 		}
 	}
 	
 	/* Min reduction of pivot. */
-	for (i = 1; i < (NUM_CORES/NUM_CLUSTERS); i++)
-	{
+	for (int i = 1; i < (NUM_CORES/NUM_CLUSTERS); i++) {
 		/* Smaller found. */
-		if (fabs(BLOCK(_ipvt[i], _jpvt[i])) > fabs(BLOCK(_ipvt[0],_jpvt[0])))
-		{
+		if (fabs(BLOCK(_ipvt[i], 0)) > fabs(BLOCK(_ipvt[0], 0)))
 			_ipvt[0] = _ipvt[i];
-			_jpvt[0] = _jpvt[i];
-		}
 	}
 	
 	*ipvt = _ipvt[0];
-	*jpvt = _jpvt[0];
 }
 
 /* Applies the row reduction algorithm in a matrix. */
 void row_reduction(void) {
-	int i, j;    /* Loop indexes.   */
 	float mult;  /* Row multiplier. */
 	float pivot; /* Pivot element.  */
 	
 	pivot = pvtline.elements[0];
 	
 	/* Apply row redution in some lines. */
-	#pragma omp parallel for private(i, j, mult) default(shared)
-	for (i = 0; i < block.height; i++)
-	{
+	#pragma omp parallel for private(mult) default(shared)
+	for (int i = 0; i < block.height; i++) {
+		/* Stores the line multiplier. */
 		mult = BLOCK(i, 0)/pivot;
-	
+
 		/* Store multiplier. */
 		BLOCK(i, 0) = mult;
-	
+
 		/* Iterate over columns. */
-		for (j = 1; j < block.width; j++)
+		for (int j = 1; j < block.width; j++)
 			BLOCK(i, j) = BLOCK(i, j) - mult*pvtline.elements[j];
 	}
 }
+int resp = 0;
 
 static int doWork() {
-	int i0, j0;    /* Block start.             */
-	int ipvt;      /* ith idex of pivot.       */
-	int jpvt;      /* jth index of pivot.      */
-	size_t n;      /* Number of bytes to send. */
-	struct message *msg; /* Message.           */
+	int i0, j0;          /* Block start.              */
+	int ipvt;            /* ith idex of pivot.        */
+ 	int n;               /* Number of block elements. */
+	struct message *msg; /* Message.                  */
 
-	/* Waits for message signal to continue. */
-	mppa_async_evalcond(&signal, 1 , MPPA_ASYNC_COND_EQ, NULL);
+	/* Waits for message io_signal to continue. */
+	mppa_async_evalcond(&io_signal, 1 , MPPA_ASYNC_COND_EQ, NULL);
 
-	/* Resets signal for the next message. */
-	signal = 0;
+	/* Resets io_signal for the next message. */
+	io_signal = 0;
 
 	/* Get message from messages remote segment. */
 	msg = message_get(&messages_segment, cid, NULL);
 	
-	// LEMBRAR DE RETIRAR O SIZEOF(FLOAT) DO N TODO CASO E PASSAR NO DATA GET
 	switch (msg->type)	{
 		/* FINDWORK. */
 		case FINDWORK:
-		/* Receive matrix block. */
-		n = (msg->u.findwork.height)*(msg->u.findwork.width);        
-		dataGet(&block.elements, &matrix_segment, OFFSET(msg->u.findwork.width, msg->u.findwork.i0, msg->u.findwork.j0), n, sizeof(float), NULL);
-
 		/* Extract message information. */
+		block.width = matrix_width;
 		block.height = msg->u.findwork.height;
-		block.width = msg->u.findwork.width;
 		i0 = msg->u.findwork.i0;
-		j0 = msg->u.findwork.j0;
+		n = matrix_width*block.height;
 		message_destroy(msg);
 
+		/* Get all column elements. */
+		mppa_async_get_spaced(&block.elements, &matrix_segment, OFFSET(matrix_width, i0, i0), sizeof(float), block.height, n, NULL);
+
+		//dataGet(&block.elements[i*block.width], &matrix_segment, OFFSET(matrix_width, i0+i, j0), block.width, sizeof(float), NULL);
+
 		start = timer_get();
-		_find_pivot(&ipvt, &jpvt);
+		_find_pivot(&ipvt);
+		ipvt += i0;
 		end = timer_get();
 		total += timer_diff(start, end);
 
 		/* Send message back to IO. */
-		msg = message_create(FINDRESULT, i0, j0, ipvt, jpvt);
+		msg = message_create(FINDRESULT, ipvt);
 		message_put(msg, &messages_segment, cid, NULL);
+
 		message_destroy(msg);
+
+		/* Send message ready signal to IO. */
+		mppa_async_postadd(MPPA_ASYNC_DDR_0, sigback_offset, 1);
 
 		/* Slave cant die yet. Needs to wait another message */
 		return 1;
@@ -164,13 +173,7 @@ static int doWork() {
 		/* REDUCTRESULT. */
 		case REDUCTWORK :
 		/* Receive pivot line. */
-		n = msg->u.reductwork.width;
-		assert((n*sizeof(float)) <= sizeof(pvtline.elements));
-		dataGet(&pvtline.elements, &matrix_segment, OFFSET(msg->u.reductwork.width, msg->u.reductwork.ipvt, msg->u.reductwork.j0), n, sizeof(float), NULL);
-   		
-   		/* Receive matrix block. */
-		n = (msg->u.reductwork.height)*(msg->u.reductwork.width);
-		dataGet(&block.elements, &matrix_segment, OFFSET(msg->u.reductwork.width, msg->u.reductwork.i0, msg->u.reductwork.j0), n, sizeof(float), NULL);
+		dataGet(&pvtline.elements, &matrix_segment, OFFSET(matrix_width, msg->u.reductwork.ipvt, msg->u.reductwork.j0), msg->u.reductwork.width, sizeof(float), NULL);
 
 		/* Extract message information. */
 		block.height = msg->u.reductwork.height;
@@ -179,27 +182,32 @@ static int doWork() {
 		j0 = msg->u.reductwork.j0;
 		message_destroy(msg);
 
+   		/* Receive matrix block. */
+   		for (int i = 0; i < block.height; i++)
+			dataGet(&block.elements[(i*block.width)], &matrix_segment, OFFSET(matrix_width, i0+i, j0), block.width, sizeof(float), NULL);
+
 		start = timer_get();
 		row_reduction();
 		end = timer_get();
 		total += timer_diff(start, end);
 
-		/* Send message back.*/
-		msg = message_create(REDUCTRESULT, i0, j0, block.height, block.width);
-		message_put(msg, &messages_segment, cid, NULL);
-		message_destroy(msg);
+		/* Send reduct work. */
+		for (int i = 0; i < block.height; i++)
+			dataPut(&block.elements[(i*block.width)], &matrix_segment, OFFSET(matrix_width, i0+i, j0), block.width, sizeof(float), NULL);
 
-		printf("i0 = %d || j0 = %d || height = %d || width = %d\n", msg->u.reductresult.i0, msg->u.reductresult.j0 , msg->u.reductresult.height, msg->u.reductresult.width);
+		/* Send reduct work done signal. */
+		mppa_async_postadd(MPPA_ASYNC_DDR_0, sigback_offset, 1);
 
-		return 0;
+		/* Slave cant die yet. Needs to wait another message */
+		return 1;
 
 		/* DIE. */
 		default:
-
 		message_destroy(msg);
-
 		return 0;	
 	}
+
+	mppa_rpc_barrier_all();
 }
 
 int main(__attribute__((unused))int argc, const char **argv) {
@@ -210,16 +218,21 @@ int main(__attribute__((unused))int argc, const char **argv) {
 	timer_init();
 
 	/* Util information for the problem. */
+	sigback_offset = (off64_t) atoll(argv[0]);
+	matrix_width = atoi(argv[1]);
 	cid = __k1_get_cluster_id();
 
-	/* Clones message exchange and signal segments */
+	/* Clones message exchange and io_signal segments */
 	cloneSegments();
 
-	/* Sends signal offset to Master. */
+	/* Sends io_signal offset to Master. */
 	sendSigOffset();
 
 	/* Slave life. */
 	while (doWork());
+
+	/* Put statistics in stats. segment on IO side. */
+	sendStatisticsToIO();
 
 	/* Finalizes async library and rpc client */
 	async_slave_finalize();

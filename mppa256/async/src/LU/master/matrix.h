@@ -36,7 +36,7 @@ extern void matrix_random(matrix_t m);
 extern int matrix_lu(matrix_t m, matrix_t l, matrix_t u);
 
 /* Finds the pivot element. */
-extern float find_pivot(struct matrix *m, int i0, int j0);
+extern float find_pivot(struct matrix *m, int i0);
 
 /* Applies the row reduction algorithm in a matrix. */
 extern void row_reduction(struct matrix *m, int i0);

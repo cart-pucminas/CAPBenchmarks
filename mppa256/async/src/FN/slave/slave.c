@@ -45,7 +45,7 @@ static Item task[MAX_TASK_SIZE];
 static Item allTasks[MAX_TASK_SIZE];
 
 /* Information to send back to IO */
-static Info finishedTask = {0, 0, 0, 0, 0, 0, 0};
+static Info finishedTask = {0, 0, 0, 0, 0, 0};
 
 /* Informations about the task */
 static int offset;

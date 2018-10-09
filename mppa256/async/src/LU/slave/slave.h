@@ -1,6 +1,9 @@
 #ifndef SLAVE_H_
 #define SLAVE_H_
 
+#define MATRIX_SEG_0 3
+#define INFOS_SEG_0 4
+
 /* Statistics to send back to IO */
 typedef struct {
 	size_t data_put;         /* Number of bytes put.    */
@@ -13,8 +16,8 @@ typedef struct {
 
 /* Matrix block */
 struct  {
-	int height;                                     /* Block height. */
 	int width;                                      /* Block width.  */
+	int height;                                     /* Block height. */
 	float elements[CLUSTER_WORKLOAD/sizeof(float)]; /* Elements.     */
 } block;
 

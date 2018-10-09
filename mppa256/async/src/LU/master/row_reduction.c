@@ -2,6 +2,7 @@
 #include <async_util.h>
 #include <message.h>
 #include <global.h>
+#include <problem.h>
 #include <timer.h>
 #include "matrix.h"
 #include "master.h"
@@ -10,6 +11,7 @@
 /* C And MPPA Library Includes*/
 #include <stdint.h>
 #include <stdio.h>
+#include <math.h>
 
 /* Work list. */
 static struct message *works = NULL; 
@@ -32,34 +34,31 @@ static void works_populate(struct matrix *m, int i0, int j0) {
 			height = m->height - i;
 		
 		msg = message_create(REDUCTWORK, i0, i, j0, height, m->width - j0);
-		
 		push(works, msg);
 	}
 }
 
-static void receiveResults(int *index, struct message *msg) {
+static void waitResults(int *index) {
 	int i = *index;
 
-	/* Waits new msg. sig. from the last working cluster. */
-	mppa_async_evalcond((long long *)&works_inProg[i-1].signal, 1, MPPA_ASYNC_COND_EQ, NULL);
-			
-	/* Ensures that all msg. put operations are done. */
-	mppa_async_fence(&messages_segment, NULL);
-
-	/* Receive results. */
+	/* Waits reduct work done signal from all working clusters. */
 	for (/* NOOP */ ; i > 0; i--) {
-		msg = message_get(&messages_segment, i-1, NULL);
-
+		mppa_async_evalcond(&cluster_signals[i-1], 1, MPPA_ASYNC_COND_EQ, NULL);	
+		
+		/* Reset signal for the next iteration. */
+		cluster_signals[i-1] = 0;
 	}
+	
+	/* Ensures that all block put operations are done. */
+	mppa_async_fence(&matrix_segment, NULL);
 
-	/* Sync i from find_pivot. */
 	*index = i;
 }
 
 /* Applies the row reduction algorithm in a matrix. */
 void row_reduction(struct matrix *m, int i0) {
-	int i;               /* Loop indexes.          */
-	struct message *msg; /* Message.               */
+	int i;               /* Loop indexes. */
+	struct message *msg; /* Message.      */
 	
 	start = timer_get();
 	works_populate(m, i0, i0);
@@ -81,9 +80,11 @@ void row_reduction(struct matrix *m, int i0) {
 		i++;
 		message_destroy(msg);
 
-		if (i == nclusters) 
-			receiveResults(&i, msg);
+		/* All slaves are working. Waiting for their results. */
+		if (i == nclusters)
+			waitResults(&i);
 	}
 
-	receiveResults(&i, msg);
+	if (i > 0)
+		waitResults(&i);
 }
