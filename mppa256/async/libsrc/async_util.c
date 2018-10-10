@@ -10,10 +10,10 @@
 #include <mppa_async.h>
 #include <utask.h>
 
+static uint64_t start, end; /* Timing auxiliars */
+
 /* Put data on remote segment */
 void dataPut(void *item, mppa_async_segment_t *segment, int offset, int nItems, size_t type_size, mppa_async_event_t *event) {
-	uint64_t start, end; /* Timing auxiliars */
-
 	start = timer_get();
 
 	mppa_async_put(item, segment, offset * type_size, type_size * nItems, event);
@@ -27,8 +27,6 @@ void dataPut(void *item, mppa_async_segment_t *segment, int offset, int nItems, 
 
 /* Get data from remote segment */
 void dataGet(void *item,  mppa_async_segment_t *segment, int offset, int nItems, size_t type_size, mppa_async_event_t *event) {
-	uint64_t start, end; /* Timing auxiliars */
-
 	start = timer_get();
 
 	mppa_async_get(item, segment, offset * type_size, type_size * nItems, event);
@@ -42,17 +40,36 @@ void dataGet(void *item,  mppa_async_segment_t *segment, int offset, int nItems,
 
 /* Waits all PUT/GET operations of some seg. to complete. */
 void waitAllOpCompletion(mppa_async_segment_t *segment, mppa_async_event_t *event) {
+	start = timer_get();
 	mppa_async_fence(segment, event);
+	end = timer_get();
+	communication += timer_diff(start, end);
 }
 
 /* Waits for some condition to occur */
 void waitCondition(long long *local, long long value, mppa_async_cond_t cond, mppa_async_event_t *event) {
+	start = timer_get();
 	mppa_async_evalcond(local, value, cond, event);
+	end = timer_get();
+	communication += timer_diff(start, end);
 }
 
 /* Waits an event to complete. */
 void waitEvent(mppa_async_event_t *event) {
+	start = timer_get();
 	mppa_async_event_wait(event);
+	end = timer_get();
+	communication += timer_diff(start, end);
+}
+
+/* Post an atomic add to remote long long datum. */
+void postAdd(const mppa_async_segment_t *segment, off64_t offset, int addend) {
+	start = timer_get();
+	mppa_async_postadd(segment, offset, addend);
+	end = timer_get();
+
+	data_put += sizeof(long long);
+	communication += timer_diff(start, end);
 }
 
 

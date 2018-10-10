@@ -30,6 +30,9 @@ extern void waitCondition(long long *local, long long value, mppa_async_cond_t c
 /* Waits an event to complete */
 extern void waitEvent(mppa_async_event_t *event);
 
+/* Post an atomic add to remote long long datum. */
+extern void postAdd(const mppa_async_segment_t *segment, off64_t offset, int addend);
+
 #ifdef _MASTER_
 
 /* Initializes a unique segment */

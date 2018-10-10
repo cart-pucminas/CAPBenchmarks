@@ -55,16 +55,15 @@ static void setAllStatistics() {
 		nget += infos[i].nget;
 	}
 
-	comm_Average = (uint64_t)comm_Sum/nclusters;
-	communication += comm_Average;
+	comm_Average = (uint64_t)(comm_Sum+communication)/(nclusters+1);
+	communication = comm_Average;
 }
 
 int main(int argc, char **argv) {
 	uint64_t startTime, endTime; /* Start and End time.     */
 
-	matrix_t l, u;       /* Lower and Upper matrix.           */
-	matrix_t m;          /* Matrix.                           */
-	matrix_t m_copy;     /* Copy for compare with l*u latter. */
+	matrix_t l, u;       /* Lower and Upper matrix. */
+	matrix_t m;          /* Matrix.                 */
 	
 	readargs(argc, argv);
 	
@@ -79,15 +78,9 @@ int main(int argc, char **argv) {
 	m = matrix_create(prob->height, prob->width);
 	l = matrix_create(prob->height, prob->width);
 	u = matrix_create(prob->height, prob->width);
-	m_copy = matrix_create(prob->height, prob->width);
 
 	matrix_random(m);
 	endTime = timer_get();
-
-	if (verbose)
-		printf("Copying matrix M to test latter...\n");
-
-	copyMatrix(m, m_copy);
 
 	if (verbose)
 		printf("  time spent: %f\n", timer_diff(startTime, endTime)*MICROSEC);
@@ -106,21 +99,10 @@ int main(int argc, char **argv) {
 	setAllStatistics();
 
 	inform_statistics();
-
-	/* Tests LU result by mult. both and comparing with m_copy. */
-	if (verbose)
-		printf("Testing result...:\n");
-
-	matrixMult(l, u, m);
-	int result = compareMatrices(m_copy, m);
-
-	if (verbose)
-		printf("  result:           %d\n", result);
 	
 	/* House keeping. */
-	matrix_destroy(m);
 	matrix_destroy(u);
 	matrix_destroy(l);
-	matrix_destroy(m_copy);
+	matrix_destroy(m);
 	return 0;
 }

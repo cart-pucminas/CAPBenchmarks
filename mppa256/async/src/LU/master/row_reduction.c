@@ -25,7 +25,7 @@ static void works_populate(struct matrix *m, int i0, int j0) {
 	int height;          /* Number of rows. */
 	struct message *msg; /* Work.           */
 	
-	height = (CLUSTER_WORKLOAD/sizeof(element))/((m->width - j0)*sizeof(element));
+	height = (CLUSTER_WORKLOAD/sizeof(float))/((m->width - j0)*sizeof(float));
 	
 	/* Populate works. */
 	for (i = i0 + 1; i < m->height; i += height)
@@ -43,14 +43,14 @@ static void waitResults(int *index) {
 
 	/* Waits reduct work done signal from all working clusters. */
 	for (/* NOOP */ ; i > 0; i--) {
-		mppa_async_evalcond(&cluster_signals[i-1], 1, MPPA_ASYNC_COND_EQ, NULL);	
+		waitCondition(&cluster_signals[i-1], 1, MPPA_ASYNC_COND_EQ, NULL);	
 		
 		/* Reset signal for the next iteration. */
 		cluster_signals[i-1] = 0;
 	}
 	
 	/* Ensures that all block put operations are done. */
-	mppa_async_fence(&matrix_segment, NULL);
+	waitAllOpCompletion(&matrix_segment, NULL);
 
 	*index = i;
 }
@@ -75,7 +75,7 @@ void row_reduction(struct matrix *m, int i0) {
 		works_inProg[i] = *msg;
 
 		/* Sends "message ready" signal to cluster "i". */
-		mppa_async_postadd(mppa_async_default_segment(i), sigOffsets[i], 1);
+		postAdd(mppa_async_default_segment(i), sigOffsets[i], 1);
 
 		i++;
 		message_destroy(msg);

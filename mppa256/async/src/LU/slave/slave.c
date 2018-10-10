@@ -54,7 +54,7 @@ static void sendStatisticsToIO() {
 	dataPut(&info, &infos_segment, cid, 1, sizeof(Info), NULL);
 
 	/* Send stats. ready signal to IO. */
-	mppa_async_postadd(MPPA_ASYNC_DDR_0, sigback_offset, 1);
+	postAdd(MPPA_ASYNC_DDR_0, sigback_offset, 1);
 }
 
 static void cloneSegments() {
@@ -70,39 +70,10 @@ static void sendSigOffset() {
 	dataPut(&offset, &sigOffsets_segment, cid, 1, sizeof(off64_t), NULL);
 }
 
-/* Finds the pivot element. */
-static void _find_pivot(int *ipvt) {
-	int tid;                             /* Thread ID.        */
-	int _ipvt[(NUM_CORES/NUM_CLUSTERS)]; /* Index i of pivot. */
-
-	#pragma omp parallel private(tid) default(shared)
-	{
-		tid = omp_get_thread_num();
-
-		_ipvt[tid] = 0;
-
-		#pragma omp for
-		for (int i = 0; i < (block.height*matrix_width); i += matrix_width) {
-			/* Found. */
-			if (fabs(BLOCK(i, 0)) > fabs(BLOCK(_ipvt[tid],0)))
-					_ipvt[tid] = i;
-		}
-	}
-	
-	/* Min reduction of pivot. */
-	for (int i = 1; i < (NUM_CORES/NUM_CLUSTERS); i++) {
-		/* Smaller found. */
-		if (fabs(BLOCK(_ipvt[i], 0)) > fabs(BLOCK(_ipvt[0], 0)))
-			_ipvt[0] = _ipvt[i];
-	}
-	
-	*ipvt = _ipvt[0];
-}
-
 /* Applies the row reduction algorithm in a matrix. */
 void row_reduction(void) {
-	element mult;  /* Row multiplier. */
-	element pivot; /* Pivot element.  */
+	float mult;  /* Row multiplier. */
+	float pivot; /* Pivot element.  */
 	
 	pivot = pvtline.elements[0];
 	
@@ -124,12 +95,10 @@ int resp = 0;
 
 static int doWork() {
 	int i0, j0;          /* Block start.              */
-	int ipvt;            /* ith idex of pivot.        */
- 	int n;               /* Number of block elements. */
 	struct message *msg; /* Message.                  */
 
 	/* Waits for message io_signal to continue. */
-	mppa_async_evalcond(&io_signal, 1 , MPPA_ASYNC_COND_EQ, NULL);
+	waitCondition(&io_signal, 1, MPPA_ASYNC_COND_EQ, NULL);
 
 	/* Resets io_signal for the next message. */
 	io_signal = 0;
@@ -138,42 +107,10 @@ static int doWork() {
 	msg = message_get(&messages_segment, cid, NULL);
 	
 	switch (msg->type)	{
-		/* FINDWORK. */
-		case FINDWORK:
-		/* Extract message information. */
-		block.width = matrix_width;
-		block.height = msg->u.findwork.height;
-		i0 = msg->u.findwork.i0;
-		n = matrix_width*block.height;
-		message_destroy(msg);
-
-		/* Get all column elements. */
-		mppa_async_get_spaced(&block.elements, &matrix_segment, OFFSET(matrix_width, i0, i0), sizeof(float), block.height, n, NULL);
-
-		//dataGet(&block.elements[i*block.width], &matrix_segment, OFFSET(matrix_width, i0+i, j0), block.width, sizeof(float), NULL);
-
-		start = timer_get();
-		_find_pivot(&ipvt);
-		ipvt += i0;
-		end = timer_get();
-		total += timer_diff(start, end);
-
-		/* Send message back to IO. */
-		msg = message_create(FINDRESULT, ipvt);
-		message_put(msg, &messages_segment, cid, NULL);
-
-		message_destroy(msg);
-
-		/* Send message ready signal to IO. */
-		mppa_async_postadd(MPPA_ASYNC_DDR_0, sigback_offset, 1);
-
-		/* Slave cant die yet. Needs to wait another message */
-		return 1;
-
 		/* REDUCTRESULT. */
 		case REDUCTWORK :
 		/* Receive pivot line. */
-		dataGet(&pvtline.elements, &matrix_segment, OFFSET(matrix_width, msg->u.reductwork.ipvt, msg->u.reductwork.j0), msg->u.reductwork.width, sizeof(element), NULL);
+		dataGet(&pvtline.elements, &matrix_segment, OFFSET(matrix_width, msg->u.reductwork.ipvt, msg->u.reductwork.j0), msg->u.reductwork.width, sizeof(float), NULL);
 
 		/* Extract message information. */
 		block.height = msg->u.reductwork.height;
@@ -184,7 +121,7 @@ static int doWork() {
 
    		/* Receive matrix block. */
    		for (int i = 0; i < block.height; i++)
-			dataGet(&block.elements[(i*block.width)], &matrix_segment, OFFSET(matrix_width, i0+i, j0), block.width, sizeof(element), NULL);
+			dataGet(&block.elements[(i*block.width)], &matrix_segment, OFFSET(matrix_width, i0+i, j0), block.width, sizeof(float), NULL);
 
 		start = timer_get();
 		row_reduction();
@@ -193,10 +130,10 @@ static int doWork() {
 
 		/* Send reduct work. */
 		for (int i = 0; i < block.height; i++)
-			dataPut(&block.elements[(i*block.width)], &matrix_segment, OFFSET(matrix_width, i0+i, j0), block.width, sizeof(element), NULL);
+			dataPut(&block.elements[(i*block.width)], &matrix_segment, OFFSET(matrix_width, i0+i, j0), block.width, sizeof(float), NULL);
 
 		/* Send reduct work done signal. */
-		mppa_async_postadd(MPPA_ASYNC_DDR_0, sigback_offset, 1);
+		postAdd(MPPA_ASYNC_DDR_0, sigback_offset, 1);
 
 		/* Slave cant die yet. Needs to wait another message */
 		return 1;

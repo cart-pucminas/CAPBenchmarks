@@ -14,23 +14,17 @@ typedef struct {
 	uint64_t communication;  /* Time spent on comms.    */
 } Info;
 
-/* Block element. */
-struct element {
-	int num; /* Numerator.   */
-	int den; /* Denominator. */
-}
-
 /* Matrix block */
 struct  {
 	int width;                                      /* Block width.  */
 	int height;                                     /* Block height. */
-	element elements[CLUSTER_WORKLOAD/sizeof(element)]; /* Elements.     */
+	float elements[CLUSTER_WORKLOAD/sizeof(float)]; /* Elements.     */
 } block;
 
 /* Pivot line. */
 struct {
 	int width;                                          /* Pivot line width. */ 
-	element elements[CLUSTER_WORKLOAD/(4*sizeof(element))]; /* Elements.         */
+	float elements[CLUSTER_WORKLOAD/(4*sizeof(float))]; /* Elements.         */
 } pvtline;
 
 /* Returns the element [i][j] of the block. */
