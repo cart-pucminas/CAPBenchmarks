@@ -25,7 +25,7 @@ static void works_populate(struct matrix *m, int i0, int j0) {
 	int height;          /* Number of rows. */
 	struct message *msg; /* Work.           */
 	
-	height = (CLUSTER_WORKLOAD/sizeof(float))/((m->width - j0)*sizeof(float));
+	height = (CLUSTER_WORKLOAD/sizeof(element))/((m->width - j0)*sizeof(element));
 	
 	/* Populate works. */
 	for (i = i0 + 1; i < m->height; i += height)

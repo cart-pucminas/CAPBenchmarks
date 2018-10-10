@@ -119,8 +119,8 @@ void inform_statistics() {
 	printf("timing statistics of %s:\n", bench_initials);
 	printf("  master:        %f\n", master*MICROSEC);
 	for (int i = 0; i < nclusters; i++)
-		printf("  slave %d:      %f\n", i, slave[i]*MICROSEC);
-	printf("  spawn %d CC:   %f\n", nclusters, spawn*MICROSEC);
+		printf("  slave %d:       %f\n", i, slave[i]*MICROSEC);
+	printf("  spawn %d CC:    %f\n", nclusters, spawn*MICROSEC);
 	printf("  communication: %f\n", communication*MICROSEC);
 	printf("  total time:    %f\n", total*MICROSEC);
 	printf("asynchronous operations statistics:\n");

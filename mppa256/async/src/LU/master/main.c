@@ -62,8 +62,9 @@ static void setAllStatistics() {
 int main(int argc, char **argv) {
 	uint64_t startTime, endTime; /* Start and End time.     */
 
-	matrix_t l, u;       /* Lower and Upper matrix. */
-	matrix_t m;          /* Matrix.                 */
+	matrix_t l, u;       /* Lower and Upper matrix.           */
+	matrix_t m;          /* Matrix.                           */
+	matrix_t m_copy;     /* Copy for compare with l*u latter. */
 	
 	readargs(argc, argv);
 	
@@ -74,14 +75,19 @@ int main(int argc, char **argv) {
 	if (verbose)
 		printf("initializing...\n");
 
-	/*
 	startTime = timer_get();
 	m = matrix_create(prob->height, prob->width);
 	l = matrix_create(prob->height, prob->width);
 	u = matrix_create(prob->height, prob->width);
+	m_copy = matrix_create(prob->height, prob->width);
 
 	matrix_random(m);
-	endTime = timer_get();*/
+	endTime = timer_get();
+
+	if (verbose)
+		printf("Copying matrix M to test latter...\n");
+
+	copyMatrix(m, m_copy);
 
 	if (verbose)
 		printf("  time spent: %f\n", timer_diff(startTime, endTime)*MICROSEC);
@@ -90,53 +96,31 @@ int main(int argc, char **argv) {
 	if (verbose)
 		printf("factorizing...\n");
 
-
-	int oi = 3;
-	m = matrix_create(oi,oi);
-	l = matrix_create(oi,oi);
-	u = matrix_create(oi,oi);
-
-	MATRIX(m, 0, 0) = 2;
-	MATRIX(m, 0, 1) = 3;
-	MATRIX(m, 0, 2) = -2;
-	MATRIX(m, 1, 0) = -4;
-	MATRIX(m, 1, 1) = 3;
-	MATRIX(m, 1, 2) = 3;
-	MATRIX(m, 2, 0) = -4;
-	MATRIX(m, 2, 1) = -2;
-	MATRIX(m, 2, 2) = 8;
-
 	startTime = timer_get();
 	matrix_lu(m, l, u);
 	endTime = timer_get();
 
 	total = timer_diff(startTime, endTime);
 
-	for (int i = 0; i < oi; i++) {
-		for (int j = 0; j < oi; j++) 
-			printf("|| %.2f ", l->elements[(i*oi)+j]);
-		printf("\n");
-	}
-
-	fflush(stdout);
-	printf("\n");
-
-	for (int i = 0; i < oi; i++) {
-		for (int j = 0; j < oi; j++) 
-			printf("|| %.2f ", u->elements[(i*oi)+j]);
-		printf("\n");
-	}
-
-	fflush(stdout);
-
 	/* Sets all statistics from slaves. */
 	setAllStatistics();
 
 	inform_statistics();
+
+	/* Tests LU result by mult. both and comparing with m_copy. */
+	if (verbose)
+		printf("Testing result...:\n");
+
+	matrixMult(l, u, m);
+	int result = compareMatrices(m_copy, m);
+
+	if (verbose)
+		printf("  result:           %d\n", result);
 	
 	/* House keeping. */
+	matrix_destroy(m);
 	matrix_destroy(u);
 	matrix_destroy(l);
-	matrix_destroy(m);
+	matrix_destroy(m_copy);
 	return 0;
 }

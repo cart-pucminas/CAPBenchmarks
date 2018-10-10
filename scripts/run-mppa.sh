@@ -7,7 +7,7 @@ export BINDIR=bin
 export K1DIR=/usr/local/k1tools/bin
 
 # Default Parameters.
-export CLASS=small
+export CLASS=tiny
 export NPROCS=2
 
 echo "Problem size = $CLASS"

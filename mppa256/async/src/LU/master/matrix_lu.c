@@ -30,7 +30,7 @@ static uint64_t start, end;
 static void createSegments(struct matrix *m) {
 	createSegment(&sigOffsets_segment, SIG_SEG_0, &sigOffsets, nclusters * sizeof(off64_t), 0, 0, NULL);
 	createSegment(&messages_segment, MSG_SEG_0, &works_inProg, nclusters * sizeof(struct message), 0, 0, NULL);
-	createSegment(&matrix_segment, MATRIX_SEG_0, &MATRIX(m, 0, 0), (m->height * m->width * sizeof(float)), 0, 0, NULL);
+	createSegment(&matrix_segment, MATRIX_SEG_0, &MATRIX(m, 0, 0), (m->height * m->width * sizeof(element)), 0, 0, NULL);
 	createSegment(&infos_segment, INFOS_SEG_0, &infos, nclusters * sizeof(Info), 0, 0, NULL);
 }
 
@@ -153,6 +153,6 @@ int matrix_lu(struct matrix *m, struct matrix *l, struct matrix *u) {
 
 	/* Split matrix m into lower and upper matrices. */
 	split(m, l, u);
-
+	
 	return 0;
 }

@@ -5,11 +5,17 @@
 #ifndef MATRIX_H_
 #define MATRIX_H_
 
+/* Matrix element. */
+struct element {
+	int num; /* Numerator.   */
+	int den; /* Denominator. */
+}
+
 /* Matrix. */
 struct matrix {
 		int height;      /* Height.   */
 		int width;       /* Width.    */
-		float *elements; /* Elements. */
+		element *elements; /* Elements. */
 };
 
 /* Opaque pointer to a matrix. */
@@ -40,5 +46,14 @@ extern float find_pivot(struct matrix *m, int i0);
 
 /* Applies the row reduction algorithm in a matrix. */
 extern void row_reduction(struct matrix *m, int i0);
+
+/* Copies all elements of a matrix to another matrix. */
+extern void copyMatrix(struct matrix *m, struct matrix *m_copy);
+
+/* Multiplicates matrix l*u and stores it on matrix m. */
+extern void matrixMult(struct matrix *l, struct matrix *u, struct matrix *m);
+
+/* Compares two matrices to see their equality. */
+extern int compareMatrices(struct matrix *m1, struct matrix *m2);
 
 #endif /* MATRIX_H_ */

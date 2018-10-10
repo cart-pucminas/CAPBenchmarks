@@ -101,8 +101,8 @@ static void _find_pivot(int *ipvt) {
 
 /* Applies the row reduction algorithm in a matrix. */
 void row_reduction(void) {
-	float mult;  /* Row multiplier. */
-	float pivot; /* Pivot element.  */
+	element mult;  /* Row multiplier. */
+	element pivot; /* Pivot element.  */
 	
 	pivot = pvtline.elements[0];
 	
@@ -173,7 +173,7 @@ static int doWork() {
 		/* REDUCTRESULT. */
 		case REDUCTWORK :
 		/* Receive pivot line. */
-		dataGet(&pvtline.elements, &matrix_segment, OFFSET(matrix_width, msg->u.reductwork.ipvt, msg->u.reductwork.j0), msg->u.reductwork.width, sizeof(float), NULL);
+		dataGet(&pvtline.elements, &matrix_segment, OFFSET(matrix_width, msg->u.reductwork.ipvt, msg->u.reductwork.j0), msg->u.reductwork.width, sizeof(element), NULL);
 
 		/* Extract message information. */
 		block.height = msg->u.reductwork.height;
@@ -184,7 +184,7 @@ static int doWork() {
 
    		/* Receive matrix block. */
    		for (int i = 0; i < block.height; i++)
-			dataGet(&block.elements[(i*block.width)], &matrix_segment, OFFSET(matrix_width, i0+i, j0), block.width, sizeof(float), NULL);
+			dataGet(&block.elements[(i*block.width)], &matrix_segment, OFFSET(matrix_width, i0+i, j0), block.width, sizeof(element), NULL);
 
 		start = timer_get();
 		row_reduction();
@@ -193,7 +193,7 @@ static int doWork() {
 
 		/* Send reduct work. */
 		for (int i = 0; i < block.height; i++)
-			dataPut(&block.elements[(i*block.width)], &matrix_segment, OFFSET(matrix_width, i0+i, j0), block.width, sizeof(float), NULL);
+			dataPut(&block.elements[(i*block.width)], &matrix_segment, OFFSET(matrix_width, i0+i, j0), block.width, sizeof(element), NULL);
 
 		/* Send reduct work done signal. */
 		mppa_async_postadd(MPPA_ASYNC_DDR_0, sigback_offset, 1);
