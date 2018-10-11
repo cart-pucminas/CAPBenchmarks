@@ -120,8 +120,7 @@ static int doWork() {
 		message_destroy(msg);
 
    		/* Receive matrix block. */
-   		for (int i = 0; i < block.height; i++)
-			dataGet(&block.elements[(i*block.width)], &matrix_segment, OFFSET(matrix_width, i0+i, j0), block.width, sizeof(float), NULL);
+		dataGetSpaced(&block.elements, &matrix_segment, OFFSET(matrix_width, i0, j0)*sizeof(float), block.width*sizeof(float), block.height, (block.width+j0)*sizeof(float), NULL);
 
 		start = timer_get();
 		row_reduction();
@@ -129,8 +128,7 @@ static int doWork() {
 		total += timer_diff(start, end);
 
 		/* Send reduct work. */
-		for (int i = 0; i < block.height; i++)
-			dataPut(&block.elements[(i*block.width)], &matrix_segment, OFFSET(matrix_width, i0+i, j0), block.width, sizeof(float), NULL);
+		dataPutSpaced(&block.elements, &matrix_segment, OFFSET(matrix_width, i0, j0)*sizeof(float), block.width*sizeof(float), block.height, (block.width+j0)*sizeof(float), NULL);
 
 		/* Send reduct work done signal. */
 		postAdd(MPPA_ASYNC_DDR_0, sigback_offset, 1);

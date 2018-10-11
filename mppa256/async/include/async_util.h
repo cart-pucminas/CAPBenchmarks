@@ -18,8 +18,14 @@
 /* Put data on remote segment */
 extern void dataPut(void *item, mppa_async_segment_t *segment, int offset, int nItems, size_t type_size, mppa_async_event_t *event);
 
+/* Put spaced data on remote segment. */
+extern void dataPutSpaced(const void *local, const mppa_async_segment_t *segment, off64_t offset, size_t size, int count, size_t space, mppa_async_event_t *event);
+
 /* Get data from remote segment */
 extern void dataGet(void *item,  mppa_async_segment_t *segment, int offset, int nItems, size_t type_size, mppa_async_event_t *event);
+
+/* Get spaced data from remote segment. */
+extern void dataGetSpaced(void *local, const mppa_async_segment_t *segment, off64_t offset, size_t size, int count, size_t space, mppa_async_event_t *event);
 
 /* Waits all PUT/GET operations of some seg. to complete. */
 extern void waitAllOpCompletion(mppa_async_segment_t *segment, mppa_async_event_t *event);

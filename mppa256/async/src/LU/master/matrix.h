@@ -33,7 +33,7 @@ extern void matrix_destroy(matrix_t m);
 extern void matrix_random(matrix_t m);
 
 /* Performs LU factorization. */
-extern int matrix_lu(matrix_t m, matrix_t l, matrix_t u);
+extern void matrix_lu(matrix_t m, matrix_t l, matrix_t u);
 
 /* Applies the row reduction algorithm in a matrix. */
 extern void row_reduction(struct matrix *m, int i0);

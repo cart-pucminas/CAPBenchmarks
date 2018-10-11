@@ -12,12 +12,10 @@
 
 static uint64_t start, end; /* Timing auxiliars */
 
-/* Put data on remote segment */
+/* Put data on remote segment. */
 void dataPut(void *item, mppa_async_segment_t *segment, int offset, int nItems, size_t type_size, mppa_async_event_t *event) {
 	start = timer_get();
-
 	mppa_async_put(item, segment, offset * type_size, type_size * nItems, event);
-
 	end = timer_get();
 
 	nput++;
@@ -25,16 +23,36 @@ void dataPut(void *item, mppa_async_segment_t *segment, int offset, int nItems, 
 	communication += timer_diff(start, end);
 }
 
+/* Put spaced data on remote segment. */
+void dataPutSpaced(const void *local, const mppa_async_segment_t *segment, off64_t offset, size_t size, int count, size_t space, mppa_async_event_t *event) {
+	start = timer_get();
+	mppa_async_put_spaced(local, segment, offset, size, count, space, event);
+	end = timer_get();
+
+	nget++;
+	data_get += count * size;
+	communication += timer_diff(start, end);
+}
+
 /* Get data from remote segment */
 void dataGet(void *item,  mppa_async_segment_t *segment, int offset, int nItems, size_t type_size, mppa_async_event_t *event) {
 	start = timer_get();
-
 	mppa_async_get(item, segment, offset * type_size, type_size * nItems, event);
-
 	end = timer_get();
 
 	nget++;
 	data_get += nItems * type_size;
+	communication += timer_diff(start, end);
+}
+
+/* Get spaced data from remote segment. */
+void dataGetSpaced(void *local, mppa_async_segment_t *segment, off64_t offset, size_t size, int count, size_t space, mppa_async_event_t *event) {
+	start = timer_get();
+	mppa_async_get_spaced(local, segment, offset, size , count, space, event);
+	end = timer_get();
+
+	nget++;
+	data_get += count * size;
 	communication += timer_diff(start, end);
 }
 

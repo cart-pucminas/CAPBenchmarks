@@ -99,7 +99,6 @@ static void releaseSlaves() {
 
 static void split(struct matrix *m, struct matrix *l, struct matrix *u) {
 	start = timer_get();
-
 	#pragma omp parallel for default(shared) num_threads(3)
 	for (int i = 0; i < m->height; i++) {
 		for (int j = 0; j < m->width; j++) {
@@ -120,7 +119,7 @@ static void split(struct matrix *m, struct matrix *l, struct matrix *u) {
 }
 
 /* Performs LU factorization in a matrix */
-int matrix_lu(struct matrix *m, struct matrix *l, struct matrix *u) {
+void matrix_lu(struct matrix *m, struct matrix *l, struct matrix *u) {
 	/* Initializes async server */
 	async_master_start();
 
@@ -153,6 +152,4 @@ int matrix_lu(struct matrix *m, struct matrix *l, struct matrix *u) {
 
 	/* Split matrix m into lower and upper matrices. */
 	split(m, l, u);
-
-	return 0;
 }
