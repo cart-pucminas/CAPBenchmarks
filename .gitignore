@@ -14,6 +14,8 @@ mppa256/src/GF/output/*
 mppa256/src/IS/output/*
 mppa256/src/KM/output/*
 mppa256/src/LU/output/*
+mppa256/async/src/FN/output/*
+mppa256/async/src/LU/output/*
 *.img
 
 # Exceptions.

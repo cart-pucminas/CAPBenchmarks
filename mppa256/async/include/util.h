@@ -6,16 +6,28 @@
 /* Prints an error message and exits. */
 extern void error(const char *msg);
 
+/* Prints an warning message */
+extern void warning(const char *msg);
+
 /* Safe calloc(). */
 extern void *scalloc(size_t nmemb, size_t size);
 
 /* Safe malloc(). */
 extern void *smalloc(size_t size);
 
+/* Initializes the random number generator. */
+extern void srandnum(int seed);
+
+/* Generates a random number. */
+extern unsigned randnum();
+
 #ifdef _MASTER_ /* Masters only functions */
 
 /* Spawns CC with nCluster ID */
 extern void spawn_slave(int nCluster, char **args);
+
+/* Wait finalization of all CC */
+extern void join_slaves();
 
 /* Wait finalization of CC with nCluster ID */
 extern void join_slave(int nCluster);
@@ -35,6 +47,6 @@ extern void inform_statistics();
 /* Synchronization of all slaves */
 void slave_barrier();
 
-#endif
+#endif /* _MASTER_ */
 
-#endif
+#endif /* UTIL_H_ */

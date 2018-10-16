@@ -19,7 +19,12 @@ struct problem {
 	int end;   // Final number of invertal
 };
 
-//#elif _IS_...
+#elif _LU_
+
+struct problem {
+	int height; /* Matrix height. */
+	int width;  /* Matrix width.  */
+};
 
 #endif /* Benchmarks */
 
