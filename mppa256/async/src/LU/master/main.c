@@ -33,10 +33,6 @@ struct problem standard =  { 1536, 1536 };
 struct problem large    =  { 2048, 2048 };
 struct problem huge     =  { 2560, 2560 };
 
-/* Statistics information from clusters */
-mppa_async_segment_t infos_segment;
-Info infos[NUM_CLUSTERS];
-
 /* Benchmark parameters. */
 int verbose = 0;              /* Display informations? */
 int nclusters = 1;            /* Number of clusters.   */
@@ -47,12 +43,12 @@ static void setAllStatistics() {
 	uint64_t comm_Sum = 0;
 	uint64_t comm_Average = 0;
 	for (int i = 0; i < nclusters; i++) {
-		slave[i] = infos[i].slave;
-		comm_Sum += infos[i].communication;
-		data_put += infos[i].data_put;
-		data_get += infos[i].data_get;
-		nput += infos[i].nput;
-		nget += infos[i].nget;
+		slave[i] = works_inProg[i].u.info.total;
+		comm_Sum += works_inProg[i].u.info.communication;
+		data_put += works_inProg[i].u.info.data_put;
+		data_get += works_inProg[i].u.info.data_get;
+		nput += works_inProg[i].u.info.nput;
+		nget += works_inProg[i].u.info.nget;
 	}
 
 	comm_Average = (uint64_t)(comm_Sum+communication)/(nclusters+1);

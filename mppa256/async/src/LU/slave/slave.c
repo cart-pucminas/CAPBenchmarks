@@ -7,20 +7,13 @@
 #include "slave.h"
 
 /* C And MPPA Library Includes*/
-#include <omp.h>
 #include <math.h>
-#include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
 
 /* Data exchange segments. */
 static mppa_async_segment_t matrix_segment;
 static mppa_async_segment_t messages_segment;
 static mppa_async_segment_t sigOffsets_segment;
-
-/* Information to send back to IO */
-static mppa_async_segment_t infos_segment;
-static Info info = {0, 0, 0, 0, 0, 0};
 
 /* Data exchange signals between IO and Clusters. */
 static long long io_signal;
@@ -43,25 +36,10 @@ static uint64_t start, end;
 /* Compute Cluster ID */
 int cid;
 
-static void sendStatisticsToIO() {
-	info.data_put = data_put;
-	info.data_get = data_get;
-	info.nput = nput;
-	info.nget = nget;
-	info.slave = total;
-	info.communication = communication;
-
-	dataPut(&info, &infos_segment, cid, 1, sizeof(Info), NULL);
-
-	/* Send stats. ready signal to IO. */
-	postAdd(MPPA_ASYNC_DDR_0, sigback_offset, 1);
-}
-
 static void cloneSegments() {
 	cloneSegment(&sigOffsets_segment, SIG_SEG_0, 0, 0, NULL);
 	cloneSegment(&messages_segment, MSG_SEG_0, 0, 0, NULL);
 	cloneSegment(&matrix_segment, MATRIX_SEG_0, 0, 0, NULL);
-	cloneSegment(&infos_segment, INFOS_SEG_0, 0, 0, NULL);
 }
 
 static void sendSigOffset() {
@@ -167,7 +145,7 @@ int main(__attribute__((unused))int argc, const char **argv) {
 	while (doWork());
 
 	/* Put statistics in stats. segment on IO side. */
-	sendStatisticsToIO();
+	send_statistics(&messages_segment, sigback_offset);
 
 	/* Finalizes async library and rpc client */
 	async_slave_finalize();

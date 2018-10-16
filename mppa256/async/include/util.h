@@ -1,6 +1,10 @@
 #ifndef UTIL_H_
 #define UTIL_H_
+/* Kernel Includes */
+#include <message.h>
+#include <async_util.h>
 
+/* C And MPPA Library Includes*/
 #include <stddef.h>
 
 /* Prints an error message and exits. */
@@ -32,20 +36,14 @@ extern void join_slaves();
 /* Wait finalization of CC with nCluster ID */
 extern void join_slave(int nCluster);
 
-/* Auxiliar progress strings */
-extern char *bench_initials;
-extern char *bench_fullName;
-
-/* Auxiliar func. in case of args reading failure */
-extern void inform_usage();
-
-/* Show timing and data exchange statistics */
-extern void inform_statistics();
+extern void set_statistics(struct message *information);
 
 #else /* Slaves only functions */
 
+extern void send_statistics(mppa_async_segment_t *segment, off64_t offset);
+
 /* Synchronization of all slaves */
-void slave_barrier();
+extern void slave_barrier();
 
 #endif /* _MASTER_ */
 

@@ -12,7 +12,6 @@
 /* C And MPPA Library Includes*/
 #include <stdint.h>
 #include <stdio.h>
-#include <pthread.h>
 
 /* Message exchange context */
 mppa_async_segment_t messages_segment;
@@ -31,7 +30,6 @@ static void createSegments(struct matrix *m) {
 	createSegment(&sigOffsets_segment, SIG_SEG_0, &sigOffsets, nclusters * sizeof(off64_t), 0, 0, NULL);
 	createSegment(&messages_segment, MSG_SEG_0, &works_inProg, nclusters * sizeof(struct message), 0, 0, NULL);
 	createSegment(&matrix_segment, MATRIX_SEG_0, &MATRIX(m, 0, 0), (m->height * m->width * sizeof(float)), 0, 0, NULL);
-	createSegment(&infos_segment, INFOS_SEG_0, &infos, nclusters * sizeof(Info), 0, 0, NULL);
 }
 
 static void spawnSlaves(int matrix_width) {

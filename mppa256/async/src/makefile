@@ -3,12 +3,17 @@
 #
 
 # Builds all kernels.
-all: lu fn
+all: km #lu fn
 
 # Builds FN kernel.
 fn:
 	cd FN && $(MAKE) all
 	cp FN/output/bin/*.img $(BINDIR)
+
+# Builds KM kernel.
+km:
+	cd KM && $(MAKE) all
+	cp KM/output/bin/*.img $(BINDIR)
 
 # Builds LU kernel.
 lu:
@@ -18,5 +23,6 @@ lu:
 # Cleans compilation files.
 clean:
 	cd FN && $(MAKE) clean
+	cd KM && $(MAKE) clean
 	cd LU && $(MAKE) clean
 	rm -f $(BINDIR)/*.img

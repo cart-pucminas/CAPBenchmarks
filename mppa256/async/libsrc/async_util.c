@@ -46,7 +46,7 @@ void dataGet(void *item,  mppa_async_segment_t *segment, int offset, int nItems,
 }
 
 /* Get spaced data from remote segment. */
-void dataGetSpaced(void *local, mppa_async_segment_t *segment, off64_t offset, size_t size, int count, size_t space, mppa_async_event_t *event) {
+void dataGetSpaced(void *local, const mppa_async_segment_t *segment, off64_t offset, size_t size, int count, size_t space, mppa_async_event_t *event) {
 	start = timer_get();
 	mppa_async_get_spaced(local, segment, offset, size , count, space, event);
 	end = timer_get();

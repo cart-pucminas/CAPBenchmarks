@@ -4,11 +4,27 @@
 #include <global.h> 
 #include <timer.h>
 #include <util.h>
-#include "master.h"
 
 /* C And MPPA Library Includes*/
 #include <stdio.h>
 #include <stdint.h> 
+
+/* Items to be sent to slaves */
+typedef struct {
+    int number; /* Number      */
+    int num; 	/* Numerator   */
+    int den; 	/* Denominator */
+} Item;
+
+typedef struct {
+	size_t data_put;
+	size_t data_get;
+	unsigned nput;
+	unsigned nget;
+	uint64_t slave;
+	uint64_t communication;
+	int partial_sum;
+} Info;
 
 /* Timing statistics. */
 static uint64_t start;
@@ -127,7 +143,7 @@ static void sumAll() {
 	start = timer_get();
 
 	for (int i = 0; i < nclusters; i++)
-		friendlyNumbers += tasksFinished[i].parcial_sum;
+		friendlyNumbers += tasksFinished[i].partial_sum;
 
 	/* We calculated only the friendly pairs, so now
 	   we have to multiply the result by 2 in order
@@ -151,8 +167,8 @@ static void setAllStatistics() {
 		nget += tasksFinished[i].nget;
 	}
 
-	comm_Average = (uint64_t)comm_Sum/nclusters;
-	communication += comm_Average;
+	comm_Average = (uint64_t)(comm_Sum+communication)/(nclusters+1);
+	communication = comm_Average;
 }
 
 int friendly_numbers(int _start, int _end) {
@@ -174,7 +190,7 @@ int friendly_numbers(int _start, int _end) {
 	/* Spawns all "nclusters" clusters */
 	spawnSlaves();
 
-	/* Waits slaves parcial sum */
+	/* Waits slaves partial sum */
 	waitCompletion();
 
 	/* Sum all partial sums */

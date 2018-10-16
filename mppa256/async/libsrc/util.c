@@ -2,6 +2,7 @@
 #include <global.h>
 #include <timer.h>
 #include <util.h>
+#include <message.h>
 
 /* C And MPPA Library Includes*/
 #include <mppa_power.h>
@@ -96,46 +97,45 @@ void join_slave(int nCluster) {
 		error("Error while trying to join\n");
 }
 
-/* Auxiliar func. in case of args reading failure */
-void inform_usage() {
-	printf("Usage: %s [options]\n", bench_initials);
-	printf("Brief: %s Kernel\n", bench_fullName);
-	printf("Options:\n");
-	printf("  --help             Display this information and exit\n");
-	printf("  --nclusters <value> Set number of threads\n");
-	printf("  --class <name>     Set problem class:\n");
-	printf("                       - tiny\n");
-	printf("                       - small\n");
-	printf("                       - standard\n");
-	printf("                       - large\n");
-	printf("                       - huge\n");
-	printf("  --verbose          Be verbose\n");
-	fflush(stdout);
-	error("Wrong args");
-}
+void set_statistics(struct message *information) {
+	uint64_t comm_Sum = 0;
+	uint64_t comm_Average = 0;
+	for (int i = 0; i < nclusters; i++) {
+		slave[i] = information[i].u.info.total;
+		comm_Sum += information[i].u.info.communication;
+		data_put += information[i].u.info.data_put;
+		data_get += information[i].u.info.data_get;
+		nput += information[i].u.info.nput;
+		nget += information[i].u.info.nget;
+	}
 
-/* Show timing and data exchange statistics */
-void inform_statistics() {
-	printf("CPU timing statistics of %s:\n", bench_initials);
-	printf("  master:        %f\n", master*MICROSEC);
-	for (int i = 0; i < nclusters; i++)
-		printf("  slave %d:       %f\n", i, slave[i]*MICROSEC);
-	printf("  spawn %d CC:    %f\n", nclusters, spawn*MICROSEC);
-	printf("  communication: %f\n", communication*MICROSEC);
-	printf("  total time:    %f\n", total*MICROSEC);
-	printf("asynchronous communication statistics:\n");
-	printf("  data put:         %zu\n", data_put);
-	printf("  data get:         %zu\n", data_get);
-	printf("  number of puts:   %u\n", nput);
-	printf("  number of gets:   %u\n", nget);
-	fflush(stdout);
+	comm_Average = (uint64_t)(comm_Sum+communication)/(nclusters+1);
+	communication = comm_Average;
 }
 
 #else
 
+void send_statistics(mppa_async_segment_t *segment, off64_t offset) {
+	struct message *msg = message_create(STATISTICSINFO, data_put, data_get, nput, nget, total, communication);
+
+	/* Puts message with statistics infos. in IO msg remote seg. */
+	message_put(msg, segment, cid, NULL);
+
+	/* Send stats. ready signal to IO. */
+	postAdd(MPPA_ASYNC_DDR_0, offset, 1);
+
+	message_destroy(msg);
+}
+
 /* Synchronization of all slaves */
 void slave_barrier() {
+	uint64_t start, end; /* Timing auxiliars */
+
+	start = timer_get();
 	mppa_rpc_barrier_all();
+	end = timer_get();
+
+	communication += timer_diff(start, end);
 }
 
 #endif

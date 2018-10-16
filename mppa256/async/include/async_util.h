@@ -4,10 +4,6 @@
 /* Kernel Includes */
 #include <mppa_async.h>
 
-/* Messages segments identifiers */
-#define MSG_SEG_0 1
-#define SIG_SEG_0 2
-
 /*
  * Obs: You can delay the waiting of all wait functions
  * using the event param. It's present in all wait like 

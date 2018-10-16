@@ -55,7 +55,18 @@ struct message *message_create(int type, ...) {
 		msg->u.reductwork.width = va_arg(ap, int);
 		msg->type = REDUCTWORK;
 		break;
-		
+
+		/* Statistics information. */
+		case STATISTICSINFO :
+		msg->u.info.data_put = va_arg(ap, size_t);
+		msg->u.info.data_get = va_arg(ap, size_t);
+		msg->u.info.nput = va_arg(ap, unsigned);
+		msg->u.info.nget = va_arg(ap, unsigned);
+		msg->u.info.total = va_arg(ap, uint64_t);
+		msg->u.info.communication = va_arg(ap, uint64_t);
+		msg->u.info.msgsignal = 0;
+		break;
+
 		/* Signal to proceed/end message. */
 		default :
 		msg->type = DIE;

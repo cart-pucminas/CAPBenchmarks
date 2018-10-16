@@ -3,7 +3,11 @@
 #include <global.h>
 #include <timer.h>
 #include <problem.h>
-#include "master.h"
+
+/* C And MPPA Library Includes*/
+#include <stdio.h>
+
+extern int friendly_numbers(int start_num, int end_num);
 
 /* Problem initials and FullName */
 char *bench_initials = "FN";
@@ -43,11 +47,14 @@ int main(int argc, const char **argv) {
 	timer_init();
 	
 	startTime = timer_get();
-	friendly_numbers(prob->start, prob->end);
+	int fd = friendly_numbers(prob->start, prob->end);
 	endTime = timer_get();
 	total = timer_diff(startTime, endTime);
 
 	inform_statistics();
+
+	if (verbose)
+		printf("  Friendly Numbers = %d\n", fd);
 	
 	return 0;
 }

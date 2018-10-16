@@ -10,7 +10,6 @@
 
 /* C And MPPA Library Includes*/
 #include <stdint.h>
-#include <stdio.h>
 #include <math.h>
 
 /* Work list. */
