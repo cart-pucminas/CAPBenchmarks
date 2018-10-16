@@ -7,14 +7,14 @@ export BINDIR=bin
 export K1DIR=/usr/local/k1tools/bin
 
 # Default Parameters.
-export CLASS=tiny
+export CLASS=standard
 export NPROCS=16
 
 echo "Problem size = $CLASS"
 
-for kernel in fn;
+for kernel in lu; #fn
 do
-	echo "  ========== Running FN Kernel"
+	echo "  ========== Running $kernel kernel"
 	$K1DIR/k1-jtag-runner                               \
 		--multibinary=$BINDIR/$kernel.img               \
 		--exec-multibin=IODDR0:io_bin                   \

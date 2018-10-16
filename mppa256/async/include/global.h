@@ -15,13 +15,13 @@
 #include <stdint.h>
 #include <mppa_async.h>
 
-//	Be verbose?
+/* Be verbose? */
 extern int verbose;
 
-//	Number of clusters to be used.
+/* Number of clusters to be used. */
 extern int nclusters;
 
-// Cluster ID.
+/* Cluster ID. */
 extern int cid;
 
 /* Timing statistics. */
@@ -30,9 +30,9 @@ extern uint64_t slave[NUM_CLUSTERS];
 extern uint64_t communication;
 extern uint64_t total;
 extern uint64_t spawn;
-extern size_t data_sent;
-extern size_t data_received;
-extern unsigned nsent;
-extern unsigned nreceived;
+extern size_t data_put;
+extern size_t data_get;
+extern unsigned nput;
+extern unsigned nget;
 
 #endif /* GLOBAL_H_ */
