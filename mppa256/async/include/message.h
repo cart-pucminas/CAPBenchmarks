@@ -25,7 +25,6 @@
 
 /* Messages segment. */
 #define MSG_SEG_0 1
-#define SIG_SEG_0 2
 
 /* Asserts if a list is empty. */
 #define empty(l)  \

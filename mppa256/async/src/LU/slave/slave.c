@@ -13,11 +13,6 @@
 /* Data exchange segments. */
 static mppa_async_segment_t matrix_segment;
 static mppa_async_segment_t messages_segment;
-static mppa_async_segment_t sigOffsets_segment;
-
-/* Data exchange signals between IO and Clusters. */
-static long long io_signal;
-static off64_t sigback_offset;
 
 /* Matrix width for matrix dataPut and dataGet. */
 static int matrix_width;
@@ -37,15 +32,9 @@ static uint64_t start, end;
 int cid;
 
 static void cloneSegments() {
-	cloneSegment(&sigOffsets_segment, SIG_SEG_0, 0, 0, NULL);
+	cloneSegment(&signals_offset_seg, SIG_SEG_0, 0, 0, NULL);
 	cloneSegment(&messages_segment, MSG_SEG_0, 0, 0, NULL);
 	cloneSegment(&matrix_segment, MATRIX_SEG_0, 0, 0, NULL);
-}
-
-static void sendSigOffset() {
-	off64_t offset = 0;
-	mppa_async_offset(mppa_async_default_segment(cid), &io_signal, &offset);
-	dataPut(&offset, &sigOffsets_segment, cid, 1, sizeof(off64_t), NULL);
 }
 
 /* Applies the row reduction algorithm in a matrix. */
@@ -76,7 +65,7 @@ static int doWork() {
 	struct message *msg; /* Message.                  */
 
 	/* Waits for message io_signal to continue. */
-	waitCondition(&io_signal, 1, MPPA_ASYNC_COND_EQ, NULL);
+	wait_signal();
 
 	/* Resets io_signal for the next message. */
 	io_signal = 0;
@@ -109,7 +98,7 @@ static int doWork() {
 		dataPutSpaced(&block.elements, &matrix_segment, OFFSET(matrix_width, i0, j0)*sizeof(float), block.width*sizeof(float), block.height, (block.width+j0)*sizeof(float), NULL);
 
 		/* Send reduct work done signal. */
-		postAdd(MPPA_ASYNC_DDR_0, sigback_offset, 1);
+		send_signal();
 
 		/* Slave cant die yet. Needs to wait another message */
 		return 1;
@@ -139,13 +128,13 @@ int main(__attribute__((unused))int argc, const char **argv) {
 	cloneSegments();
 
 	/* Sends io_signal offset to Master. */
-	sendSigOffset();
+	send_sig_offset();
 
 	/* Slave life. */
 	while (doWork());
 
 	/* Put statistics in stats. segment on IO side. */
-	send_statistics(&messages_segment, sigback_offset);
+	send_statistics(&messages_segment);
 
 	/* Finalizes async library and rpc client */
 	async_slave_finalize();

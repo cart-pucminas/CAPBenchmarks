@@ -7,6 +7,9 @@
 /* C And MPPA Library Includes*/
 #include <stddef.h>
 
+/* Signal offset exchange segment. */
+extern mppa_async_segment_t signals_offset_seg;
+
 /* Prints an error message and exits. */
 extern void error(const char *msg);
 
@@ -36,15 +39,53 @@ extern void join_slaves();
 /* Wait finalization of CC with nCluster ID */
 extern void join_slave(int nCluster);
 
+/* Waits for all slaves statistics. */
+extern void wait_statistics();
+
+/* Set slaves statistics. */
 extern void set_statistics(struct message *information);
+
+/* Signals context. */
+extern off64_t sig_offsets[NUM_CLUSTERS];
+extern long long cluster_signals[NUM_CLUSTERS];
+extern char str_cc_signals_offset[NUM_CLUSTERS][50];
+
+/* Get slave signal offset. */
+extern void get_slaves_signals_offset();
+
+/* Set signal offsets for the clusters. */
+extern void set_cc_signals_offset();
+
+/* Synchronization between slaves and IO. */
+#define send_signal(i)                                          \
+(postAdd(mppa_async_default_segment((i)), sig_offsets[(i)], 1)) \
+
+/* Synchronization between slaves and IO. */
+#define wait_signal(i)                                                    \
+(mppa_async_evalcond(&cluster_signals[(i)], 1, MPPA_ASYNC_COND_EQ, NULL)) \
 
 #else /* Slaves only functions */
 
-extern void send_statistics(mppa_async_segment_t *segment, off64_t offset);
+extern void send_statistics(mppa_async_segment_t *segment);
 
 /* Synchronization of all slaves */
 extern void slave_barrier();
 
-#endif /* _MASTER_ */
+/* Signals exchange between IO and Clusters. */
+extern long long io_signal;
+extern off64_t sigback_offset;
+
+/* Send slave signal offset to IO. */
+extern void send_sig_offset();
+
+/* Synchronization between slaves and IO. */
+#define send_signal()                        \
+postAdd(MPPA_ASYNC_DDR_0, sigback_offset, 1) \
+
+/* Synchronization between slaves and IO. */
+#define wait_signal()                                  \
+waitCondition(&io_signal, 1, MPPA_ASYNC_COND_EQ, NULL) \
+
+#endif /* _MASTER_ AND SLAVE */
 
 #endif /* UTIL_H_ */

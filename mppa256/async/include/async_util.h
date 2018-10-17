@@ -2,7 +2,12 @@
 #define ASYNC_UTIL_H_
 
 /* Kernel Includes */
+#include <global.h>
+
+/* C And MPPA Library Includes*/
 #include <mppa_async.h>
+
+#define SIG_SEG_0 2
 
 /*
  * Obs: You can delay the waiting of all wait functions

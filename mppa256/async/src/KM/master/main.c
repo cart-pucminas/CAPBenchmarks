@@ -81,7 +81,6 @@ int main(int argc, char **argv) {
 	start = timer_get();
 	map = kmeans(data, prob->npoints, prob->ncentroids, prob->mindistance);
 	end = timer_get();
-
 	total = timer_diff(start, end);
 
 	inform_statistics();

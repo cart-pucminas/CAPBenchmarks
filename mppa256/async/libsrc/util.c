@@ -1,4 +1,5 @@
 /* Kernel Includes */
+#include <async_util.h>
 #include <global.h>
 #include <timer.h>
 #include <util.h>
@@ -9,6 +10,9 @@
 #include <mppa_rpc.h>
 #include <stdlib.h>
 #include <stdio.h>
+
+/* Signal offset exchange segment. */
+mppa_async_segment_t signals_offset_seg;
 
 /* Prints an error message and exits. */
 void error(const char *msg) {
@@ -97,6 +101,13 @@ void join_slave(int nCluster) {
 		error("Error while trying to join\n");
 }
 
+/* Waits for all slaves statistics. */
+void wait_statistics() {
+	for (int i = 0; i < nclusters; i++) 
+		wait_signal(i);
+}
+
+/* Set slaves statistics. */
 void set_statistics(struct message *information) {
 	uint64_t comm_Sum = 0;
 	uint64_t comm_Average = 0;
@@ -113,16 +124,38 @@ void set_statistics(struct message *information) {
 	communication = comm_Average;
 }
 
+/* Signals context. */
+off64_t sig_offsets[NUM_CLUSTERS] = {0};
+long long cluster_signals[NUM_CLUSTERS] = {0};
+char str_cc_signals_offset[NUM_CLUSTERS][50];
+
+/* Get slave signal offset. */
+void get_slaves_signals_offset() {
+	for (int i = 0; i < nclusters; i++) 
+		waitCondition(&sig_offsets[i], 0, MPPA_ASYNC_COND_GT, NULL);
+
+	/* Destroy signal offsets segment. */
+	mppa_async_segment_destroy(&signals_offset_seg);
+}
+
+void set_cc_signals_offset() {
+	for (int i = 0; i < nclusters; i++) {
+		off64_t offset;
+		mppa_async_offset(MPPA_ASYNC_DDR_0, &cluster_signals[i], &offset);
+		sprintf(str_cc_signals_offset[i], "%lld", offset);
+	}
+}
+
 #else
 
-void send_statistics(mppa_async_segment_t *segment, off64_t offset) {
+void send_statistics(mppa_async_segment_t *segment) {
 	struct message *msg = message_create(STATISTICSINFO, data_put, data_get, nput, nget, total, communication);
 
 	/* Puts message with statistics infos. in IO msg remote seg. */
 	message_put(msg, segment, cid, NULL);
 
 	/* Send stats. ready signal to IO. */
-	postAdd(MPPA_ASYNC_DDR_0, offset, 1);
+	send_signal();
 
 	message_destroy(msg);
 }
@@ -136,6 +169,17 @@ void slave_barrier() {
 	end = timer_get();
 
 	communication += timer_diff(start, end);
+}
+
+/* Signals exchange between IO and Clusters. */
+long long io_signal;
+off64_t sigback_offset;
+
+/* Send slave signal offset to IO. */
+void send_sig_offset() {
+	off64_t offset = 0;
+	mppa_async_offset(mppa_async_default_segment(cid), &io_signal, &offset);
+	dataPut(&offset, &signals_offset_seg, cid, 1, sizeof(off64_t), NULL);
 }
 
 #endif

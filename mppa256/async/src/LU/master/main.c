@@ -39,22 +39,6 @@ int nclusters = 1;            /* Number of clusters.   */
 static int seed = 1;          /* Seed value.           */
 struct problem *prob = &tiny; /* Problem class.        */
 
-static void setAllStatistics() {
-	uint64_t comm_Sum = 0;
-	uint64_t comm_Average = 0;
-	for (int i = 0; i < nclusters; i++) {
-		slave[i] = works_inProg[i].u.info.total;
-		comm_Sum += works_inProg[i].u.info.communication;
-		data_put += works_inProg[i].u.info.data_put;
-		data_get += works_inProg[i].u.info.data_get;
-		nput += works_inProg[i].u.info.nput;
-		nget += works_inProg[i].u.info.nget;
-	}
-
-	comm_Average = (uint64_t)(comm_Sum+communication)/(nclusters+1);
-	communication = comm_Average;
-}
-
 int main(int argc, char **argv) {
 	uint64_t startTime, endTime; /* Start and End time.     */
 
@@ -92,7 +76,7 @@ int main(int argc, char **argv) {
 	total = timer_diff(startTime, endTime);
 
 	/* Sets all statistics from slaves. */
-	setAllStatistics();
+	set_statistics(works_inProg);
 
 	inform_statistics();
 	

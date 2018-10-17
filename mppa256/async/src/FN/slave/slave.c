@@ -211,6 +211,7 @@ int main(__attribute__((unused)) int argc , const char **argv) {
 	/* Set statistics and partial sum in finishedTask */
 	setFinishedTask();
 
+	/* Send statistics to IO. */
 	sendFinishedTask();
 
 	/* Finalizes async library and rpc client */

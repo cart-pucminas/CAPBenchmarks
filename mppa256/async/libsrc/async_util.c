@@ -9,6 +9,7 @@
 #include <stdint.h> 
 #include <mppa_async.h>
 #include <utask.h>
+#include <stdio.h>
 
 static uint64_t start, end; /* Timing auxiliars */
 
@@ -29,8 +30,8 @@ void dataPutSpaced(const void *local, const mppa_async_segment_t *segment, off64
 	mppa_async_put_spaced(local, segment, offset, size, count, space, event);
 	end = timer_get();
 
-	nget++;
-	data_get += count * size;
+	nput++;
+	data_put += count * size;
 	communication += timer_diff(start, end);
 }
 
@@ -86,7 +87,6 @@ void postAdd(const mppa_async_segment_t *segment, off64_t offset, int addend) {
 	mppa_async_postadd(segment, offset, addend);
 	end = timer_get();
 
-	data_put += sizeof(long long);
 	communication += timer_diff(start, end);
 }
 
