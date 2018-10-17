@@ -7,7 +7,7 @@
 /* C And MPPA Library Includes*/
 #include <mppa_async.h>
 
-#define SIG_SEG_0 2
+/*************** COMMOM IO AND CC FUNCTIONS/VARIABLES ******************/
 
 /*
  * Obs: You can delay the waiting of all wait functions
@@ -40,6 +40,8 @@ extern void waitEvent(mppa_async_event_t *event);
 /* Post an atomic add to remote long long datum. */
 extern void postAdd(const mppa_async_segment_t *segment, off64_t offset, int addend);
 
+/********************* MASTERS ONLY FUNCTIONS ************************/
+
 #ifdef _MASTER_
 
 /* Initializes a unique segment */
@@ -50,6 +52,8 @@ extern void async_master_start();
 
 /* Finalizes async context on master*/
 extern void async_master_finalize();
+
+/********************* SLAVES ONLY FUNCTIONS ************************/
 
 #else
 

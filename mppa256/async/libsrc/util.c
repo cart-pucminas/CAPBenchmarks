@@ -11,6 +11,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+/*============================================================================*
+ *                   COMMOM IO AND CC FUNCTIONS/VARIABLES                     *
+ *============================================================================*/
+
 /* Signal offset exchange segment. */
 mppa_async_segment_t signals_offset_seg;
 
@@ -79,6 +83,10 @@ unsigned randnum() {
 	return u;
 }
 
+/*============================================================================*
+ *                          MASTERS ONLY FUNCTIONS/VARIABLES                  *
+ *============================================================================*/
+
 #ifdef _MASTER_
 
 /* Spawns CC with nCluster ID */
@@ -100,6 +108,11 @@ void join_slave(int nCluster) {
 	if (mppa_power_base_waitpid(nCluster, &ret, 0) < 0)
 		error("Error while trying to join\n");
 }
+
+/*============================================================================*
+ *                      IO STATISTICS EXCHANGE                                *
+ *============================================================================*/
+
 
 /* Waits for all slaves statistics. */
 void wait_statistics() {
@@ -123,6 +136,10 @@ void set_statistics(struct message *information) {
 	comm_Average = (uint64_t)(comm_Sum+communication)/(nclusters+1);
 	communication = comm_Average;
 }
+
+/*============================================================================*
+ *                      IO SYNCHRONIZATION SIGNAL                             *
+ *============================================================================*/
 
 /* Signals context. */
 off64_t sig_offsets[NUM_CLUSTERS] = {0};
@@ -148,6 +165,25 @@ void set_cc_signals_offset() {
 
 #else
 
+/*============================================================================*
+ *                      SLAVES ONLY FUNCTIONS/VARIABLES                       *
+ *============================================================================*/
+
+/* Synchronization of all slaves */
+void slave_barrier() {
+	uint64_t start, end; /* Timing auxiliars */
+
+	start = timer_get();
+	mppa_rpc_barrier_all();
+	end = timer_get();
+
+	communication += timer_diff(start, end);
+}
+
+/*============================================================================*
+ *                          CC STATISTICS EXCHANGE                            *
+ *============================================================================*/
+
 void send_statistics(mppa_async_segment_t *segment) {
 	struct message *msg = message_create(STATISTICSINFO, data_put, data_get, nput, nget, total, communication);
 
@@ -160,16 +196,9 @@ void send_statistics(mppa_async_segment_t *segment) {
 	message_destroy(msg);
 }
 
-/* Synchronization of all slaves */
-void slave_barrier() {
-	uint64_t start, end; /* Timing auxiliars */
-
-	start = timer_get();
-	mppa_rpc_barrier_all();
-	end = timer_get();
-
-	communication += timer_diff(start, end);
-}
+/*============================================================================*
+ *                          CC SYNCHRONIZATION SIGNAL                         *
+ *============================================================================*/
 
 /* Signals exchange between IO and Clusters. */
 long long io_signal;

@@ -162,6 +162,16 @@ int *kmeans(vector_t *_data, int _npoints, int _ncentroids, float _mindistance) 
 
 	/* Finalizes async server */
 	async_master_finalize();
+
+	/* House keeping. */
+	free(lncentroids);
+	free(lnpoints);
+	free(ppopulation);
+	free(pcentroids);
+	free(population);
+	free(centroids);
+	free(has_changed);
+	free(too_far);
 	
 	return (map);
 }

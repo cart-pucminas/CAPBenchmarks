@@ -11,6 +11,10 @@
 #include <utask.h>
 #include <stdio.h>
 
+/*============================================================================*
+ *                   COMMOM IO AND CC FUNCTIONS/VARIABLES                     *
+ *============================================================================*/
+
 static uint64_t start, end; /* Timing auxiliars */
 
 /* Put data on remote segment. */
@@ -90,6 +94,9 @@ void postAdd(const mppa_async_segment_t *segment, off64_t offset, int addend) {
 	communication += timer_diff(start, end);
 }
 
+/*============================================================================*
+ *                          MASTERS ONLY FUNCTIONS/VARIABLES                  *
+ *============================================================================*/
 
 #ifdef _MASTER_
 
@@ -112,6 +119,10 @@ void async_master_finalize() {
 	mppa_async_server_final();
 	mppa_rpc_server_free();
 }
+
+/*============================================================================*
+ *                          SLAVES ONLY FUNCTIONS/VARIABLES                   *
+ *============================================================================*/
 
 #else
 
