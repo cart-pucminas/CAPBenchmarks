@@ -116,8 +116,10 @@ void join_slave(int nCluster) {
 
 /* Waits for all slaves statistics. */
 void wait_statistics() {
-	for (int i = 0; i < nclusters; i++) 
+	for (int i = 0; i < nclusters; i++) {
+		send_signal(i);
 		wait_signal(i);
+	}
 }
 
 /* Set slaves statistics. */
@@ -148,7 +150,7 @@ char str_cc_signals_offset[NUM_CLUSTERS][50];
 
 /* Get slave signal offset. */
 void get_slaves_signals_offset() {
-	for (int i = 0; i < nclusters; i++) 
+	for (int i = 0; i < nclusters; i++)
 		waitCondition(&sig_offsets[i], 0, MPPA_ASYNC_COND_GT, NULL);
 
 	/* Destroy signal offsets segment. */
@@ -190,6 +192,9 @@ void send_statistics(mppa_async_segment_t *segment) {
 	/* Puts message with statistics infos. in IO msg remote seg. */
 	message_put(msg, segment, cid, NULL);
 
+	/* Handshake. */
+	wait_signal();
+	
 	/* Send stats. ready signal to IO. */
 	send_signal();
 

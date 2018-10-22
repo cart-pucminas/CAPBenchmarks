@@ -12,6 +12,7 @@
 /* C And MPPA Library Includes*/
 #include <stdint.h>
 #include <math.h>
+#include <stdio.h>
 
 /* Work list. */
 static struct message *works = NULL; 
@@ -42,12 +43,8 @@ static void waitResults(int *index) {
 	int i = *index;
 
 	/* Waits reduct work done signal from all working clusters. */
-	for (/* NOOP */ ; i > 0; i--) {
+	for (/* NOOP */ ; i > 0; i--)
 		wait_signal(i-1);
-		
-		/* Reset signal for the next iteration. */
-		cluster_signals[i-1] = 0;
-	}
 	
 	/* Ensures that all block put operations are done. */
 	waitAllOpCompletion(&matrix_segment, NULL);

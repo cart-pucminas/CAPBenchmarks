@@ -29,7 +29,7 @@ static void createSegments(struct matrix *m) {
 	createSegment(&matrix_segment, MATRIX_SEG_0, &MATRIX(m, 0, 0), (m->height * m->width * sizeof(float)), 0, 0, NULL);
 }
 
-static void sync_spawn(int matrix_width) {
+static void spawnSlaves (int matrix_width) {
 	char str_mWidth[10];
 	sprintf(str_mWidth, "%d", matrix_width);
 
@@ -108,7 +108,7 @@ void matrix_lu(struct matrix *m, struct matrix *l, struct matrix *u) {
 	createSegments(m);
 
 	/* Spawns all "nclusters" clusters */
-	sync_spawn(m->width);
+	spawnSlaves(m->width);
 
 	/* Apply elimination on all rows */
 	applyElimination(m);

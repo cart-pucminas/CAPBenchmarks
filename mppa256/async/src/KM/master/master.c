@@ -13,38 +13,51 @@
 #include <stdint.h>
 #include <stdio.h>
 
-/* Data async exchange context. */
+/* Statistics and variable offsets segment. */
 static mppa_async_segment_t infos_seg;
+static mppa_async_segment_t var_off_seg;
 
 /* Statistics information from slaves. */
 static struct message statistics[NUM_CLUSTERS];
 
 /* K-means. */
-static float mindistance; /* Minimum distance.          */
-static int ncentroids;    /* Number of centroids.       */
 static int npoints;       /* Number of data points.     */
 static int dimension;     /* Dimension of data points.  */
-static int *map;          /* Map of clusters.           */
+static float mindistance; /* Minimum distance.          */
+static int ncentroids;    /* Number of centroids.       */
+static int *lnpoints;     /* Local number of points.    */
 static vector_t *data;    /* Data points.               */
 static float *centroids;  /* Data centroids.            */
+static int *map;          /* Map of clusters.           */
+static int *too_far;      /* Are points too far?        */
+static int *has_changed;  /* Has any centroid changed?  */
+static int *lncentroids;  /* Local number of centroids. */
+static int *ppopulation;  /* Partial population.        */
 static int *population;   /* Population of centroids.   */
 static float *pcentroids; /* Partial centroids.         */
-static int *ppopulation;  /* Partial population.        */
-static int *has_changed;  /* Has any centroid changed?  */
-static int *too_far;      /* Are points too far?        */
-static int *lnpoints;     /* Local number of points.    */
-static int *lncentroids;  /* Local number of centroids. */
 
 /* Timing auxiliars */
 static uint64_t start, end;
+
+#define VAR_OFF_SEG 3
+
+struct offsets {
+	off64_t points, centroids;
+	off64_t map, too_far, has_changed;
+	off64_t lncentroids, ppopulation;			
+};
+
+/* Variable offsets auxiliary. */
+static struct offsets var_offsets[NUM_CLUSTERS+1];
 
 /* Create segments for data and info exchange. */
 static void create_segments() {
 	createSegment(&signals_offset_seg, SIG_SEG_0, &sig_offsets, nclusters * sizeof(off64_t), 0, 0, NULL);
 	createSegment(&infos_seg, MSG_SEG_0, &statistics, nclusters * sizeof(struct message), 0, 0, NULL);
+	createSegment(&var_off_seg, VAR_OFF_SEG, &var_offsets, (nclusters+1) * sizeof(struct offsets), 0, 0, NULL);
 }
 
-static void sync_spawn() {
+static void spawnSlaves() {
 	start = timer_get();
 
 	char str_nclusters[10], str_ncentroids[10], str_mindist[10], str_dim[10];
@@ -74,25 +87,22 @@ static void sync_spawn() {
 	}
 	end = timer_get();
 	spawn = timer_diff(start, end);
-
-	/* Get all clusters signal offset. */
-	get_slaves_signals_offset();
 }
 
 /* Memory allocation and proper initialization. */
 static void initialize_variables() {
 	int i, j; /* Loop indexes. */
 	
-	/* Create auxiliary structures. */
+	/* Create auxiliary variables. */
+	lnpoints = smalloc(nclusters*sizeof(int));
+	centroids = smalloc(CENTROIDS_SIZE*sizeof(float));
 	map = scalloc(npoints, sizeof(int));
 	too_far = smalloc(nclusters*NUM_THREADS*sizeof(int));
 	has_changed = smalloc(nclusters*NUM_THREADS*sizeof(int));
-	centroids = smalloc(CENTROIDS_SIZE*sizeof(float));
+	lncentroids = smalloc(nclusters*sizeof(int));
+	ppopulation = smalloc(PPOPULATION_SIZE*sizeof(int));
 	population = smalloc(POPULATION_SIZE*sizeof(int));
 	pcentroids = smalloc(PCENTROIDS_SIZE*sizeof(float));
-	ppopulation = smalloc(PPOPULATION_SIZE*sizeof(int));
-	lnpoints = smalloc(nclusters*sizeof(int));
-	lncentroids = smalloc(nclusters*sizeof(int));
 	
 	start = timer_get();
 	/* Initialize mapping. */
@@ -126,6 +136,26 @@ static void distribute_work() {
 	}
 }
 
+/* Variables offset exchange between IO and Clusters. */
+static void sync_offsets() {
+	/* Get all clusters signal offset. */
+	get_slaves_signals_offset();
+
+	for (int i = 0; i < nclusters; i++)
+		wait_signal(i);
+}
+
+/* Send work to clusters. */
+static void send_work() {
+	//#pragma omp parallel for default(shared) num_threads(3)
+	for (int i = 0; i < nclusters; i++) {
+		dataPut(lncentroids, MPPA_ASYNC_DDR_0, var_offsets[i].lncentroids, nclusters, sizeof(int), NULL);
+		
+
+		send_signal(i);
+	}
+}	
+
 /* Clusters data. */
 int *kmeans(vector_t *_data, int _npoints, int _ncentroids, float _mindistance) {
 	/* Initializes async server */
@@ -146,10 +176,13 @@ int *kmeans(vector_t *_data, int _npoints, int _ncentroids, float _mindistance) 
 	create_segments();
 
 	/* Spawns all clusters getting signal offsets after. */
-	sync_spawn();
+	spawnSlaves();
+
+	/* Synchronize variable offsets between Master and Slaves. */
+	sync_offsets();
 
 	/* Send work to slaves. */
-	//send_work();
+	send_work();
 
 	/* Wait all slaves statistics info. */
 	wait_statistics();

@@ -85,10 +85,10 @@ void waitEvent(mppa_async_event_t *event) {
 	communication += timer_diff(start, end);
 }
 
-/* Post an atomic add to remote long long datum. */
-void postAdd(const mppa_async_segment_t *segment, off64_t offset, int addend) {
+/* Post a poke remote long long datum. */
+void poke(const mppa_async_segment_t *segment, off64_t offset, long long value) {
 	start = timer_get();
-	mppa_async_postadd(segment, offset, addend);
+	mppa_async_poke(segment, offset, value);
 	end = timer_get();
 
 	communication += timer_diff(start, end);

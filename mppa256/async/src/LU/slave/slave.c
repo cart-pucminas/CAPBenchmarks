@@ -67,9 +67,6 @@ static int doWork() {
 	/* Waits for message io_signal to continue. */
 	wait_signal();
 
-	/* Resets io_signal for the next message. */
-	io_signal = 0;
-
 	/* Get message from messages remote segment. */
 	msg = message_get(&messages_segment, cid, NULL);
 	

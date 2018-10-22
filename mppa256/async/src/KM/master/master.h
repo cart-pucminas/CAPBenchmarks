@@ -19,5 +19,4 @@
 #define PPOPULATION(i, j) \
 (&ppopulation[(i)*ncentroids + (j)])
 
-
 #endif /* _MASTER_H_ */

@@ -3,9 +3,9 @@
 
 #define NUM_THREADS (NUM_CORES/NUM_CLUSTERS)
 
-#define DIMENSION          16
-#define NUM_POINTS     262144
-#define NUM_CENTROIDS    1024
+#define DIMENSION          16  /* Universal dimension.      */
+#define NUM_POINTS     262144  /* Max. number of points.    */
+#define NUM_CENTROIDS    1024  /* Max. number of centroids. */
 
 /* Size of arrays. */
 #define MAP_SIZE (NUM_POINTS/NUM_CLUSTERS)                /* map[]         */

@@ -68,12 +68,14 @@ extern void get_slaves_signals_offset();
 extern void set_cc_signals_offset();
 
 /* Synchronization between slaves and IO. */
-#define send_signal(i)                                          \
-(postAdd(mppa_async_default_segment((i)), sig_offsets[(i)], 1)) \
+#define send_signal(i)                                     \
+poke(mppa_async_default_segment((i)), sig_offsets[(i)], 1) \
 
 /* Synchronization between slaves and IO. */
-#define wait_signal(i)                                                    \
-(mppa_async_evalcond(&cluster_signals[(i)], 1, MPPA_ASYNC_COND_EQ, NULL)) \
+#define wait_signal(i) {                                           \
+waitCondition(&cluster_signals[(i)], 1, MPPA_ASYNC_COND_EQ, NULL); \
+cluster_signals[(i)] = 0;                                          \
+}                                               
 
 /********************* SLAVES ONLY FUNCTIONS ************************/
 
@@ -97,11 +99,13 @@ extern void send_sig_offset();
 
 /* Synchronization between slaves and IO. */
 #define send_signal()                        \
-postAdd(MPPA_ASYNC_DDR_0, sigback_offset, 1) \
+poke(MPPA_ASYNC_DDR_0, sigback_offset, 1) \
 
 /* Synchronization between slaves and IO. */
-#define wait_signal()                                  \
-waitCondition(&io_signal, 1, MPPA_ASYNC_COND_EQ, NULL) \
+#define wait_signal() {                                 \
+waitCondition(&io_signal, 1, MPPA_ASYNC_COND_EQ, NULL); \
+io_signal = 0;                                          \
+}                                       
 
 #endif /* _MASTER_ AND SLAVE */
 
