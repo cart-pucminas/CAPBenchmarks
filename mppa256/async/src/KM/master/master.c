@@ -147,13 +147,89 @@ static void sync_offsets() {
 
 /* Send work to clusters. */
 static void send_work() {
-	//#pragma omp parallel for default(shared) num_threads(3)
 	for (int i = 0; i < nclusters; i++) {
 		dataPut(lncentroids, MPPA_ASYNC_DDR_0, var_offsets[i].lncentroids, nclusters, sizeof(int), NULL);
 		
+		for (int j = 0; j < lnpoints[i]; j++) 
+			dataPut(data[i*(npoints/nclusters)+j]->elements, MPPA_ASYNC_DDR_0, var_offsets[i].points, dimension, sizeof(float), NULL);
+
+		dataPut(centroids, MPPA_ASYNC_DDR_0, var_offsets[i].centroids, ncentroids*dimension, sizeof(float), NULL);
+		
+		dataPut(&map[i*(npoints/nclusters)], MPPA_ASYNC_DDR_0, var_offsets[i].map, lnpoints[i], sizeof(int), NULL);
 
 		send_signal(i);
 	}
+}
+
+/* Synchronizes partial centroids. */
+static void sync_pcentroids() {
+	int i, j;            /* Loop indexes.          */
+	
+	/* Receive partial centroids. */
+	for (i = 0; i < nclusters; i++) {
+		wait_signal(i);
+		dataGet(PCENTROID(i,0), MPPA_ASYNC_DDR_0, var_offsets[i].centroids, ncentroids*dimension, sizeof(float), NULL);
+	}
+
+	/* 
+	 * Send partial centroids to the
+	 * slave process that is assigned to it.
+	 */
+	for (i = 0; i < nclusters; i++) {
+		/* Build partial centroid. */
+		start = timer_get();
+		for (j = 0; j < nclusters; j++)
+			memcpy(CENTROID(j*lncentroids[i]), PCENTROID(j, i*(ncentroids/nclusters)), lncentroids[i]*dimension*sizeof(float));
+		end = timer_get();
+		master += timer_diff(start, end);
+
+		dataPut(centroids, MPPA_ASYNC_DDR_0, var_offsets[i].centroids, nclusters*lncentroids[i]*dimension, sizeof(float), NULL);
+		send_signal(i);
+	}
+}
+
+/* Synchronizes partial population. */
+static void sync_ppopulation() {
+	int i, j;            /* Loop indexes.          */
+
+	/* Receive temporary population. */
+	for (i = 0; i < nclusters; i++) {
+		wait_signal(i);
+		dataGet(PPOPULATION(i,0), MPPA_ASYNC_DDR_0, var_offsets[i].ppopulation, ncentroids, sizeof(int), NULL);
+	}
+
+	/* 
+	 * Send partial population to the
+	 * slave process that assigned to it.
+	 */
+	for (i = 0; i < nclusters; i++) {
+		/* Build partial population. */
+		start = timer_get();
+		for (j = 0; j < nclusters; j++)
+			memcpy(&population[j*lncentroids[i]], PPOPULATION(j, i*(ncentroids/nclusters)), lncentroids[i]*sizeof(int));
+		end = timer_get();
+		master += timer_diff(start, end);
+		printf("Dif = %f\n", (end-start)*MICROSEC);
+
+		dataPut(ppopulation, MPPA_ASYNC_DDR_0, var_offsets[i].ppopulation, nclusters*lncentroids[i], sizeof(int), NULL);
+		send_signal(i);
+	}
+}
+
+/* Asserts if another iteration is needed. */
+static int again() {
+	start = timer_get();
+	for (int i = 0; i < nclusters*NUM_THREADS; i++) {
+		if (has_changed[i] && too_far[i]) {
+			end = timer_get();
+			master += timer_diff(start, end);
+			return (0);
+		}
+	}
+	end = timer_get();
+	master += timer_diff(start, end);
+	
+	return (0);
 }	
 
 /* Clusters data. */
@@ -183,6 +259,14 @@ int *kmeans(vector_t *_data, int _npoints, int _ncentroids, float _mindistance) 
 
 	/* Send work to slaves. */
 	send_work();
+
+	/* Data exchange. */
+	do {
+		sync_pcentroids();
+		sync_ppopulation();
+		//sync_centroids();
+		//sync_status();
+	} while (again());
 
 	/* Wait all slaves statistics info. */
 	wait_statistics();

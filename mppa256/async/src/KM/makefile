@@ -11,7 +11,7 @@ MPPAFlags := -g -lvbsp -lutask -lgomp -lmppa_remote -lmppa_async -lmppa_request_
 # Builds master binary.
 io-bin := io_bin
 io_bin-cflags := -D_MASTER_ -D_KM_
-io_bin-lflags := $(MPPAFlags) -lpcie_queue 
+io_bin-lflags := $(MPPAFlags) -lpcie_queue -lm
 io_bin-srcs := $(wildcard master/*.c) $(wildcard $(LIBSRCDIR)/*.c)
 
 # Builds slave binary.
