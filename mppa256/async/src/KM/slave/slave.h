@@ -27,11 +27,11 @@
 
 /* Returns the population for clusther ith, vector jth. */
 #define POPULATION(i, j) \
-	(&ppopulation[(i)*lncentroids[rank] + (j)])
+	(&ppopulation[(i)*lncentroids[cid] + (j)])
 
 /* Returns the jth input centroid from the ith cluster. */
 #define PCENTROID(i, j) \
-	(&centroids[((i)*lncentroids[rank] + (j))*dimension])
+	(&centroids[((i)*lncentroids[cid] + (j))*dimension])
 
 /* Returns the ith local centroid. */
 #define LCENTROID(i) \

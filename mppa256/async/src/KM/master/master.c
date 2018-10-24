@@ -44,7 +44,7 @@ static uint64_t start, end;
 struct offsets {
 	off64_t points, centroids;
 	off64_t map, too_far, has_changed;
-	off64_t lncentroids, ppopulation;			
+	off64_t lncentroids, ppopulation, lcentroids;			
 };
 
 /* Variable offsets auxiliary. */
@@ -209,9 +209,44 @@ static void sync_ppopulation() {
 			memcpy(&population[j*lncentroids[i]], PPOPULATION(j, i*(ncentroids/nclusters)), lncentroids[i]*sizeof(int));
 		end = timer_get();
 		master += timer_diff(start, end);
-		printf("Dif = %f\n", (end-start)*MICROSEC);
 
 		dataPut(ppopulation, MPPA_ASYNC_DDR_0, var_offsets[i].ppopulation, nclusters*lncentroids[i], sizeof(int), NULL);
+		send_signal(i);
+	}
+}
+
+/* Synchronizes centroids. */
+static void sync_centroids(void) {
+	int i;     /* Loop index.            */
+
+	/* Receive centroids. */
+	for (i = 0; i < nclusters; i++) {
+		wait_signal(i);
+		dataGet(CENTROID(i*(ncentroids/nclusters)), MPPA_ASYNC_DDR_0, var_offsets[i].lcentroids, lncentroids[i]*dimension, sizeof(float), NULL);
+	}
+
+	/* Broadcast centroids. */
+	for (i = 0; i < nclusters; i++) {
+		dataPut(centroids, MPPA_ASYNC_DDR_0, var_offsets[i].centroids, ncentroids*dimension, sizeof(float), NULL);
+		send_signal(i);
+	}
+}
+
+/* Synchronizes slaves' status. */
+static void sync_status() {
+	int i;     /* Loop index.            */
+
+	/* Receive data. */
+	for (i = 0; i < nclusters; i++) {
+		wait_signal(i);
+		dataGet(&has_changed[i*NUM_THREADS], MPPA_ASYNC_DDR_0, var_offsets[i].has_changed, NUM_THREADS, sizeof(int), NULL);
+		dataGet(&too_far[i*NUM_THREADS], MPPA_ASYNC_DDR_0, var_offsets[i].too_far, NUM_THREADS, sizeof(int), NULL);
+	}
+
+	/* Broadcast data to slaves. */
+	for (i = 0; i < nclusters; i++) {
+		dataPut(has_changed, MPPA_ASYNC_DDR_0, var_offsets[i].has_changed, nclusters*NUM_THREADS, sizeof(int), NULL);
+		dataPut(too_far, MPPA_ASYNC_DDR_0, var_offsets[i].too_far, nclusters*NUM_THREADS, sizeof(int), NULL);
 		send_signal(i);
 	}
 }
@@ -223,7 +258,7 @@ static int again() {
 		if (has_changed[i] && too_far[i]) {
 			end = timer_get();
 			master += timer_diff(start, end);
-			return (0);
+			return (1);
 		}
 	}
 	end = timer_get();
@@ -264,8 +299,8 @@ int *kmeans(vector_t *_data, int _npoints, int _ncentroids, float _mindistance) 
 	do {
 		sync_pcentroids();
 		sync_ppopulation();
-		//sync_centroids();
-		//sync_status();
+		sync_centroids();
+		sync_status();
 	} while (again());
 
 	/* Wait all slaves statistics info. */

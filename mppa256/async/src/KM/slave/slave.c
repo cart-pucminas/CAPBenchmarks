@@ -54,7 +54,7 @@ int cid;
 struct offsets{
 	off64_t points, centroids;
 	off64_t map, too_far, has_changed;
-	off64_t lncentroids, ppopulation;			
+	off64_t lncentroids, ppopulation, lcentroids;			
 };
 
 /* Variable offsets auxiliary. */
@@ -126,6 +126,26 @@ static void sync_ppopulation() {
 	dataGet(ppopulation, MPPA_ASYNC_DDR_0, var_offsets.ppopulation, nprocs*lncentroids[cid], sizeof(int), NULL);
 }
 
+/* Synchronizes centroids. */
+static void sync_centroids() {
+	dataPut(lcentroids, MPPA_ASYNC_DDR_0, var_offsets.lcentroids, lncentroids[cid]*dimension, sizeof(float), NULL);
+	send_signal();
+
+	wait_signal();
+	dataGet(centroids, MPPA_ASYNC_DDR_0, var_offsets.centroids, ncentroids*dimension, sizeof(float), NULL);
+}
+
+/* Synchronizes status. */
+static void sync_status() {
+	dataPut(&has_changed[cid*NUM_THREADS], MPPA_ASYNC_DDR_0, var_offsets.has_changed, NUM_THREADS, sizeof(int), NULL);
+	dataPut(&too_far[cid*NUM_THREADS], MPPA_ASYNC_DDR_0, var_offsets.too_far, NUM_THREADS, sizeof(int), NULL);
+	send_signal();
+
+	wait_signal();
+	dataGet(has_changed, MPPA_ASYNC_DDR_0, var_offsets.has_changed, nprocs*NUM_THREADS, sizeof(int), NULL);
+	dataGet(too_far, MPPA_ASYNC_DDR_0, var_offsets.too_far, nprocs*NUM_THREADS, sizeof(int), NULL);
+}
+
 /* Computes clusters' centroids. */
 static void compute_centroids() {
 	int i, j;       /* Loop indexes.        */
@@ -157,6 +177,41 @@ static void compute_centroids() {
 
 	sync_pcentroids();
 	sync_ppopulation();
+
+	start = timer_get();
+
+	/* Compute centroids. */
+	#pragma omp parallel for schedule(static) default(shared) private(i, j, population)
+	for (j = 0; j < lncentroids[cid]; j++) {
+		population = 0;
+		
+		for (i = 0; i < nprocs; i++) {
+			if (*POPULATION(i, j) == 0)
+				continue;
+			
+			population += *POPULATION(i, j);
+			
+			if (i == cid)
+				continue;
+			
+			vector_add(PCENTROID(cid, j), PCENTROID(i, j));
+		}
+		
+		if (population > 1)
+			vector_mult(PCENTROID(cid, j), 1.0/population);
+		
+		/* Cluster mean has changed. */
+		if (!vector_equal(PCENTROID(cid, j), LCENTROID(j))) {
+			has_changed[cid*NUM_THREADS + omp_get_thread_num()] = 1;
+			vector_assign(LCENTROID(j), PCENTROID(cid, j));
+		}
+	}
+	
+	end = timer_get();
+	total += timer_diff(start, end);
+
+	sync_centroids();
+	sync_status();
 }
 
 /*============================================================================*
@@ -171,7 +226,7 @@ static int again() {
 		if (has_changed[i] && too_far[i]) {
 			end = timer_get();
 			total += timer_diff(start, end);
-			return (0);
+			return (1);
 		}
 	}
 	
@@ -219,7 +274,8 @@ static void sync_offsets() {
 	mppa_async_malloc(MPPA_ASYNC_DDR_0, (NUM_CLUSTERS*NUM_THREADS)*sizeof(int), &var_offsets.has_changed, NULL);
 	mppa_async_malloc(MPPA_ASYNC_DDR_0, NUM_CLUSTERS*sizeof(int), &var_offsets.lncentroids, NULL);
 	mppa_async_malloc(MPPA_ASYNC_DDR_0, (PPOPULATION_SIZE + NUM_CLUSTERS*DELTA)*sizeof(int), &var_offsets.ppopulation, NULL);
-
+	mppa_async_malloc(MPPA_ASYNC_DDR_0, (LCENTROIDS_SIZE + DELTA*DIMENSION)*sizeof(float), &var_offsets.lcentroids, NULL);
+	
 	dataPut(&var_offsets, &var_off_seg, cid, 1, sizeof(struct offsets), NULL);
 
 	send_signal();
