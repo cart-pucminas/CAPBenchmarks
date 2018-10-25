@@ -9,7 +9,6 @@
 #include <stdint.h> 
 #include <mppa_async.h>
 #include <utask.h>
-#include <stdio.h>
 
 /*============================================================================*
  *                   COMMOM IO AND CC FUNCTIONS/VARIABLES                     *

@@ -116,10 +116,8 @@ void join_slave(int nCluster) {
 
 /* Waits for all slaves statistics. */
 void wait_statistics() {
-	for (int i = 0; i < nclusters; i++) {
-		send_signal(i);
+	for (int i = 0; i < nclusters; i++)
 		wait_signal(i);
-	}
 }
 
 /* Set slaves statistics. */
@@ -191,9 +189,6 @@ void send_statistics(mppa_async_segment_t *segment) {
 
 	/* Puts message with statistics infos. in IO msg remote seg. */
 	message_put(msg, segment, cid, NULL);
-
-	/* Handshake. */
-	wait_signal();
 	
 	/* Send stats. ready signal to IO. */
 	send_signal();
