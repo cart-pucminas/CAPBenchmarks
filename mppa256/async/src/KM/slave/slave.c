@@ -11,7 +11,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <math.h>
-
+#include <stdio.h>
 /* Data exchange segments. */
 static mppa_async_segment_t infos_seg;
 static mppa_async_segment_t var_off_seg;
@@ -95,6 +95,7 @@ static void populate() {
 		if (distance > mindistance)
 			too_far[cid*NUM_THREADS + omp_get_thread_num()] = 1;
 	}
+
 	end = timer_get();
 	total += timer_diff(start, end);
 }
@@ -170,7 +171,7 @@ static void compute_centroids() {
 		
 		omp_unset_lock(&lock[j]);
 	}
-	
+
 	end = timer_get();
 	total += timer_diff(start, end);
 
@@ -298,6 +299,18 @@ static void get_work() {
  *                                  main()                                    *
  *============================================================================*/
 
+static void send_result() {
+	dataPut(map, MPPA_ASYNC_DDR_0, var_offsets.map, lnpoints, sizeof(int), NULL);
+
+	/* Data is ready signal. */
+	send_signal();
+
+	/* Handshake before statistics exchange. */
+	wait_signal();
+
+	/* Put statistics in stats. segment on IO side. */
+	send_statistics(&infos_seg);
+}
 /* Clusters data. */
 int main (__attribute__((unused))int argc, char **argv) {
 	/* Initializes async client */
@@ -327,8 +340,8 @@ int main (__attribute__((unused))int argc, char **argv) {
 	/* Start of km solving. */
 	kmeans();
 
-	/* Put statistics in stats. segment on IO side. */
-	send_statistics(&infos_seg);
+	/* Sends mapping result and statistics to IO. */
+	send_result();
 
 	/* Finalizes async library and rpc client */
 	async_slave_finalize();

@@ -116,7 +116,7 @@ void join_slave(int nCluster) {
 
 /* Waits for all slaves statistics. */
 void wait_statistics() {
-	for (int i = 0; i < nclusters; i++)
+	for (int i = 0; i < nclusters; i++) 
 		wait_signal(i);
 }
 
