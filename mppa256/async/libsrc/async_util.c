@@ -136,6 +136,17 @@ void cloneSegment(mppa_async_segment_t *segment, unsigned long long ident, void 
 	mppa_async_segment_clone(segment, ident, global, size, event);
 }
 
+/* Safe async. malloc on target segment. */
+void async_smalloc(mppa_async_segment_t *segment, size_t size, off64_t *result, mppa_async_event_t *event) {
+	int aux;
+
+	aux = mppa_async_malloc(segment, size, result, event);
+	
+	/* Failed to allocate memory. */
+	if (aux != 0)
+		error("SEGMENT FULL!! --> cannot async_malloc()");
+}
+
 /* Finalizes async context on slave */
 void async_slave_finalize() {
 	mppa_async_final();

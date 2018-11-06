@@ -41,14 +41,14 @@ static uint64_t start, end;
 
 #define VAR_OFF_SEG 3
 
-struct offsets {
-	off64_t points, centroids;
-	off64_t map, too_far, has_changed;
-	off64_t lncentroids, ppopulation, lcentroids;			
+struct offsets{
+	int points, centroids;
+	int map, too_far, has_changed;
+	int lncentroids, ppopulation, lcentroids;			
 };
 
 /* Variable offsets auxiliary. */
-static struct offsets var_offsets[NUM_CLUSTERS+1];
+static struct offsets var_offsets[NUM_CLUSTERS];
 
 /* Create segments for data and info exchange. */
 static void create_segments() {
@@ -131,15 +131,6 @@ static void distribute_work() {
 		lncentroids[i] = ((i + 1) < nclusters) ? 
 			ncentroids/nclusters : ncentroids - i*(ncentroids/nclusters);
 	}
-}
-
-/* Variables offset exchange between IO and Clusters. */
-static void sync_offsets() {
-	/* Get all clusters signal offset. */
-	get_slaves_signals_offset();
-
-	for (int i = 0; i < nclusters; i++)
-		wait_signal(i);
 }
 
 /* Send work to clusters. */
@@ -303,7 +294,7 @@ int *kmeans(vector_t *_data, int _npoints, int _ncentroids, float _mindistance) 
 	spawnSlaves();
 
 	/* Synchronize variable offsets between Master and Slaves. */
-	sync_offsets();
+	get_slaves_signals_offset();
 
 	/* Send work to slaves. */
 	send_work();

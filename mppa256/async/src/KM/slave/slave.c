@@ -12,6 +12,7 @@
 #include <stdint.h>
 #include <math.h>
 #include <stdio.h>
+
 /* Data exchange segments. */
 static mppa_async_segment_t infos_seg;
 static mppa_async_segment_t var_off_seg;
@@ -51,9 +52,9 @@ int cid;
 #define VAR_OFF_SEG 3
 
 struct offsets{
-	off64_t points, centroids;
-	off64_t map, too_far, has_changed;
-	off64_t lncentroids, ppopulation, lcentroids;			
+	int points, centroids;
+	int map, too_far, has_changed;
+	int lncentroids, ppopulation, lcentroids;			
 };
 
 /* Variable offsets auxiliary. */
@@ -63,6 +64,7 @@ static struct offsets var_offsets;
  *                                populate()                                 *
  *============================================================================*/
 
+int first = 1;
 /* Populates clusters. */
 static void populate() {
 	float tmp;      /* Auxiliary variable. */
@@ -90,11 +92,18 @@ static void populate() {
 				distance = tmp;
 			}
 		}
-		
+
+		if (first) {
+			printf("%d\n", map[i]);
+			fflush(stdout);
+		}
+
 		/* Cluster is too far away. */
 		if (distance > mindistance)
 			too_far[cid*NUM_THREADS + omp_get_thread_num()] = 1;
 	}
+
+	first = 0;
 
 	end = timer_get();
 	total += timer_diff(start, end);
@@ -264,21 +273,35 @@ static void clone_segments() {
 }
 
 static void sync_offsets() {
-	/* Send io_signal offset to IO. */
-	send_sig_offset();
 
-	mppa_async_malloc(MPPA_ASYNC_DDR_0, (POINTS_SIZE + DELTA*DIMENSION)*sizeof(float), &var_offsets.points, NULL);
-	mppa_async_malloc(MPPA_ASYNC_DDR_0, (CENTROIDS_SIZE + NUM_CLUSTERS*DELTA*DIMENSION)*sizeof(float), &var_offsets.centroids, NULL);
-	mppa_async_malloc(MPPA_ASYNC_DDR_0, (MAP_SIZE + DELTA)*sizeof(int), &var_offsets.map, NULL);
-	mppa_async_malloc(MPPA_ASYNC_DDR_0, (NUM_CLUSTERS*NUM_THREADS)*sizeof(int), &var_offsets.too_far, NULL);
-	mppa_async_malloc(MPPA_ASYNC_DDR_0, (NUM_CLUSTERS*NUM_THREADS)*sizeof(int), &var_offsets.has_changed, NULL);
-	mppa_async_malloc(MPPA_ASYNC_DDR_0, NUM_CLUSTERS*sizeof(int), &var_offsets.lncentroids, NULL);
-	mppa_async_malloc(MPPA_ASYNC_DDR_0, (PPOPULATION_SIZE + NUM_CLUSTERS*DELTA)*sizeof(int), &var_offsets.ppopulation, NULL);
-	mppa_async_malloc(MPPA_ASYNC_DDR_0, (LCENTROIDS_SIZE + DELTA*DIMENSION)*sizeof(float), &var_offsets.lcentroids, NULL);
-	
+	/* Offset in bytes. */
+	off64_t points_aux, centroids_aux;
+	off64_t map_aux, too_far_aux, has_changed_aux;
+	off64_t lncentroids_aux, ppopulation_aux, lcentroids_aux; 
+
+	async_smalloc(MPPA_ASYNC_DDR_0, (POINTS_SIZE + DELTA*DIMENSION)*sizeof(float), &points_aux, NULL);
+	async_smalloc(MPPA_ASYNC_DDR_0, (CENTROIDS_SIZE + NUM_CLUSTERS*DELTA*DIMENSION)*sizeof(float), &centroids_aux, NULL);
+	async_smalloc(MPPA_ASYNC_DDR_0, (MAP_SIZE + DELTA)*sizeof(int), &map_aux, NULL);
+	async_smalloc(MPPA_ASYNC_DDR_0, (NUM_CLUSTERS*NUM_THREADS)*sizeof(int), &too_far_aux, NULL);
+	async_smalloc(MPPA_ASYNC_DDR_0, (NUM_CLUSTERS*NUM_THREADS)*sizeof(int), &has_changed_aux, NULL);
+	async_smalloc(MPPA_ASYNC_DDR_0, NUM_CLUSTERS*sizeof(int), &lncentroids_aux, NULL);
+	async_smalloc(MPPA_ASYNC_DDR_0, (PPOPULATION_SIZE + NUM_CLUSTERS*DELTA)*sizeof(int), &ppopulation_aux, NULL);
+	async_smalloc(MPPA_ASYNC_DDR_0, (LCENTROIDS_SIZE + DELTA*DIMENSION)*sizeof(float), &lcentroids_aux, NULL);
+
+	/* Converting offsets to positions. */
+	var_offsets.points = points_aux/sizeof(float);
+	var_offsets.centroids = centroids_aux/sizeof(float);
+	var_offsets.map = map_aux/sizeof(int);
+	var_offsets.too_far = too_far_aux/sizeof(int);
+	var_offsets.has_changed = has_changed_aux/sizeof(int);
+	var_offsets.lncentroids = lncentroids_aux/sizeof(int);
+	var_offsets.ppopulation = ppopulation_aux/sizeof(int);
+	var_offsets.lcentroids = lcentroids_aux/sizeof(float);
+
 	dataPut(&var_offsets, &var_off_seg, cid, 1, sizeof(struct offsets), NULL);
 
-	send_signal();
+	/* Send io_signal offset to IO. */
+	send_sig_offset();
 }
 
 /* Receives work from master process. */

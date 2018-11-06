@@ -63,6 +63,9 @@ extern void async_slave_init();
 /* Initalizes async context on slave */
 extern void cloneSegment(mppa_async_segment_t *segment, unsigned long long ident, void *global, size_t size, mppa_async_event_t *event);
 
+/* Safe async. malloc on target segment. */
+extern void async_smalloc(mppa_async_segment_t *segment, size_t size, off64_t *result, mppa_async_event_t *event);
+
 /* Finalizes async context on slave */
 extern void async_slave_finalize();
 
