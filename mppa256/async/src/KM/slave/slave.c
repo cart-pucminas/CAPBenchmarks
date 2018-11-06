@@ -64,9 +64,12 @@ static struct offsets var_offsets;
  *                                populate()                                 *
  *============================================================================*/
 
-int first = 1;
-/* Populates clusters. */
-static void populate() {
+/*
+ * Populates clusters.
+ */
+static void populate(void)
+{
+	int i, j;        /* Loop indexes.       */
 	float tmp;      /* Auxiliary variable. */
 	float distance; /* Smallest distance.  */
 
@@ -74,12 +77,14 @@ static void populate() {
 	memset(&too_far[cid*NUM_THREADS], 0, NUM_THREADS*sizeof(int)); 
 	
 	/* Iterate over data points. */
-	#pragma omp parallel for schedule(static) default(shared) private(tmp, distance)
-	for (int i = 0; i < lnpoints; i++) {
+	#pragma omp parallel for schedule(static) default(shared) private(i, j, tmp, distance)
+	for (i = 0; i < lnpoints; i++)
+	{
 		distance = vector_distance(CENTROID(map[i]), POINT(i));
 		
 		/* Look for closest cluster. */
-		for (int j = 0; j < ncentroids; j++) {
+		for (j = 0; j < ncentroids; j++)
+		{
 			/* Point is in this cluster. */
 			if (j == map[i])
 				continue;
@@ -87,24 +92,17 @@ static void populate() {
 			tmp = vector_distance(CENTROID(j), POINT(i));
 			
 			/* Found. */
-			if (tmp < distance) {
+			if (tmp < distance)
+			{
 				map[i] = j;
 				distance = tmp;
 			}
-		}
-
-		if (first) {
-			printf("%d\n", map[i]);
-			fflush(stdout);
 		}
 
 		/* Cluster is too far away. */
 		if (distance > mindistance)
 			too_far[cid*NUM_THREADS + omp_get_thread_num()] = 1;
 	}
-
-	first = 0;
-
 	end = timer_get();
 	total += timer_diff(start, end);
 }
@@ -155,8 +153,11 @@ static void sync_status() {
 	dataGet(too_far, MPPA_ASYNC_DDR_0, var_offsets.too_far, nprocs*NUM_THREADS, sizeof(int), NULL);
 }
 
-/* Computes clusters' centroids. */
-static void compute_centroids() {
+/*
+ * Computes clusters' centroids.
+ */
+static void compute_centroids(void)
+{
 	int i, j;       /* Loop indexes.        */
 	int population; /* Centroid population. */
 
@@ -169,7 +170,8 @@ static void compute_centroids() {
 
 	/* Compute partial centroids. */
 	#pragma omp parallel for schedule(static) default(shared) private(i, j)
-	for (i = 0; i < lnpoints; i++) {
+	for (i = 0; i < lnpoints; i++)
+	{
 		j = map[i]%NUM_THREADS;
 		
 		omp_set_lock(&lock[j]);
@@ -180,21 +182,24 @@ static void compute_centroids() {
 		
 		omp_unset_lock(&lock[j]);
 	}
-
+	
 	end = timer_get();
 	total += timer_diff(start, end);
-
+	
 	sync_pcentroids();
-	sync_ppopulation();
 
+	sync_ppopulation();
+	
 	start = timer_get();
 
 	/* Compute centroids. */
 	#pragma omp parallel for schedule(static) default(shared) private(i, j, population)
-	for (j = 0; j < lncentroids[cid]; j++) {
+	for (j = 0; j < lncentroids[cid]; j++)
+	{
 		population = 0;
 		
-		for (i = 0; i < nprocs; i++) {
+		for (i = 0; i < nprocs; i++)
+		{
 			if (*POPULATION(i, j) == 0)
 				continue;
 			
@@ -210,7 +215,8 @@ static void compute_centroids() {
 			vector_mult(PCENTROID(cid, j), 1.0/population);
 		
 		/* Cluster mean has changed. */
-		if (!vector_equal(PCENTROID(cid, j), LCENTROID(j))) {
+		if (!vector_equal(PCENTROID(cid, j), LCENTROID(j)))
+		{
 			has_changed[cid*NUM_THREADS + omp_get_thread_num()] = 1;
 			vector_assign(LCENTROID(j), PCENTROID(cid, j));
 		}
@@ -218,8 +224,9 @@ static void compute_centroids() {
 	
 	end = timer_get();
 	total += timer_diff(start, end);
-
+		
 	sync_centroids();
+		
 	sync_status();
 }
 
@@ -310,8 +317,8 @@ static void get_work() {
 
 	dataGet(lncentroids, MPPA_ASYNC_DDR_0, var_offsets.lncentroids, nprocs, sizeof(int), NULL);
 
-	for (int i = 0; i < lnpoints; i++)
-		dataGet(&points[i*dimension], MPPA_ASYNC_DDR_0, var_offsets.points, dimension, sizeof(float), NULL);
+	/* Numbers on IO AND CC don't match. FIX */
+	dataGet(points, MPPA_ASYNC_DDR_0, var_offsets.points, lnpoints*dimension, sizeof(float), NULL);
 
 	dataGet(centroids, MPPA_ASYNC_DDR_0, var_offsets.centroids, ncentroids*dimension, sizeof(float), NULL);
 

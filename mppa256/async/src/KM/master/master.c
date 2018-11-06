@@ -135,15 +135,19 @@ static void distribute_work() {
 
 /* Send work to clusters. */
 static void send_work() {
+	int count = 0;
 	for (int i = 0; i < nclusters; i++) {
 		dataPut(lncentroids, MPPA_ASYNC_DDR_0, var_offsets[i].lncentroids, nclusters, sizeof(int), NULL);
 
+		/* Numbers on IO AND CC don't match. FIX */
 		for (int j = 0; j < lnpoints[i]; j++) 
-			dataPut(data[i*(npoints/nclusters)+j]->elements, MPPA_ASYNC_DDR_0, var_offsets[i].points, dimension, sizeof(float), NULL);
+			dataPut(data[count+j]->elements, MPPA_ASYNC_DDR_0, var_offsets[i].points+j, dimension, sizeof(float), NULL);
 
 		dataPut(centroids, MPPA_ASYNC_DDR_0, var_offsets[i].centroids, ncentroids*dimension, sizeof(float), NULL);
 
-		dataPut(&map[i*(npoints/nclusters)], MPPA_ASYNC_DDR_0, var_offsets[i].map, lnpoints[i], sizeof(int), NULL);
+		dataPut(&map[count], MPPA_ASYNC_DDR_0, var_offsets[i].map, lnpoints[i], sizeof(int), NULL);
+
+		count += lnpoints[i];
 
 		send_signal(i);
 	}
