@@ -12,12 +12,12 @@ MPPAFlags := -g -lvbsp -lutask -lgomp -lmppa_remote -lmppa_async -lmppa_request_
 io-bin := io_bin
 io_bin-cflags := -D_MASTER_ -D_KM_
 io_bin-lflags := $(MPPAFlags) -lpcie_queue -lm
-io_bin-srcs := $(wildcard master/*.c) $(wildcard $(LIBSRCDIR)/*.c)
+io_bin-srcs := $(wildcard master/*.c) $(wildcard $(LIBSRCDIR)/*.c) $(wildcard *.c)
 
 # Builds slave binary.
 cluster-bin := cluster_bin
 cluster-lflags := $(MPPAFlags) -lm
-cluster_bin-srcs := $(wildcard slave/*.c) $(wildcard $(LIBSRCDIR)/*.c)
+cluster_bin-srcs := $(wildcard slave/*.c) $(wildcard $(LIBSRCDIR)/*.c) $(wildcard *.c)
 
 # Builds image (master + slave)
 mppa-bin := multibin_bin

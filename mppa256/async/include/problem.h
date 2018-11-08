@@ -41,7 +41,6 @@ struct problem {
 struct problem
 {
 	int npoints;       /* Number of points.    */
-	int dimension;     /* Data dimension.      */
 	int ncentroids;    /* Number of centroids. */
 	float mindistance; /* Minimum distance.    */
 };

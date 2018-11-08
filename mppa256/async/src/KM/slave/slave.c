@@ -4,6 +4,7 @@
 #include <arch.h>
 #include <util.h>
 #include "slave.h"
+#include "../vector.h"
 
 /* C And MPPA Library Includes*/
 #include <omp.h>
@@ -64,24 +65,36 @@ static struct offsets var_offsets;
  *                                populate()                                 *
  *============================================================================*/
 
+static int n_map_changed;
+static int n_dist_changed;
+static int counter = 0;
+
 /*
  * Populates clusters.
  */
 static void populate(void)
 {
-	int i, j;        /* Loop indexes.       */
+	int i, j;       /* Loop indexes.       */
 	float tmp;      /* Auxiliary variable. */
 	float distance; /* Smallest distance.  */
+	float m0;       /* Initial mapping.    */
+	float d0;       /* Initial distance.   */
 
 	start = timer_get();
 	memset(&too_far[cid*NUM_THREADS], 0, NUM_THREADS*sizeof(int)); 
+
+	n_map_changed = 0;
+	n_dist_changed = 0;
 	
 	/* Iterate over data points. */
-	#pragma omp parallel for schedule(static) default(shared) private(i, j, tmp, distance)
+	#pragma omp parallel for schedule(static) default(shared) private(i, j, tmp, distance) reduction(+: n_map_changed, n_dist_changed)
+
 	for (i = 0; i < lnpoints; i++)
 	{
-		distance = vector_distance(CENTROID(map[i]), POINT(i));
-		
+		d0 = vector_distance(CENTROID(map[i]), POINT(i));
+		distance = d0;
+		m0 = map[i];
+
 		/* Look for closest cluster. */
 		for (j = 0; j < ncentroids; j++)
 		{
@@ -98,13 +111,21 @@ static void populate(void)
 				distance = tmp;
 			}
 		}
-
 		/* Cluster is too far away. */
 		if (distance > mindistance)
 			too_far[cid*NUM_THREADS + omp_get_thread_num()] = 1;
+
+		/* Map was changed. */
+		if (map[i] != m0)
+			n_map_changed++;
+		if (distance < d0)
+			n_dist_changed++;
 	}
 	end = timer_get();
 	total += timer_diff(start, end);
+
+	printf("Map = %d || Dist = %d || Counter = %d\n", n_map_changed, n_dist_changed, counter++);
+	fflush(stdout);
 }
 
 /*============================================================================*
@@ -317,7 +338,6 @@ static void get_work() {
 
 	dataGet(lncentroids, MPPA_ASYNC_DDR_0, var_offsets.lncentroids, nprocs, sizeof(int), NULL);
 
-	/* Numbers on IO AND CC don't match. FIX */
 	dataGet(points, MPPA_ASYNC_DDR_0, var_offsets.points, lnpoints*dimension, sizeof(float), NULL);
 
 	dataGet(centroids, MPPA_ASYNC_DDR_0, var_offsets.centroids, ncentroids*dimension, sizeof(float), NULL);

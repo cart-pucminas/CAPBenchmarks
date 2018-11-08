@@ -5,7 +5,6 @@
 #include <timer.h>
 #include <util.h>
 #include "master.h"
-#include "vector.h"
 
 /* C And MPPA Library Includes*/
 #include <stdlib.h>
@@ -21,11 +20,11 @@ static mppa_async_segment_t var_off_seg;
 static struct message statistics[NUM_CLUSTERS];
 
 /* K-means. */
+extern int dimension;                  /* Dimension of data points.  */
 static int npoints;                    /* Number of data points.     */
-static int dimension;                  /* Dimension of data points.  */
 static float mindistance;              /* Minimum distance.          */
 static int ncentroids;                 /* Number of centroids.       */
-static vector_t *data;                 /* Data points.               */
+static float *data;                    /* Data points.               */
 static float *centroids;               /* Data centroids.            */
 static int *map;                       /* Map of clusters.           */
 static int *population;                /* Population of centroids.   */
@@ -108,7 +107,7 @@ static void initialize_variables() {
 	/* Initialize centroids. */
 	for (i = 0; i < ncentroids; i++) {
 		j = randnum()%npoints;
-		memcpy(CENTROID(i), data[j]->elements, dimension*sizeof(float));
+		memcpy(CENTROID(i), DATA(i), dimension*sizeof(float));
 		map[j] = i;
 	}
 
@@ -135,13 +134,12 @@ static void distribute_work() {
 
 /* Send work to clusters. */
 static void send_work() {
-	int count = 0;
+	int count = 0; /* Position counter. */
+
 	for (int i = 0; i < nclusters; i++) {
 		dataPut(lncentroids, MPPA_ASYNC_DDR_0, var_offsets[i].lncentroids, nclusters, sizeof(int), NULL);
 
-		/* Numbers on IO AND CC don't match. FIX */
-		for (int j = 0; j < lnpoints[i]; j++) 
-			dataPut(data[count+j]->elements, MPPA_ASYNC_DDR_0, var_offsets[i].points+j, dimension, sizeof(float), NULL);
+		dataPut(&data[count], MPPA_ASYNC_DDR_0, var_offsets[i].points, lnpoints[i]*dimension, sizeof(float), NULL);
 
 		dataPut(centroids, MPPA_ASYNC_DDR_0, var_offsets[i].centroids, ncentroids*dimension, sizeof(float), NULL);
 
@@ -276,7 +274,7 @@ static void get_results() {
 }
 
 /* Clusters data. */
-int *kmeans(vector_t *_data, int _npoints, int _ncentroids, float _mindistance) {
+int *kmeans(float *_data, int _npoints, int _ncentroids, float _mindistance) {
 	/* Initializes async server */
 	async_master_start();
 
@@ -285,7 +283,6 @@ int *kmeans(vector_t *_data, int _npoints, int _ncentroids, float _mindistance) 
 	npoints = _npoints;
 	ncentroids = _ncentroids;
 	mindistance = _mindistance;
-	dimension = vector_size(data[0]);
 	initialize_variables();
 
 	/* Distribute work among clusters. */
@@ -303,13 +300,24 @@ int *kmeans(vector_t *_data, int _npoints, int _ncentroids, float _mindistance) 
 	/* Send work to slaves. */
 	send_work();
 
+	int count = 0;
 	/* Data exchange. */
 	do {
 		sync_pcentroids();
 		sync_ppopulation();
 		sync_centroids();
 		sync_status();
+		count++;
 	} while (again());
+
+	printf("Count = %d\n", count);
+	fflush(stdout);
+
+	/*
+	for (int i = 0; i < npoints; i++) {
+		printf("%d\n", map[i]);
+		fflush(stdout);
+	}*/
 
 	/* Gets mapping result and statistics to IO. */
 	get_results();

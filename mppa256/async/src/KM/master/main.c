@@ -4,7 +4,7 @@
 #include <timer.h>
 #include <global.h>
 #include <problem.h>
-#include "vector.h"
+#include "../vector.h"
 
 /* C And MPPA Library Includes*/
 #include <stdint.h>
@@ -12,7 +12,7 @@
 #include <string.h>
 
 /* Clusters data. */
-extern int *kmeans(vector_t *_points, int _npoints, int _ncentroids, float _mindistance);
+extern int *kmeans(float *_points, int _npoints, int _ncentroids, float _mindistance);
 
 /* Problem initials and FullName */
 char *bench_initials = "KM";
@@ -32,17 +32,20 @@ size_t data_get = 0; /* Number of items put.    */
 unsigned nget = 0;   /* Number of items gotten. */
 
 /* Problem sizes. */
-struct problem tiny     = {  4096, 16,  256, 0.0 };
-struct problem small    = {  8192, 16,  512, 0.0 };
-struct problem standard = { 16384, 16, 1024, 0.0 };
-struct problem large    = { 32768, 16, 1024, 0.0 };
-struct problem huge     = { 65536, 16, 1024, 0.0 };
+struct problem tiny     = {  4096, 256, 0.0 };
+struct problem small    = {  8192, 512, 0.0 };
+struct problem standard = { 16384, 1024, 0.0 };
+struct problem large    = { 32768, 1024, 0.0 };
+struct problem huge     = { 65536, 1024, 0.0 };
 
 /* Benchmark parameters. */
 int verbose = 0;              /* Display informations? */
 int nclusters = 1;            /* Number of clusters.   */
 static int seed = 0;          /* Seed value.           */
 struct problem *prob = &tiny; /* Problem class.        */
+
+/* Dimension of points. */
+int dimension = 16;
 
 /*
  * Runs benchmark.
@@ -52,7 +55,7 @@ int main(int argc, char **argv) {
 	int *map;       /* Map of clusters. */
 	uint64_t end;   /* End time.        */
 	uint64_t start; /* Start time.      */
-	vector_t *data; /* Data points.     */
+	float *data; /* Data points.     */
 	
 	readargs(argc, argv);
 	
@@ -64,10 +67,9 @@ int main(int argc, char **argv) {
 		printf("initializing...\n");
 
 	start = timer_get();
-	data = smalloc(prob->npoints*sizeof(vector_t));
+	data = smalloc(prob->npoints*dimension*sizeof(float));
 	for (i = 0; i < prob->npoints; i++) {
-		data[i] = vector_create(prob->dimension);
-		vector_random(data[i]);
+		vector_random(&data[i*dimension]);
 	}
 	end = timer_get();
 
@@ -87,8 +89,6 @@ int main(int argc, char **argv) {
 	
 	/* House keeping. */
 	free(map);
-	for (i = 0; i < prob->npoints; i++)
-		vector_destroy(data[i]);
 	free(data);
 	
 	return (0);

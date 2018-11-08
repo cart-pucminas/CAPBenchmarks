@@ -13,6 +13,10 @@
 #define CENTROID(i) \
 	(&centroids[(i)*dimension])
 
+/* Returns the ith points. */
+#define DATA(i) \
+	(&data[(i)*dimension])
+	
 #define PCENTROID(i, j) \
 (&pcentroids[((i)*ncentroids + (j))*dimension])
 
