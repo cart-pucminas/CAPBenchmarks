@@ -245,11 +245,11 @@ inline partition_interval_t get_next_partition_block_size(int nb_partitions, int
 	ret.start = ret.end = -1;	
 	if ((*next_partition) < nb_partitions)
 		ret.start = (*next_partition);
-		if ((*next_partition) + block_size - 1 < nb_partitions)
-			ret.end = (*next_partition) + block_size - 1;
-		else
-			ret.end = ret.start + nb_partitions - ret.start;
-		(*next_partition) += block_size;
+	if ((*next_partition) + block_size - 1 < nb_partitions)
+		ret.end = (*next_partition) + block_size - 1;
+	else
+		ret.end = ret.start + nb_partitions - ret.start;
+	(*next_partition) += block_size;
 	return ret;
 }
 
