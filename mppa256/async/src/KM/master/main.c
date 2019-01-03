@@ -4,7 +4,6 @@
 #include <timer.h>
 #include <global.h>
 #include <problem.h>
-#include "../vector.h"
 
 /* C And MPPA Library Includes*/
 #include <stdint.h>
@@ -12,7 +11,7 @@
 #include <string.h>
 
 /* Clusters data. */
-extern int *kmeans(float *_points, int _npoints, int _ncentroids, float _mindistance);
+extern int *kmeans(float *_points, int _npoints, int _ncentroids, int _dimension);
 
 /* Problem initials and FullName */
 char *bench_initials = "KM";
@@ -32,11 +31,11 @@ size_t data_get = 0; /* Number of items put.    */
 unsigned nget = 0;   /* Number of items gotten. */
 
 /* Problem sizes. */
-struct problem tiny     = {  4096, 256, 0.0 };
-struct problem small    = {  8192, 512, 0.0 };
-struct problem standard = { 16384, 1024, 0.0 };
-struct problem large    = { 32768, 1024, 0.0 };
-struct problem huge     = { 65536, 1024, 0.0 };
+struct problem tiny     = {  4096, 256};
+struct problem small    = {  8192, 512};
+struct problem standard = { 16384, 1024};
+struct problem large    = { 32768, 1024};
+struct problem huge     = { 65536, 1024};
 
 /* Benchmark parameters. */
 int verbose = 0;              /* Display informations? */
@@ -44,33 +43,29 @@ int nclusters = 1;            /* Number of clusters.   */
 static int seed = 0;          /* Seed value.           */
 struct problem *prob = &tiny; /* Problem class.        */
 
-/* Dimension of points. */
-int dimension = 16;
-
-/*
- * Runs benchmark.
- */
+/* Runs benchmark. */
 int main(int argc, char **argv) {
-	int i;          /* Loop index.      */
-	int *map;       /* Map of clusters. */
-	uint64_t end;   /* End time.        */
-	uint64_t start; /* Start time.      */
-	float *data; /* Data points.     */
+	int i;               /* Loop index.      */
+	int *map;            /* Map of clusters. */
+	int dimension;       /* Dimension of points. */
+	float *points;       /* Data points.     */
+	uint64_t start, end; /* End time.        */
 	
 	readargs(argc, argv);
 	
 	timer_init();
 	srandnum(seed);
+
+	/* Setting the dimension for the problem. */
+	dimension = 16; 
 	
 	/* Benchmark initialization. */
 	if (verbose)
 		printf("initializing...\n");
-
 	start = timer_get();
-	data = smalloc(prob->npoints*dimension*sizeof(float));
-	for (i = 0; i < prob->npoints; i++) {
-		vector_random(&data[i*dimension]);
-	}
+	points = smalloc(prob->npoints*dimension*sizeof(float));
+	for (i = 0; i < prob->npoints * dimension; i++)
+		points[i] = randnum() & 0xffff;
 	end = timer_get();
 
 	if (verbose)
@@ -79,17 +74,15 @@ int main(int argc, char **argv) {
 	/* Cluster data. */
 	if (verbose)
 		printf("clustering data...\n");
-
 	start = timer_get();
-	map = kmeans(data, prob->npoints, prob->ncentroids, prob->mindistance);
+	map = kmeans(points, prob->npoints, prob->ncentroids, dimension);
 	end = timer_get();
-	total = timer_diff(start, end);
 
 	inform_statistics();
 	
 	/* House keeping. */
 	free(map);
-	free(data);
+	free(points);
 	
 	return (0);
 }

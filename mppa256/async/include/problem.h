@@ -42,7 +42,6 @@ struct problem
 {
 	int npoints;       /* Number of points.    */
 	int ncentroids;    /* Number of centroids. */
-	float mindistance; /* Minimum distance.    */
 };
 
 #endif /* Benchmarks */

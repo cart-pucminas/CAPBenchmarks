@@ -4,7 +4,7 @@
 #include <global.h>
 #include <timer.h>
 #include <util.h>
-#include "master.h"
+#include "../km.h"
 
 /* C And MPPA Library Includes*/
 #include <stdlib.h>
@@ -12,28 +12,26 @@
 #include <stdint.h>
 #include <stdio.h>
 
-/* Statistics and variable offsets segment. */
+/* Asynchronous segments */
 static mppa_async_segment_t infos_seg;
 static mppa_async_segment_t var_off_seg;
+static mppa_async_segment_t centroids_seg;
 
 /* Statistics information from slaves. */
 static struct message statistics[NUM_CLUSTERS];
 
 /* K-means. */
-extern int dimension;                  /* Dimension of data points.  */
-static int npoints;                    /* Number of data points.     */
-static float mindistance;              /* Minimum distance.          */
-static int ncentroids;                 /* Number of centroids.       */
-static float *data;                    /* Data points.               */
-static float *centroids;               /* Data centroids.            */
-static int *map;                       /* Map of clusters.           */
-static int *population;                /* Population of centroids.   */
-static int *ppopulation;               /* Partial population.        */
-static float *pcentroids;              /* Partial centroids.         */
-static int too_far[NUM_CORES];         /* Are points too far?        */
-static int lnpoints[NUM_CLUSTERS];     /* Local number of points.    */
-static int has_changed[NUM_CORES];     /* Has any centroid changed?  */
-static int lncentroids[NUM_CLUSTERS];  /* Local number of centroids. */
+int dimension;              /* Dimension of data points.  */
+static int npoints;                /* Number of data points.     */
+static int ncentroids;             /* Number of centroids.       */
+static float *points;              /* Data points.               */
+static float *centroids;           /* Data centroids.            */
+static int *map;                   /* Map of clusters.           */
+static int *population;            /* Population of centroids.   */
+static int *ppopulation;           /* Partial population.        */
+static float *pcentroids;          /* Partial centroids.         */
+static int lnpoints[NUM_CLUSTERS]; /* Local number of points.    */
+static int has_changed[NUM_CORES]; /* Has any centroid changed?  */
 
 /* Timing auxiliars */
 static uint64_t start, end;
@@ -41,9 +39,8 @@ static uint64_t start, end;
 #define VAR_OFF_SEG 3
 
 struct offsets{
-	int points, centroids;
-	int map, too_far, has_changed;
-	int lncentroids, ppopulation, lcentroids;			
+	int points, map, has_changed;
+	int ppopulation, pcentroids;			
 };
 
 /* Variable offsets auxiliary. */
@@ -53,16 +50,16 @@ static struct offsets var_offsets[NUM_CLUSTERS];
 static void create_segments() {
 	createSegment(&signals_offset_seg, SIG_SEG_0, &sig_offsets, nclusters * sizeof(off64_t), 0, 0, NULL);
 	createSegment(&infos_seg, MSG_SEG_0, &statistics, nclusters * sizeof(struct message), 0, 0, NULL);
-	createSegment(&var_off_seg, VAR_OFF_SEG, &var_offsets, (nclusters+1) * sizeof(struct offsets), 0, 0, NULL);
+	createSegment(&var_off_seg, VAR_OFF_SEG, &var_offsets, nclusters * sizeof(struct offsets), 0, 0, NULL);
+	createSegment(&centroids_seg, 6, centroids, ncentroids*dimension * sizeof(float), 0, 0, NULL);
 }
 
 static void spawnSlaves() {
 	start = timer_get();
 
-	char str_nclusters[10], str_ncentroids[10], str_mindist[10], str_dim[10];
+	char str_nclusters[10], str_ncentroids[10], str_dim[10];
 	sprintf(str_nclusters, "%d", nclusters);
 	sprintf(str_ncentroids, "%d", ncentroids);
-	sprintf(str_mindist, "%f", mindistance);
 	sprintf(str_dim, "%d", dimension);
 
 	set_cc_signals_offset();
@@ -73,14 +70,13 @@ static void spawnSlaves() {
 		char str_lnpoints[10];
 		sprintf(str_lnpoints, "%d", lnpoints[i]);
 
-		char *args[7];
+		char *args[6];
 		args[0] = str_nclusters;
 		args[1] = str_ncentroids;
-		args[2] = str_mindist;
-		args[3] = str_dim;
-		args[4] = str_lnpoints;
-		args[5] = str_cc_signals_offset[i];
-		args[6] = NULL;
+		args[2] = str_dim;
+		args[3] = str_lnpoints;
+		args[4] = str_cc_signals_offset[i];
+		args[5] = NULL;
 
 		spawn_slave(i, args);
 	}
@@ -94,10 +90,10 @@ static void initialize_variables() {
 	
 	/* Create auxiliary variables. */
 	map = scalloc(npoints, sizeof(int));
-	centroids = smalloc(CENTROIDS_SIZE*sizeof(float));
-	ppopulation = smalloc(PPOPULATION_SIZE*sizeof(int));
-	population = smalloc(POPULATION_SIZE*sizeof(int));
-	pcentroids = smalloc(PCENTROIDS_SIZE*sizeof(float));
+	centroids = smalloc(ncentroids*dimension*sizeof(float));
+	pcentroids = smalloc(ncentroids*dimension*nclusters*sizeof(float));
+	population = smalloc(ncentroids*sizeof(int));
+	ppopulation = smalloc(ncentroids*nclusters*sizeof(int));
 	
 	start = timer_get();
 	/* Initialize mapping. */
@@ -107,7 +103,7 @@ static void initialize_variables() {
 	/* Initialize centroids. */
 	for (i = 0; i < ncentroids; i++) {
 		j = randnum()%npoints;
-		memcpy(CENTROID(i), DATA(i), dimension*sizeof(float));
+		memcpy(CENTROID(i), POINT(j), dimension*sizeof(float));
 		map[j] = i;
 	}
 
@@ -121,172 +117,88 @@ static void initialize_variables() {
 	master += timer_diff(start, end);
 }
 
-/* Distribute work among slave processes. */
-static void distribute_work() {
-	for (int i = 0; i < nclusters; i++) {
-		lnpoints[i] = ((i + 1) < nclusters) ? 
-			npoints/nclusters :  npoints - i*(npoints/nclusters);
-			
-		lncentroids[i] = ((i + 1) < nclusters) ? 
-			ncentroids/nclusters : ncentroids - i*(ncentroids/nclusters);
-	}
-}
-
 /* Send work to clusters. */
 static void send_work() {
 	int count = 0; /* Position counter. */
-
 	for (int i = 0; i < nclusters; i++) {
-		dataPut(lncentroids, MPPA_ASYNC_DDR_0, var_offsets[i].lncentroids, nclusters, sizeof(int), NULL);
-
-		dataPut(&data[count], MPPA_ASYNC_DDR_0, var_offsets[i].points, lnpoints[i]*dimension, sizeof(float), NULL);
-
-		dataPut(centroids, MPPA_ASYNC_DDR_0, var_offsets[i].centroids, ncentroids*dimension, sizeof(float), NULL);
-
+		dataPut(&points[count*dimension], MPPA_ASYNC_DDR_0, var_offsets[i].points, lnpoints[i]*dimension, sizeof(float), NULL);
 		dataPut(&map[count], MPPA_ASYNC_DDR_0, var_offsets[i].map, lnpoints[i], sizeof(int), NULL);
-
 		count += lnpoints[i];
-
 		send_signal(i);
 	}
 }
 
-/* Synchronizes partial centroids. */
-static void sync_pcentroids() {
-	int i, j;            /* Loop indexes.          */
-	
-	/* Receive partial centroids. */
+/* Sync with CC and asserts if another iteration is needed. */
+static int sync() {
+	int i, j;   /* Loop indexes. */
+	int again;  /* Loop again? */
+	int sigaux; /* auxiliar signal for clusters. */
+
 	for (i = 0; i < nclusters; i++) {
 		wait_signal(i);
-		dataGet(PCENTROID(i,0), MPPA_ASYNC_DDR_0, var_offsets[i].centroids, ncentroids*dimension, sizeof(float), NULL);
-	}
-
-	/* 
-	 * Send partial centroids to the
-	 * slave process that is assigned to it.
-	 */
-	for (i = 0; i < nclusters; i++) {
-		/* Build partial centroid. */
-		start = timer_get();
-		for (j = 0; j < nclusters; j++)
-			memcpy(CENTROID(j*lncentroids[i]), PCENTROID(j, i*(ncentroids/nclusters)), lncentroids[i]*dimension*sizeof(float));
-		end = timer_get();
-		master += timer_diff(start, end);
-
-		dataPut(centroids, MPPA_ASYNC_DDR_0, var_offsets[i].centroids, nclusters*lncentroids[i]*dimension, sizeof(float), NULL);
-		send_signal(i);
-	}
-}
-
-/* Synchronizes partial population. */
-static void sync_ppopulation() {
-	int i, j;            /* Loop indexes.          */
-
-	/* Receive temporary population. */
-	for (i = 0; i < nclusters; i++) {
-		wait_signal(i);
+		dataGet(PCENTROID(i,0), MPPA_ASYNC_DDR_0, var_offsets[i].pcentroids, ncentroids*dimension, sizeof(float), NULL);
 		dataGet(PPOPULATION(i,0), MPPA_ASYNC_DDR_0, var_offsets[i].ppopulation, ncentroids, sizeof(int), NULL);
-	}
-
-	/* 
-	 * Send partial population to the
-	 * slave process that assigned to it.
-	 */
-	for (i = 0; i < nclusters; i++) {
-		/* Build partial population. */
-		start = timer_get();
-		for (j = 0; j < nclusters; j++)
-			memcpy(&population[j*lncentroids[i]], PPOPULATION(j, i*(ncentroids/nclusters)), lncentroids[i]*sizeof(int));
-		end = timer_get();
-		master += timer_diff(start, end);
-
-		dataPut(ppopulation, MPPA_ASYNC_DDR_0, var_offsets[i].ppopulation, nclusters*lncentroids[i], sizeof(int), NULL);
-		send_signal(i);
-	}
-}
-
-/* Synchronizes centroids. */
-static void sync_centroids(void) {
-	int i;     /* Loop index.            */
-
-	/* Receive centroids. */
-	for (i = 0; i < nclusters; i++) {
-		wait_signal(i);
-		dataGet(CENTROID(i*(ncentroids/nclusters)), MPPA_ASYNC_DDR_0, var_offsets[i].lcentroids, lncentroids[i]*dimension, sizeof(float), NULL);
-	}
-
-	/* Broadcast centroids. */
-	for (i = 0; i < nclusters; i++) {
-		dataPut(centroids, MPPA_ASYNC_DDR_0, var_offsets[i].centroids, ncentroids*dimension, sizeof(float), NULL);
-		send_signal(i);
-	}
-}
-
-/* Synchronizes slaves' status. */
-static void sync_status() {
-	int i;     /* Loop index.            */
-
-	/* Receive data. */
-	for (i = 0; i < nclusters; i++) {
-		wait_signal(i);
 		dataGet(&has_changed[i*NUM_THREADS], MPPA_ASYNC_DDR_0, var_offsets[i].has_changed, NUM_THREADS, sizeof(int), NULL);
-		dataGet(&too_far[i*NUM_THREADS], MPPA_ASYNC_DDR_0, var_offsets[i].too_far, NUM_THREADS, sizeof(int), NULL);
 	}
 
-	/* Broadcast data to slaves. */
-	for (i = 0; i < nclusters; i++) {
-		dataPut(has_changed, MPPA_ASYNC_DDR_0, var_offsets[i].has_changed, nclusters*NUM_THREADS, sizeof(int), NULL);
-		dataPut(too_far, MPPA_ASYNC_DDR_0, var_offsets[i].too_far, nclusters*NUM_THREADS, sizeof(int), NULL);
-		send_signal(i);
-	}
-}
-
-/* Asserts if another iteration is needed. */
-static int again() {
 	start = timer_get();
-	for (int i = 0; i < nclusters*NUM_THREADS; i++) {
-		if (has_changed[i] && too_far[i]) {
-			end = timer_get();
-			master += timer_diff(start, end);
-			return (1);
+
+	/* Clear all centroids and population for recalculation. */
+	memset(centroids, 0, ncentroids*dimension*sizeof(float));
+	memset(population, 0, ncentroids*sizeof(int));
+
+	#pragma omp parallel for private(i, j) default(shared) num_threads(3)
+	for (i = 0; i < ncentroids; i++) {
+		for (j = 0; j < nclusters; j++) {
+			vector_add(CENTROID(i), PCENTROID(j, i));
+			population[i] += *PPOPULATION(j, i);
 		}
+		vector_mult(CENTROID(i), 1.0/population[i]);
 	}
+
+	for (i = 0; i < NUM_CORES; i++)
+		if (has_changed[i]) break;
+
+	again = (i < NUM_CORES) ? 1 : 0;
+	sigaux = (again) ? 1 : 2;
+
 	end = timer_get();
 	master += timer_diff(start, end);
-	
-	return (0);
+
+	for (i = 0; i < nclusters; i++)
+		poke(mppa_async_default_segment(i), sig_offsets[i], sigaux);
+
+	return again;
 }
 
 /* Gets mapping result and statistics to IO. */
 static void get_results() {
-	for (int i = 0; i < nclusters; i++) {
-		/* Wait data is ready signal from cc. */
-		wait_signal(i);
-
-		dataGet(&map[i*(npoints/nclusters)], MPPA_ASYNC_DDR_0, var_offsets[i].map, lnpoints[i], sizeof(int), NULL);
-
-		/* Handshake before statistics exchange. */
-		send_signal(i);
-	}
-
 	/* Wait all slaves statistics info. */
 	wait_statistics();
+
+	/* Get map result. */
+	int counter = 0; /* Points counter. */
+	for (int i = 0; i < nclusters; i++) {
+		dataGet(&map[counter], MPPA_ASYNC_DDR_0, var_offsets[i].map, lnpoints[i], sizeof(int), NULL);
+		counter += lnpoints[i];
+	}
 }
 
 /* Clusters data. */
-int *kmeans(float *_data, int _npoints, int _ncentroids, float _mindistance) {
+int *kmeans(float *_points, int _npoints, int _ncentroids, float _dimension) {
 	/* Initializes async server */
 	async_master_start();
 
 	/* Setup parameters. */
-	data = _data;
+	points = _points;
 	npoints = _npoints;
 	ncentroids = _ncentroids;
-	mindistance = _mindistance;
+	dimension = _dimension;
 	initialize_variables();
 
 	/* Distribute work among clusters. */
-	distribute_work();
+	for (int i = 0; i < nclusters; i++)
+		lnpoints[i] = ((i + 1) < nclusters) ?  npoints/nclusters :  npoints - i*(npoints/nclusters);
 
 	/* Creates all necessary segments for data exchange */
 	create_segments();
@@ -300,24 +212,10 @@ int *kmeans(float *_data, int _npoints, int _ncentroids, float _mindistance) {
 	/* Send work to slaves. */
 	send_work();
 
-	int count = 0;
-	/* Data exchange. */
-	do {
-		sync_pcentroids();
-		sync_ppopulation();
-		sync_centroids();
-		sync_status();
-		count++;
-	} while (again());
+	int aaax = 0;
 
-	printf("Count = %d\n", count);
-	fflush(stdout);
-
-	/*
-	for (int i = 0; i < npoints; i++) {
-		printf("%d\n", map[i]);
-		fflush(stdout);
-	}*/
+	/* Iterations until finished. */
+	do {aaax++;} while (sync());
 
 	/* Gets mapping result and statistics to IO. */
 	get_results();
