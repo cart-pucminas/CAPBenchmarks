@@ -10,8 +10,8 @@ EXEC = fn
 
 # Builds kernel.
 all: $(SRC)
-	$(CC) $(SRC) $(CFLAGS) -o $(BINDIR)/$(EXEC).intel $(LIBS)
-	
+	$(CC) $(SRC) $(CFLAGS) -o $(BINDIR)/$(EXEC).posix $(LIBS)
+
 # Cleans compilation files.
 clean:
-	rm -f $(BINDIR)/$(EXEC).intel
+	rm -f $(BINDIR)/$(EXEC).posix

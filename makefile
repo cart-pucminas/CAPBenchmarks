@@ -11,12 +11,12 @@ all-x86:
 	cd x86 && $(MAKE) all BINDIR=$(BINDIR)
 
 # Builds all kernels for POSIX
-all-POSIX:
+all-posix:
 	mkdir -p bin
-	cd POSIX && $(MAKE) all BINDIR=$(BINDIR)
+	cd posix && $(MAKE) all BINDIR=$(BINDIR)
 
 # Builds all kernels for MPPA-256.
-all-mppa256: 
+all-mppa256:
 	mkdir -p bin
 	cd mppa256 && $(MAKE) all BINDIR=$(BINDIR)
 
@@ -27,8 +27,13 @@ all-gem5:
 	cd gem5 && $(MAKE) all BINDIR=$(BINDIR)
 
 # Cleans compilation files.
-clean:
+clean: clean-x86 clean-mppa256 clean-gem5 clean-posix
+
+clean-x86:
 	cd x86 && $(MAKE) clean BINDIR=$(BINDIR)
+clean-mppa256:
 	cd mppa256 && $(MAKE) clean BINDIR=$(BINDIR)
+clean-gem5:
 	cd gem5 && $(MAKE) clean BINDIR=$(BINDIR)
-	cd POSIX && $(MAKE) clean BINDIR=$(BINDIR)
+clean-posix:
+	cd posix && $(MAKE) clean BINDIR=$(BINDIR)

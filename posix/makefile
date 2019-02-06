@@ -22,7 +22,7 @@ export ARFLAGS = -vq
 
 # Libraries.
 export LIB = libcapb
-export LIBS = $(LIBDIR)/$(LIB).a -lm -fopenmp -lrt -pthread 
+export LIBS = $(LIBDIR)/$(LIB).a -lm -fopenmp -lrt -pthread
 
 .PHONY: lib
 
@@ -30,12 +30,12 @@ export LIBS = $(LIBDIR)/$(LIB).a -lm -fopenmp -lrt -pthread
 all: lib
 	mkdir -p bin
 	cd $(SRCDIR) && $(MAKE) all
-	
+
 # Builds kernel library.
 lib:
 	mkdir -p lib
 	cd $(LIBSRCDIR) && $(MAKE) all
-	
+
 # Cleans compilation files.
 clean:
 	cd $(LIBSRCDIR) && $(MAKE) clean

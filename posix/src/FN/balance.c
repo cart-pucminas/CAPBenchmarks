@@ -1,6 +1,6 @@
 /*
  * Copyright(C) 2014 Pedro H. Penna <pedrohenriquepenna@gmail.com>
- * 
+ *
  * balance.c - Workload balancer.
  */
 
@@ -10,9 +10,9 @@
 void balance(int *work, int n, int k)
 {
 	int i, j;
-	
+
 	j = 0;
-	
+
 	/* Balance workload. */
 	if (n & 1)
 	{
@@ -21,7 +21,7 @@ void balance(int *work, int n, int k)
 		{
 			work[i] = j;
 			work[n - i] = j;
-			
+
 			if ((++j) == k)
 				j = 0;
 		}
@@ -32,7 +32,7 @@ void balance(int *work, int n, int k)
 		{
 			work[i] = j;
 			work[n - i - 1] = j;
-			
+
 			if ((++j) == k)
 				j = 0;
 		}

@@ -36,11 +36,11 @@ static struct problem huge     =  { 8000001, 8065536 };
 /* Be verbose? */
 int verbose = 0;
 
-/* Number of threads. */                
+/* Number of threads. */
 int nthreads = 1;
 
-/* Problem. */           
-static struct problem *p = &tiny; 
+/* Problem. */
+static struct problem *p = &tiny;
 
 /*
  * Prints program usage and exits.
@@ -70,19 +70,19 @@ static void readargs(int argc, char **argv)
 	int i;     /* Loop index.       */
 	char *arg; /* Working argument. */
 	int state; /* Processing state. */
-	
+
 	/* State values. */
 	#define READ_ARG     0 /* Read argument.         */
 	#define SET_NTHREADS 1 /* Set number of threads. */
 	#define SET_CLASS    2 /* Set problem class.     */
-	
+
 	state = READ_ARG;
-	
+
 	/* Read command line arguments. */
 	for (i = 1; i < argc; i++)
 	{
 		arg = argv[i];
-		
+
 		/* Set value. */
 		if (state != READ_ARG)
 		{
@@ -104,20 +104,20 @@ static void readargs(int argc, char **argv)
 						usage();
 					state = READ_ARG;
 					break;
-				
+
 				/* Set number of threads. */
 				case SET_NTHREADS :
 					nthreads = atoi(arg);
 					state = READ_ARG;
 					break;
-				
+
 				default:
-					usage();			
+					usage();
 			}
-			
+
 			continue;
 		}
-		
+
 		/* Parse argument. */
 		if (!strcmp(arg, "--verbose"))
 			verbose = 1;
@@ -128,7 +128,7 @@ static void readargs(int argc, char **argv)
 		else
 			usage();
 	}
-	
+
 	/* Invalid argument(s). */
 	if (nthreads < 1)
 		usage();
@@ -141,37 +141,37 @@ int main(int argc, char **argv)
 {
 	uint64_t end;   /* End time.   */
 	uint64_t start; /* Start time. */
-	
+
 #ifdef _XEON_PHI_
 	double power;
 #endif
-	
+
 	readargs(argc, argv);
-	
+
 	timer_init();
 	omp_set_num_threads(nthreads);
-	
+
 #ifdef _XEON_PHI_
 	power_init();
 #endif
-	
+
 	/* Compute friendly numbers. */
 	if (verbose)
 		printf("computing friendly numbers...\n");
 	start = timer_get();
 	friendly_numbers(p->start, p->end);
 	end = timer_get();
-	
+
 #ifdef _XEON_PHI_
 	power = power_end();
 #endif
-	
+
 	printf("timing statistics:\n");
 	printf("  total time:    %f\n", timer_diff(start, end)*MICROSEC);
 
 #ifdef _XEON_PHI_
 	printf("  average power: %f\n", power*0.000001);
 #endif
-	
+
 	return (0);
 }

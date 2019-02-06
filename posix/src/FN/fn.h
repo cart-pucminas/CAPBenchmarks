@@ -1,6 +1,6 @@
 /*
  * Copyright(C) 2014 Pedro H. Penna <pedrohenriquepenna@gmail.com>
- * 
+ *
  * fh.h - Friendly Numbers kernel library.
  */
 

@@ -9,8 +9,6 @@ all: fn
 fn:
 	cd FN && $(MAKE) all
 
-
-
 # Cleans compilation files.
 clean:
 	cd FN && $(MAKE) clean
