@@ -10,7 +10,7 @@
 	(&points[(i)*dimension])
 	
 #define PCENTROID(i, j) \
-(&pcentroids[((i)*ncentroids*dimension + (j))*dimension])
+(&pcentroids[(i)*ncentroids*dimension + (j)*dimension])
 
 #define PPOPULATION(i, j) \
 (&ppopulation[(i)*ncentroids + (j)])

@@ -77,6 +77,7 @@ int main(int argc, char **argv) {
 	start = timer_get();
 	map = kmeans(points, prob->npoints, prob->ncentroids, dimension);
 	end = timer_get();
+	total = timer_diff(start, end);
 
 	inform_statistics();
 	

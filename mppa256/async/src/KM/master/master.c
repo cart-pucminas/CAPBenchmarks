@@ -31,7 +31,7 @@ static int *population;            /* Population of centroids.   */
 static int *ppopulation;           /* Partial population.        */
 static float *pcentroids;          /* Partial centroids.         */
 static int lnpoints[NUM_CLUSTERS]; /* Local number of points.    */
-static int has_changed[NUM_CORES]; /* Has any centroid changed?  */
+static int has_changed[NUM_CLUSTERS]; /* Has any centroid changed?  */
 
 /* Timing auxiliars */
 static uint64_t start, end;
@@ -133,12 +133,12 @@ static int sync() {
 	int i, j;   /* Loop indexes. */
 	int again;  /* Loop again? */
 	int sigaux; /* auxiliar signal for clusters. */
-
+	
 	for (i = 0; i < nclusters; i++) {
 		wait_signal(i);
 		dataGet(PCENTROID(i,0), MPPA_ASYNC_DDR_0, var_offsets[i].pcentroids, ncentroids*dimension, sizeof(float), NULL);
 		dataGet(PPOPULATION(i,0), MPPA_ASYNC_DDR_0, var_offsets[i].ppopulation, ncentroids, sizeof(int), NULL);
-		dataGet(&has_changed[i*NUM_THREADS], MPPA_ASYNC_DDR_0, var_offsets[i].has_changed, NUM_THREADS, sizeof(int), NULL);
+		dataGet(&has_changed[i], MPPA_ASYNC_DDR_0, var_offsets[i].has_changed, 1, sizeof(int), NULL);
 	}
 
 	start = timer_get();
@@ -156,10 +156,10 @@ static int sync() {
 		vector_mult(CENTROID(i), 1.0/population[i]);
 	}
 
-	for (i = 0; i < NUM_CORES; i++)
+	for (i = 0; i < nclusters; i++)
 		if (has_changed[i]) break;
 
-	again = (i < NUM_CORES) ? 1 : 0;
+	again = (i < nclusters) ? 1 : 0;
 	sigaux = (again) ? 1 : 2;
 
 	end = timer_get();
@@ -185,7 +185,7 @@ static void get_results() {
 }
 
 /* Clusters data. */
-int *kmeans(float *_points, int _npoints, int _ncentroids, float _dimension) {
+int *kmeans(float *_points, int _npoints, int _ncentroids, int _dimension) {
 	/* Initializes async server */
 	async_master_start();
 
@@ -212,10 +212,8 @@ int *kmeans(float *_points, int _npoints, int _ncentroids, float _dimension) {
 	/* Send work to slaves. */
 	send_work();
 
-	int aaax = 0;
-
 	/* Iterations until finished. */
-	do {aaax++;} while (sync());
+	do {} while (sync());
 
 	/* Gets mapping result and statistics to IO. */
 	get_results();

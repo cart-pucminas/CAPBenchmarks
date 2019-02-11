@@ -109,6 +109,7 @@ static void populate() {
 				has_changed[tid] = 1;
 		}
 	}
+
 	end = timer_get();
 	total += timer_diff(start, end);
 }
@@ -129,17 +130,14 @@ static void compute_centroids() {
 	memset(CENTROID(0), 0, ncentroids*dimension*sizeof(float));
 
 	/* Compute means. */
-	#pragma omp parallel private(i, lock_aux) default(shared) 
-	{	
-		/* Computing partial centroids. */
-		#pragma omp for 
-		for (i = 0; i < lnpoints; i++) {
+	#pragma omp parallel for private(i, lock_aux) default(shared)
+	for (i = 0; i < lnpoints; i++) {
 			lock_aux = map[i] % NUM_THREADS;
 			omp_set_lock(&lock[lock_aux]);
 			vector_add(CENTROID(map[i]), POINT(i));
 			omp_unset_lock(&lock[lock_aux]);	
-		}
 	}
+
 	end = timer_get();
 	total += timer_diff(start, end);
 }
@@ -151,10 +149,18 @@ static void compute_centroids() {
 /* Sync with IO and asserts if another iteration is needed. */
 static int sync() {
 	int ret = 0; /* Is another iteration needed? */
+	int has_changed_aux = 0;
+
+	for (int i = 0; i < NUM_THREADS; i++) {
+		if (has_changed[i]) {
+			has_changed_aux = 1;
+			break;
+		}
+	}
 
 	dataPut(centroids, MPPA_ASYNC_DDR_0, var_offsets.pcentroids, ncentroids*dimension, sizeof(float), NULL);
 	dataPut(ppopulation, MPPA_ASYNC_DDR_0, var_offsets.ppopulation, ncentroids, sizeof(int), NULL);
-	dataPut(has_changed, MPPA_ASYNC_DDR_0, var_offsets.has_changed, NUM_THREADS, sizeof(int), NULL);
+	dataPut(&has_changed_aux, MPPA_ASYNC_DDR_0, var_offsets.has_changed, 1, sizeof(int), NULL);
 
 	send_signal();
 	waitCondition(&io_signal, 0, MPPA_ASYNC_COND_GT, NULL);
@@ -178,7 +184,7 @@ static void kmeans() {
 	omp_set_num_threads(NUM_THREADS);
 	for (int i = 0; i < NUM_THREADS; i++)
 		omp_init_lock(&lock[i]);
-	
+
 	/* Data exchange. */
 	do {	
 		populate();
@@ -205,7 +211,7 @@ static void sync_offsets() {
 
 	async_smalloc(MPPA_ASYNC_DDR_0, lnpoints*dimension*sizeof(float), &points_aux, NULL);
 	async_smalloc(MPPA_ASYNC_DDR_0, lnpoints*sizeof(int), &map_aux, NULL);
-	async_smalloc(MPPA_ASYNC_DDR_0, NUM_THREADS*sizeof(int), &has_changed_aux, NULL);
+	async_smalloc(MPPA_ASYNC_DDR_0, sizeof(int), &has_changed_aux, NULL);
 	async_smalloc(MPPA_ASYNC_DDR_0, ncentroids*sizeof(int), &ppopulation_aux, NULL);
 	async_smalloc(MPPA_ASYNC_DDR_0, ncentroids*dimension*sizeof(float), &pcentroids_aux, NULL);
 
@@ -266,7 +272,7 @@ int main (__attribute__((unused))int argc, char **argv) {
 	dimension = atoi(argv[2]);
 	lnpoints = atoi(argv[3]);
 	sigback_offset = (off64_t) atoll(argv[4]);
-	
+
 	/* Clones message exchange and io_signal segments */
 	clone_segments();
 
