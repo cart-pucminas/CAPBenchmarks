@@ -12,7 +12,7 @@ export NPROCS=4
 
 echo "Problem size = $CLASS"
 
-for kernel in km #lu fn;
+for kernel in km lu fn;
 do
 	echo "  ========== Running $kernel kernel"
 	$K1DIR/k1-jtag-runner                               \
