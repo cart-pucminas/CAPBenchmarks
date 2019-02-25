@@ -2,8 +2,10 @@
 #include <util.h>
 #include <problem.h>
 #include <global.h>
+#include <timer.h>
 
 /* C And MPPA Library Includes*/
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 
@@ -74,6 +76,41 @@ void readargs(int argc, char **argv) {
 	/* Invalid argument(s). */
 	if (nclusters < 1)
 		inform_usage();
+}
+
+/* Auxiliar func. in case of args reading failure */
+void inform_usage() {
+	printf("Usage: %s [options]\n", bench_initials);
+	printf("Brief: %s Kernel\n", bench_fullName);
+	printf("Options:\n");
+	printf("  --help             Display this information and exit\n");
+	printf("  --nclusters <value> Set number of threads\n");
+	printf("  --class <name>     Set problem class:\n");
+	printf("                       - tiny\n");
+	printf("                       - small\n");
+	printf("                       - standard\n");
+	printf("                       - large\n");
+	printf("                       - huge\n");
+	printf("  --verbose          Be verbose\n");
+	fflush(stdout);
+	error("Wrong args");
+}
+
+/* Show timing and data exchange statistics */
+void inform_statistics() {
+	printf("CPU timing statistics of %s:\n", bench_initials);
+	printf("  master:        %f\n", master*MICROSEC);
+	for (int i = 0; i < nclusters; i++)
+		printf("  slave %d:       %f\n", i, slave[i]*MICROSEC);
+	printf("  spawn %d CC:    %f\n", nclusters, spawn*MICROSEC);
+	printf("  communication: %f\n", communication*MICROSEC);
+	printf("  total time:    %f\n", total*MICROSEC);
+	printf("asynchronous communication statistics:\n");
+	printf("  data put:         %zu\n", data_put);
+	printf("  data get:         %zu\n", data_get);
+	printf("  number of puts:   %u\n", nput);
+	printf("  number of gets:   %u\n", nget);
+	fflush(stdout);
 }
 
 #endif

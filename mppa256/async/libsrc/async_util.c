@@ -10,6 +10,10 @@
 #include <mppa_async.h>
 #include <utask.h>
 
+/*============================================================================*
+ *                   COMMOM IO AND CC FUNCTIONS/VARIABLES                     *
+ *============================================================================*/
+
 static uint64_t start, end; /* Timing auxiliars */
 
 /* Put data on remote segment. */
@@ -29,8 +33,8 @@ void dataPutSpaced(const void *local, const mppa_async_segment_t *segment, off64
 	mppa_async_put_spaced(local, segment, offset, size, count, space, event);
 	end = timer_get();
 
-	nget++;
-	data_get += count * size;
+	nput++;
+	data_put += count * size;
 	communication += timer_diff(start, end);
 }
 
@@ -46,7 +50,7 @@ void dataGet(void *item,  mppa_async_segment_t *segment, int offset, int nItems,
 }
 
 /* Get spaced data from remote segment. */
-void dataGetSpaced(void *local, mppa_async_segment_t *segment, off64_t offset, size_t size, int count, size_t space, mppa_async_event_t *event) {
+void dataGetSpaced(void *local, const mppa_async_segment_t *segment, off64_t offset, size_t size, int count, size_t space, mppa_async_event_t *event) {
 	start = timer_get();
 	mppa_async_get_spaced(local, segment, offset, size , count, space, event);
 	end = timer_get();
@@ -80,16 +84,18 @@ void waitEvent(mppa_async_event_t *event) {
 	communication += timer_diff(start, end);
 }
 
-/* Post an atomic add to remote long long datum. */
-void postAdd(const mppa_async_segment_t *segment, off64_t offset, int addend) {
+/* Post a poke remote long long datum. */
+void poke(const mppa_async_segment_t *segment, off64_t offset, long long value) {
 	start = timer_get();
-	mppa_async_postadd(segment, offset, addend);
+	mppa_async_poke(segment, offset, value);
 	end = timer_get();
 
-	data_put += sizeof(long long);
 	communication += timer_diff(start, end);
 }
 
+/*============================================================================*
+ *                          MASTERS ONLY FUNCTIONS/VARIABLES                  *
+ *============================================================================*/
 
 #ifdef _MASTER_
 
@@ -113,6 +119,10 @@ void async_master_finalize() {
 	mppa_rpc_server_free();
 }
 
+/*============================================================================*
+ *                          SLAVES ONLY FUNCTIONS/VARIABLES                   *
+ *============================================================================*/
+
 #else
 
 /* Initalizes async context on slave */
@@ -124,6 +134,17 @@ void async_slave_init() {
 /* Be aware of some unique segment */
 void cloneSegment(mppa_async_segment_t *segment, unsigned long long ident, void *global, size_t size, mppa_async_event_t *event) {
 	mppa_async_segment_clone(segment, ident, global, size, event);
+}
+
+/* Safe async. malloc on target segment. */
+void async_smalloc(mppa_async_segment_t *segment, size_t size, off64_t *result, mppa_async_event_t *event) {
+	int aux;
+
+	aux = mppa_async_malloc(segment, size, result, event);
+	
+	/* Failed to allocate memory. */
+	if (aux != 0)
+		error("SEGMENT FULL!! --> cannot async_malloc()");
 }
 
 /* Finalizes async context on slave */

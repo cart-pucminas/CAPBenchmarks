@@ -17,7 +17,7 @@ size_t data_get = 0;        /* Number of bytes gotten. */
 unsigned nput = 0;          /* Number of items put.    */
 unsigned nget = 0;          /* Number of items gotten. */
 
-/* Statistics and parcial sum results */
+/* Statistics and partial sum results */
 typedef struct {
 	size_t data_put;
 	size_t data_get;
@@ -25,7 +25,7 @@ typedef struct {
 	unsigned nget;
 	uint64_t slave;
 	uint64_t communication;
-	int parcial_sum;
+	int partial_sum;
 } Info;
 
 /* Problem structure : number and abundances */
@@ -51,7 +51,7 @@ static Info finishedTask = {0, 0, 0, 0, 0, 0, 0};
 static int offset;
 static int tasksize; 
 static int problemsize;
-static int parcial_friendly_sum = 0;
+static int partial_friendly_sum = 0;
 
 /* Timing auxiliars */
 static uint64_t start, end;
@@ -152,11 +152,11 @@ static void countFriends() {
 
 	start = timer_get();
 
-	#pragma omp parallel for private(i) default(shared) reduction(+: parcial_friendly_sum)
+	#pragma omp parallel for private(i) default(shared) reduction(+: partial_friendly_sum)
 	for (i = offset; i < offset + tasksize; i++) {
 		for (int j = 0; j < i; j++) {
 			if ((allTasks[i].num == allTasks[j].num) && (allTasks[i].den == allTasks[j].den))
-				finishedTask.parcial_sum++;
+				partial_friendly_sum++;
 		}
 	}
 
@@ -173,7 +173,7 @@ static void setFinishedTask() {
 	finishedTask.nget = nget;
 	finishedTask.slave = total;
 	finishedTask.communication = communication;
-	finishedTask.parcial_sum = parcial_friendly_sum;
+	finishedTask.partial_sum = partial_friendly_sum;
 }
 
 static void sendFinishedTask() {
@@ -205,13 +205,13 @@ int main(__attribute__((unused)) int argc , const char **argv) {
 	/* Synchronization of all abundances */
 	syncAbundances();
 
-	/* Count parcial sum of friendly pairs */
+	/* Count partial sum of friendly pairs */
 	countFriends();
 
-	/* Set statistics and parcial sum in finishedTask */
+	/* Set statistics and partial sum in finishedTask */
 	setFinishedTask();
 
-	/* Sends back to IO parcial sums, exec and comm time */
+	/* Send statistics to IO. */
 	sendFinishedTask();
 
 	/* Finalizes async library and rpc client */

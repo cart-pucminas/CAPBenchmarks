@@ -2,17 +2,6 @@
 #define SLAVE_H_
 
 #define MATRIX_SEG_0 3
-#define INFOS_SEG_0 4
-
-/* Statistics to send back to IO */
-typedef struct {
-	size_t data_put;         /* Number of bytes put.    */
-	size_t data_get;         /* Number of bytes gotten. */
-	unsigned nput;           /* Number of put op.       */
-	unsigned nget;	         /* Number of get op.      */
-	uint64_t slave;          /* Time spent on slave.    */
-	uint64_t communication;  /* Time spent on comms.    */
-} Info;
 
 /* Matrix block */
 struct  {

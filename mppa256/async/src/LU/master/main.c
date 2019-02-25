@@ -33,31 +33,11 @@ struct problem standard =  { 1536, 1536 };
 struct problem large    =  { 2048, 2048 };
 struct problem huge     =  { 2560, 2560 };
 
-/* Statistics information from clusters */
-mppa_async_segment_t infos_segment;
-Info infos[NUM_CLUSTERS];
-
 /* Benchmark parameters. */
 int verbose = 0;              /* Display informations? */
 int nclusters = 1;            /* Number of clusters.   */
 static int seed = 1;          /* Seed value.           */
 struct problem *prob = &tiny; /* Problem class.        */
-
-static void setAllStatistics() {
-	uint64_t comm_Sum = 0;
-	uint64_t comm_Average = 0;
-	for (int i = 0; i < nclusters; i++) {
-		slave[i] = infos[i].slave;
-		comm_Sum += infos[i].communication;
-		data_put += infos[i].data_put;
-		data_get += infos[i].data_get;
-		nput += infos[i].nput;
-		nget += infos[i].nget;
-	}
-
-	comm_Average = (uint64_t)(comm_Sum+communication)/(nclusters+1);
-	communication = comm_Average;
-}
 
 int main(int argc, char **argv) {
 	uint64_t startTime, endTime; /* Start and End time.     */
@@ -96,7 +76,7 @@ int main(int argc, char **argv) {
 	total = timer_diff(startTime, endTime);
 
 	/* Sets all statistics from slaves. */
-	setAllStatistics();
+	set_statistics(works_inProg);
 
 	inform_statistics();
 	

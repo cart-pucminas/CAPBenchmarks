@@ -1,7 +1,19 @@
 #ifndef UTIL_H_
 #define UTIL_H_
+/* Kernel Includes */
+#include <message.h>
+#include <async_util.h>
 
+/* C And MPPA Library Includes*/
 #include <stddef.h>
+
+/*************** COMMOM IO AND CC FUNCTIONS/VARIABLES ******************/
+
+/* Signal segments ident. */
+#define SIG_SEG_0 2
+
+/* Signal offset exchange segment. */
+extern mppa_async_segment_t signals_offset_seg;
 
 /* Prints an error message and exits. */
 extern void error(const char *msg);
@@ -21,6 +33,8 @@ extern void srandnum(int seed);
 /* Generates a random number. */
 extern unsigned randnum();
 
+/********************* MASTERS ONLY FUNCTIONS ************************/
+
 #ifdef _MASTER_ /* Masters only functions */
 
 /* Spawns CC with nCluster ID */
@@ -32,21 +46,67 @@ extern void join_slaves();
 /* Wait finalization of CC with nCluster ID */
 extern void join_slave(int nCluster);
 
-/* Auxiliar progress strings */
-extern char *bench_initials;
-extern char *bench_fullName;
+/********************* IO STATISTICS EXCHANGE ************************/
 
-/* Auxiliar func. in case of args reading failure */
-extern void inform_usage();
+/* Waits for all slaves statistics. */
+extern void wait_statistics();
 
-/* Show timing and data exchange statistics */
-extern void inform_statistics();
+/* Set slaves statistics. */
+extern void set_statistics(struct message *information);
+
+/********************* IO SYNCHRONIZATION ************************/
+
+/* Signals context. */
+extern off64_t sig_offsets[NUM_CLUSTERS];
+extern long long cluster_signals[NUM_CLUSTERS];
+extern char str_cc_signals_offset[NUM_CLUSTERS][50];
+
+/* Get slave signal offset. */
+extern void get_slaves_signals_offset();
+
+/* Set signal offsets for the clusters. */
+extern void set_cc_signals_offset();
+
+/* Synchronization between slaves and IO. */
+#define send_signal(i)                                     \
+poke(mppa_async_default_segment((i)), sig_offsets[(i)], 1) \
+
+/* Synchronization between slaves and IO. */
+#define wait_signal(i) {                                           \
+waitCondition(&cluster_signals[(i)], 1, MPPA_ASYNC_COND_EQ, NULL); \
+cluster_signals[(i)] = 0;                                          \
+}                                               
+
+/********************* SLAVES ONLY FUNCTIONS ************************/
 
 #else /* Slaves only functions */
 
 /* Synchronization of all slaves */
-void slave_barrier();
+extern void slave_barrier();
 
-#endif /* _MASTER_ */
+/********************* CC STATISTICS EXCHANGE ************************/
+
+extern void send_statistics(mppa_async_segment_t *segment);
+
+/********************* CC SYNCHRONIZATION SIGNAL ************************/
+
+/* Signals exchange between IO and Clusters. */
+extern long long io_signal;
+extern off64_t sigback_offset;
+
+/* Send slave signal offset to IO. */
+extern void send_sig_offset();
+
+/* Synchronization between slaves and IO. */
+#define send_signal()                        \
+poke(MPPA_ASYNC_DDR_0, sigback_offset, 1) \
+
+/* Synchronization between slaves and IO. */
+#define wait_signal() {                                 \
+waitCondition(&io_signal, 1, MPPA_ASYNC_COND_EQ, NULL); \
+io_signal = 0;                                          \
+}                                       
+
+#endif /* _MASTER_ AND SLAVE */
 
 #endif /* UTIL_H_ */

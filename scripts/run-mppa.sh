@@ -7,12 +7,12 @@ export BINDIR=bin
 export K1DIR=/usr/local/k1tools/bin
 
 # Default Parameters.
-export CLASS=standard
-export NPROCS=16
+export CLASS=tiny
+export NPROCS=4
 
 echo "Problem size = $CLASS"
 
-for kernel in lu; #fn
+for kernel in km lu fn;
 do
 	echo "  ========== Running $kernel kernel"
 	$K1DIR/k1-jtag-runner                               \

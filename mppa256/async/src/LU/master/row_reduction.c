@@ -4,14 +4,15 @@
 #include <global.h>
 #include <problem.h>
 #include <timer.h>
+#include <util.h>
 #include "matrix.h"
 #include "master.h"
 
 
 /* C And MPPA Library Includes*/
 #include <stdint.h>
-#include <stdio.h>
 #include <math.h>
+#include <stdio.h>
 
 /* Work list. */
 static struct message *works = NULL; 
@@ -42,12 +43,8 @@ static void waitResults(int *index) {
 	int i = *index;
 
 	/* Waits reduct work done signal from all working clusters. */
-	for (/* NOOP */ ; i > 0; i--) {
-		waitCondition(&cluster_signals[i-1], 1, MPPA_ASYNC_COND_EQ, NULL);	
-		
-		/* Reset signal for the next iteration. */
-		cluster_signals[i-1] = 0;
-	}
+	for (/* NOOP */ ; i > 0; i--)
+		wait_signal(i-1);
 	
 	/* Ensures that all block put operations are done. */
 	waitAllOpCompletion(&matrix_segment, NULL);
@@ -75,7 +72,7 @@ void row_reduction(struct matrix *m, int i0) {
 		works_inProg[i] = *msg;
 
 		/* Sends "message ready" signal to cluster "i". */
-		postAdd(mppa_async_default_segment(i), sigOffsets[i], 1);
+		send_signal(i);
 
 		i++;
 		message_destroy(msg);

@@ -12,14 +12,10 @@
 /* C And MPPA Library Includes*/
 #include <stdint.h>
 #include <stdio.h>
-#include <pthread.h>
 
 /* Message exchange context */
 mppa_async_segment_t messages_segment;
-mppa_async_segment_t sigOffsets_segment;
 struct message works_inProg[NUM_CLUSTERS];
-off64_t sigOffsets[NUM_CLUSTERS] = {0};
-long long cluster_signals[NUM_CLUSTERS] = {0};
 
 /* Matrix blocks exchange. */
 mppa_async_segment_t matrix_segment;
@@ -28,40 +24,31 @@ mppa_async_segment_t matrix_segment;
 static uint64_t start, end;
 
 static void createSegments(struct matrix *m) {
-	createSegment(&sigOffsets_segment, SIG_SEG_0, &sigOffsets, nclusters * sizeof(off64_t), 0, 0, NULL);
+	createSegment(&signals_offset_seg, SIG_SEG_0, &sig_offsets, nclusters * sizeof(off64_t), 0, 0, NULL);
 	createSegment(&messages_segment, MSG_SEG_0, &works_inProg, nclusters * sizeof(struct message), 0, 0, NULL);
 	createSegment(&matrix_segment, MATRIX_SEG_0, &MATRIX(m, 0, 0), (m->height * m->width * sizeof(float)), 0, 0, NULL);
-	createSegment(&infos_segment, INFOS_SEG_0, &infos, nclusters * sizeof(Info), 0, 0, NULL);
 }
 
-static void spawnSlaves(int matrix_width) {
-	start = timer_get();
-
+static void spawnSlaves (int matrix_width) {
 	char str_mWidth[10];
 	sprintf(str_mWidth, "%d", matrix_width);
 
+	set_cc_signals_offset();
+
 	/* Parallel spawning PE0 of cluster "i" */
+	start = timer_get();
 	#pragma omp parallel for default(shared) num_threads(3)
 	for (int i = 0; i < nclusters; i++) {
-		off64_t offset;
-		mppa_async_offset(MPPA_ASYNC_DDR_0, &cluster_signals[i], &offset);
-		char str_sig_offset[50];
-		sprintf(str_sig_offset, "%lld", offset);
 		char *args[3];
-		args[0] = str_sig_offset;
+		args[0] = str_cc_signals_offset[i];
 		args[1] = str_mWidth;
 		args[2] = NULL;
 		spawn_slave(i, args);
 	}
-
 	end = timer_get();
-
 	spawn = timer_diff(start, end);
-}
 
-static void waitSigOffsets() {
-	for (int i = 0; i < nclusters; i++)
-		waitCondition(&sigOffsets[i], 0, MPPA_ASYNC_COND_GT, NULL);
+	get_slaves_signals_offset();
 }
 
 static void applyElimination(struct matrix *m) {
@@ -81,21 +68,15 @@ static void applyElimination(struct matrix *m) {
 	}
 }
 
-static void waitStatistics() {
-	for (int i = 0; i < nclusters; i++) 
-		mppa_async_evalcond(&cluster_signals[i], 1, MPPA_ASYNC_COND_EQ, NULL);
-}
-
 static void releaseSlaves() {
 	struct message *msg;
 	for (int i = 0; i < nclusters; i++) {
 		msg = message_create(DIE);
 		works_inProg[i] = *msg;
-		mppa_async_postadd(mppa_async_default_segment(i), sigOffsets[i], 1);
+		send_signal(i);
 		message_destroy(msg);
 	}
 }
-
 
 static void split(struct matrix *m, struct matrix *l, struct matrix *u) {
 	start = timer_get();
@@ -129,12 +110,6 @@ void matrix_lu(struct matrix *m, struct matrix *l, struct matrix *u) {
 	/* Spawns all "nclusters" clusters */
 	spawnSlaves(m->width);
 
-	/* Wait for all clusters signal offset. */
-	waitSigOffsets();
-
-	/* Destroy signal offsets segment. */
-	mppa_async_segment_destroy(&sigOffsets_segment);
-
 	/* Apply elimination on all rows */
 	applyElimination(m);
 
@@ -142,7 +117,7 @@ void matrix_lu(struct matrix *m, struct matrix *l, struct matrix *u) {
 	releaseSlaves();
 
 	/* Wait all slaves statistics info. */
-	waitStatistics();
+	wait_statistics();
 
 	/* Waiting for PE0 of each cluster to end */
 	join_slaves();

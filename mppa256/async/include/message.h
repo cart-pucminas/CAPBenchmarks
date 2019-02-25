@@ -7,9 +7,11 @@
 
 /* Kernel Include */
 #include <arch.h>
+#include <async_util.h>
 
 /* C And MPPA Library Includes*/
 #include <stdlib.h>
+#include <stdint.h> 
 
 /* Message types. */
 #define DIE          0 /* End.                */
@@ -19,6 +21,10 @@
 #define FINDRESULT   4 /* Find pivot element. */
 #define REDUCTWORK   5 /* Row reduction.      */
 #define REDUCTRESULT 6 /* Row reduction.      */
+#define STATISTICSINFO  7 /* Statistics infos.   */
+
+/* Messages segment. */
+#define MSG_SEG_0 1
 
 /* Asserts if a list is empty. */
 #define empty(l)  \
@@ -73,6 +79,17 @@ struct message {
 			int height; /* Block height.       */
 			int width;  /* Block width.        */
 		} reductwork;
+
+		/* Statistics to send back to IO */
+		struct {
+			size_t data_put;         /* Number of bytes put.    */
+			size_t data_get;         /* Number of bytes gotten. */
+			unsigned nput;           /* Number of put op.       */
+			unsigned nget;	         /* Number of get op.       */
+			uint64_t total;          /* Time spent on slave.    */
+			uint64_t communication;  /* Time spent on comms.    */
+			long long msgsignal;        /* Auxiliar signal.        */
+		} info;
 	} u;
 
 	/* Next message of a list. */
