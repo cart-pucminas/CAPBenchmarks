@@ -97,7 +97,6 @@ void spawn_slave(int nCluster, char **args) {
 
 /* Wait finalization of all CC */
 void join_slaves() {
-	#pragma omp parallel for default(shared) num_threads(3)
 	for (int i = 0; i < nclusters; i++)
 		join_slave(i);
 }
