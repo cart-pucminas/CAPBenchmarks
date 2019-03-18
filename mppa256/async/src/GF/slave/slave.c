@@ -16,6 +16,7 @@
 static mppa_async_segment_t infos_seg;
 static mppa_async_segment_t mask_seg;
 static mppa_async_segment_t chunks_seg;
+static mppa_async_segment_t newimg_seg;
 
 /* Kernel parameters. */
 static int masksize;                                   /* Mask dimension.              */
@@ -43,6 +44,7 @@ static void clone_segments() {
 	cloneSegment(&infos_seg, MSG_SEG_0, 0, 0, NULL);
 	cloneSegment(&mask_seg, 5, 0, 0, NULL);
 	cloneSegment(&chunks_seg, 6, 0, 0, NULL);
+	cloneSegment(&newimg_seg, 7, 0, 0, NULL);
 }
 
 /* Gaussian filter. */

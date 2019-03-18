@@ -37,7 +37,7 @@ struct problem tiny	    = {7, 2054}; /* 2048  + (7-1)  = 2054  */
 struct problem small    = {7, 4102}; /* 4096  + (7-1)  = 4102  */
 struct problem standard = {11, 8202}; /* 8192  + (11-1) = 8202  */
 struct problem large    = {11, 16394}; /* 16384 + (11-1) = 16394 */
-struct problem huge     = {15, 32768}; /* 32768 + (15-1) = 32782 */
+struct problem huge     = {15, 32782}; /* 32768 + (15-1) = 32782 */
 
 /* Benchmark parameters. */
 int verbose = 0;              /* Display informations? */
