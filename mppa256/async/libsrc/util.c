@@ -125,7 +125,7 @@ void set_statistics(struct message *information) {
 	uint64_t comm_Sum = 0;
 	uint64_t comm_Average = 0;
 	for (int i = 0; i < nclusters; i++) {
-		slave[i] += information[i].u.info.total;
+		slave[i] = information[i].u.info.total;
 		comm_Sum += information[i].u.info.communication;
 		data_put += information[i].u.info.data_put;
 		data_get += information[i].u.info.data_get;
