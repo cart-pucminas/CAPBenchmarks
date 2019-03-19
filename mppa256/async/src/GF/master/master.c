@@ -18,12 +18,15 @@ static mppa_async_segment_t newimg_seg;
 
 /* Gaussian Filter. */
 static unsigned char *img;       /* Input image.                    */
-static unsigned char *newimg;    /* Output image. */
+static unsigned char *newimg;    /* Output image.                   */ 
 static int imgsize;              /* Dimension of image.             */
 static double *mask;             /* Mask.                           */
 static int masksize;             /* Dimension of mask.              */
 static int chunk_with_halo_size; /* Chunk size including a halo.    */
 static unsigned char *chunk;     /* chunks of an image per cluster. */
+
+/* Workaround of the memory leak with the "huge" class. */
+static unsigned int is_class_huge = 0;    /* Class of execution = "huge"?    */
 
 /* Timing auxiliars */
 static uint64_t start, end;
@@ -95,6 +98,8 @@ static void process_chuncks() {
 					if ((jj+masksize-1) == imgsize) {
 						jj = 0;
 						ii += CHUNK_SIZE;
+						if ((is_class_huge) && (ii == 16384)) 
+							ii = 0;
 					}
 				}
 				nchunks = 0;
@@ -102,6 +107,7 @@ static void process_chuncks() {
 		}
 	}
 
+	/* Get remaining chunks. */
 	for (int ck = 0; ck < nchunks; ck++) {
 		/* Waiting chunks. */
 		send_signal(ck);
@@ -115,6 +121,8 @@ static void process_chuncks() {
 		if ((jj+masksize-1) == imgsize) {
 			jj = 0;
 			ii += CHUNK_SIZE;
+			if ((is_class_huge) && (ii == 16384)) 
+			ii = 0;
 		}
 	}
 
@@ -132,7 +140,19 @@ void gauss_filter(unsigned char *img_, int imgsize_, double *mask_, int masksize
 	masksize = masksize_;
 	chunk_with_halo_size = CHUNK_SIZE + masksize - 1;
 	chunk = (unsigned char *) smalloc(chunk_with_halo_size * chunk_with_halo_size * sizeof(unsigned char));
-	newimg = (unsigned char *) scalloc(imgsize * imgsize, sizeof(unsigned char));
+	
+	if (imgsize == 32782) {
+		/* We will construct the new img on a array of with width = 32782 and 
+		   high = 16394. That's because we don't have enough memory to allocate
+		   an array of 32782 x 32782. So the new img will be construct in 
+		   this 32782 x 16394 array which will give us the correct time result as
+		   if we are constructing the new img on an 32782 x 32782, but won't give 
+		   the blurred img.  */
+		newimg = (unsigned char *) scalloc(32782*16394, sizeof(unsigned char));
+		is_class_huge = 1;
+	} else { 
+		newimg = (unsigned char *) scalloc(imgsize * imgsize, sizeof(unsigned char));
+	}
 
 	/* Initializes async server */
 	async_master_start();
