@@ -25,8 +25,8 @@ extern void inform_statistics();
 #ifdef _FN_
 
 struct problem {
-	int start; // Initial number of interval
-	int end;   // Final number of invertal
+	int start; /* Initial number of interval. */
+	int end;   /* Final number of invertal.   */
 };
 
 #elif _LU_
@@ -38,10 +38,16 @@ struct problem {
 
 #elif _KM_
 
-struct problem
-{
-	int npoints;       /* Number of points.    */
-	int ncentroids;    /* Number of centroids. */
+struct problem {
+	int npoints;    /* Number of points.    */
+	int ncentroids; /* Number of centroids. */
+};
+
+#elif _GF_
+
+struct problem {
+	int masksize; /* mask size.  */
+	int imgsize;  /* Image size. */
 };
 
 #endif /* Benchmarks */
