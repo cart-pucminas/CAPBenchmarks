@@ -50,6 +50,15 @@ struct problem {
 	int imgsize;  /* Image size. */
 };
 
+#elif _FAST_
+
+struct problem{
+	int maskcolumns; /* Mask columns. */
+	int maskrows;    /* Mask Rows.    */
+	int masksize;	 /* Mask Size.    */
+	int imgsize;  	 /* Image size.   */
+};
+
 #endif /* Benchmarks */
 
 #endif /* _MASTER_ */
