@@ -6,9 +6,12 @@
 export BINDIR=bin
 export K1DIR=/usr/local/k1tools/bin
 
+echo Inform class size and number of clusters:
+read classize nclusters
+
 # Default Parameters.
-export CLASS=tiny
-export NPROCS=4
+export CLASS=$classize
+export NPROCS=$nclusters
 
 echo "Problem size = $CLASS"
 

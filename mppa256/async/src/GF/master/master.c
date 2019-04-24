@@ -14,7 +14,6 @@
 static mppa_async_segment_t infos_seg;
 static mppa_async_segment_t mask_seg;
 static mppa_async_segment_t chunks_seg;
-static mppa_async_segment_t newimg_seg;
 
 /* Gaussian Filter. */
 static unsigned char *img;       /* Input image.                    */
@@ -23,7 +22,7 @@ static int imgsize;              /* Dimension of image.             */
 static double *mask;             /* Mask.                           */
 static int masksize;             /* Dimension of mask.              */
 static int chunk_with_halo_size; /* Chunk size including a halo.    */
-static unsigned char *chunk;     /* chunks of an image per cluster. */
+static unsigned char *chunk;     /* chunk to be sent to clusters X. */
 
 /* Workaround of the memory leak with the "huge" class. */
 static unsigned int is_class_huge = 0;    /* Class of execution = "huge"?    */
@@ -40,7 +39,6 @@ static void create_segments() {
 	createSegment(&infos_seg, MSG_SEG_0, &statistics, nclusters * sizeof(struct message), 0, 0, NULL);
 	createSegment(&mask_seg, 5, mask, masksize * masksize * sizeof(double), 0, 0, NULL);
 	createSegment(&chunks_seg, 6, chunk, chunk_with_halo_size * chunk_with_halo_size * sizeof(unsigned char), 0, 0, NULL);
-	createSegment(&newimg_seg, 7, newimg, imgsize * imgsize * sizeof(unsigned char), 0, 0, NULL);
 }
 
 static void spawnSlaves() {
