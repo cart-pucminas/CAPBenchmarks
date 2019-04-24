@@ -22,7 +22,7 @@ static int *mask;
 static char *chunk;
 static int corners[MAX_THREADS];
 static int output[CHUNK_SIZE_SQRD];
-static int corners_summ;
+static int corners_sum;
 
 /* From master. */
 static int aux_offset;
@@ -117,7 +117,7 @@ static void process_chuncks() {
 	int chunk_size;
 	int output_start;
 
-	corners_summ = 0; 
+	corners_sum = 0; 
 
 	dataGet(mask, &mask_seg, 0, masksize, sizeof(int), NULL);
 
@@ -141,7 +141,7 @@ static void process_chuncks() {
 		total += timer_diff(start, end);
 
 		for (int i = 0; i < MAX_THREADS; i++)
-			corners_summ += corners[i];
+			corners_sum += corners[i];
 
 		output_start = nchunk  * CHUNK_SIZE_SQRD;
 			
@@ -177,8 +177,8 @@ int main(__attribute__((unused))int argc, char **argv) {
 	/* Processing the chuncks. */
 	process_chuncks();
 
-	/* Send back partial summ of corners */
-	poke(MPPA_ASYNC_DDR_0, sigback_offset, (long long) corners_summ);
+	/* Send back partial sum of corners */
+	poke(MPPA_ASYNC_DDR_0, sigback_offset, (long long) corners_sum);
 
 	/* Synchronization. */
 	wait_signal();

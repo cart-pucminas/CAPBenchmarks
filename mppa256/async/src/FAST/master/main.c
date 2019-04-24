@@ -171,7 +171,7 @@ int main(int argc, char **argv) {
 	total = timer_diff(start, end);
 
 	inform_statistics();
-	printf("Summ. of corners = %d\n", numcorners);
+	printf("Sum. of corners = %d\n", numcorners);
 	
 	/* House keeping. */
 	free(mask);
