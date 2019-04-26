@@ -16,13 +16,12 @@
 static mppa_async_segment_t infos_seg;
 static mppa_async_segment_t mask_seg;
 static mppa_async_segment_t chunks_seg;
-static mppa_async_segment_t newimg_seg;
 
 /* Kernel parameters. */
-static int masksize;                                   /* Mask dimension.              */
-static int chunk_with_halo_size;     	               /* Chunk size including a halo. */
-static double *mask;                                   /* Mask.                        */
-static unsigned char *chunk;                           /* Image input chunk.           */
+static int masksize;                             /* Mask dimension.              */
+static int chunk_with_halo_size;     	         /* Chunk size including a halo. */
+static double *mask;                             /* Mask.                        */
+static unsigned char *chunk;                     /* Image input chunk.           */
 static unsigned char newchunk[CHUNK_SIZE_SQRD];  /* Image output chunk.          */
 
 /* Timing statistics auxiliars. */
@@ -44,7 +43,6 @@ static void clone_segments() {
 	cloneSegment(&infos_seg, MSG_SEG_0, 0, 0, NULL);
 	cloneSegment(&mask_seg, 5, 0, 0, NULL);
 	cloneSegment(&chunks_seg, 6, 0, 0, NULL);
-	cloneSegment(&newimg_seg, 7, 0, 0, NULL);
 }
 
 /* Gaussian filter. */
