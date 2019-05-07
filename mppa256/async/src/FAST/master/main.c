@@ -39,9 +39,9 @@ struct problem large    = {2,27,54,16384};
 struct problem huge     = {2,27,54,24576};
 
 /* Benchmark parameters. */
-int verbose = 0;                  /* Be verbose?        */
-int nclusters = 1;                /* Number of threads. */
-static int seed = 0;              /* Seed number.       */
+int verbose = 0;              /* Be verbose?        */
+int nclusters = 1;            /* Number of threads. */
+static int seed = 0;          /* Seed number.       */
 struct problem *prob = &tiny; /* Problem.           */
 
 /* Generates mask. */

@@ -59,6 +59,12 @@ struct problem{
 	int imgsize;  	 /* Image size.   */
 };
 
+#elif _IS_
+
+struct problem {
+	int n; /* Number of elements. */
+};
+
 #endif /* Benchmarks */
 
 #endif /* _MASTER_ */
