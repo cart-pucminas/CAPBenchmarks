@@ -6,6 +6,7 @@
 #include <util.h>
 
 /* C And MPPA Library Includes*/
+#include <math.h>
 #include <assert.h>
 #include <limits.h>
 #include <omp.h>
@@ -30,7 +31,7 @@ struct  {
 } block;
 
 /* Sorts an array of numbers. */
-//extern void sort2power(int *array, int size, int chunksize);
+extern void sort2power(int *array, int size, int chunksize);
 
 /* Individual Slave statistics. */
 uint64_t total = 0;          /* Time spent on slave.    */
@@ -49,22 +50,42 @@ static void clone_segments() {
 	cloneSegment(&minibs_seg, 3, 0, 0, NULL);
 }
 
+/* Sorts an array of numbers. */
+extern void sort2power(int *array, int size, int chunksize);
+
 static void work() {
 	int i;               /* Loop index. */
 	int id;              /* Bucket ID.  */
 	struct message *msg; /* Message.    */
 
+	int count = 0;
+
 	/* Slave life. */
 	while(1) {
 		wait_signal();
-		msg = message_get(&infos_seg, 0, NULL);
+		msg = message_get(&infos_seg, cid, NULL);
 
 		if (msg->type == SORTWORK) {
-			printf("%d %d\n", msg->u.sortwork.id, msg->u.sortwork.size);
-			fflush(stdout);
+			/* Extract message information. */
+			block.size = msg->u.sortwork.size;
+			id = msg->u.sortwork.id;
+			message_destroy(msg);
+
+			/* Receive part of the array. */
+			dataGet(&block.elements, &minibs_seg, cid * MINIBUCKET_SIZE, block.size, sizeof(int), NULL);
+
+			/* Sorting... */
+			start = timer_get();
+			//sort2power(block.elements, block.size, ceil(block.size/NUM_THREADS));
+			end = timer_get();
+			total += timer_diff(start, end);
+
+			/* Send data sorted. */
+			dataPut(&block.elements, &minibs_seg, cid * MINIBUCKET_SIZE, block.size, sizeof(int), NULL);
+			
+			/* Message is ready signal. */
+			send_signal();
 		} else {
-			printf("killed\n");
-			fflush(stdout);
 			message_destroy(msg);
 			break;
 		}
@@ -97,5 +118,6 @@ int main(__attribute__((unused))int argc, char **argv) {
 	/* Finalizes async library and rpc client */
 	async_slave_finalize();
 
+	fflush(stdout);
 	return 0;
 }
