@@ -9,9 +9,30 @@
 #include <limits.h>
 #include <pthread.h>
 #include <stdio.h>
+#include <math.h>
+#include <assert.h>
 
 /* Number of buckets. */
 #define NUM_BUCKETS 256
+
+/* Debug?. */
+#define ISDEBUG 0
+
+/* Tests if partial sorting was successful. */
+#define test_partial_order(array, n) {				\
+	if (ISDEBUG) {									\
+		for (int l = 0; l < ((n)-1); l++) 			\
+			assert(((array)[l]) <= ((array)[l+1]));	\
+	}												\
+}
+
+/* Tests if there's a negative number in the array */
+#define test_non_negatives(array, n) {				\
+	if (ISDEBUG) {									\
+		for (int l = 0; l < (n); l++) 			\
+			assert(((array)[l]) >= 0);				\
+	}												\
+}
 
 /* Data exchange segments. */
 static mppa_async_segment_t infos_seg;
@@ -49,42 +70,24 @@ static void spawnSlaves() {
 	spawn = timer_diff(start, end);
 }
 
-/* Thread's data. */
-static struct tdata {
-	int i0;               /* Start bucket.        */
-	int in;               /* End bucket.          */
-	int j0;               /* Start array's index. */
-} tdata[NUM_IO_CORES - 1];
-
 /* Rebuilds array. */
 static void rebuild_array(struct bucket **done, int *array) {
-	int j;    /* array[] offset. */
-	int i, k; /* Loop index.     */
+	int j = 0; /* array[] offset. */
+	int i, k;  /* Loop index.     */
 	
-	#define BUCKETS_PER_CORE (NUM_BUCKETS/(NUM_IO_CORES-1))
-
-	j = 0;
-	/* Setting threads data*/
-	for (i = 0; i < NUM_IO_CORES-1; i++) {
-		tdata[i].i0 = (i == 0) ? 0 : tdata[i-1].in;
-		tdata[i].in = (i == NUM_IO_CORES - 2) ? NUM_BUCKETS : (i + 1) * BUCKETS_PER_CORE;
-		tdata[i].j0 = j;
-
-		if (i == NUM_IO_CORES-2) break;
-
-		for (k = tdata[i].i0; k < tdata[i].in; k++)
-			j += bucket_size(done[k]);
-
-	}
-
-	/* Rebuild array. */
-	#pragma omp parallel for private(i, k, j) default(shared) num_threads(NUM_IO_CORES-1)
-	for (i = 0; i < NUM_IO_CORES-1; i++) {
-		j = tdata[i].j0;
-		for (k = tdata[i].i0; k < tdata[i].in; k++) {
-			bucket_merge(done[k], &array[j]);
-			j += bucket_size(done[k]);
+	int first = 1; /* Threads first iteration. */ 
+	#pragma omp parallel for private(i, k) firstprivate(j) default(shared) num_threads(3)
+	for (i = 0; i < NUM_BUCKETS; i++) {
+		// Initializing "j" with the right offset.
+		if (first) {
+			for (k = 0; k < i; k++)
+				j += bucket_size(done[k]);
+			first = 0;
 		}
+
+		// Merging buckets.
+		j += bucket_size(done[i]);
+		bucket_merge(done[i], &array[j-1]);
 	}
 }
 
@@ -154,7 +157,7 @@ static void sort(int *array, int n) {
 					minib = minibucket_create();
 					minib->size = statistics[j].u.sortwork.size;
 					memcpy(minib->elements, &minibs[j * MINIBUCKET_SIZE], minib->size * sizeof(int));
-					
+
 					bucket_push(done[statistics[j].u.sortwork.id], minib);
 				}
 
@@ -172,7 +175,7 @@ static void sort(int *array, int n) {
 		minib = minibucket_create();
 		minib->size = statistics[i].u.sortwork.size;
 		memcpy(minib->elements, &minibs[i * MINIBUCKET_SIZE], minib->size * sizeof(int));
-					
+
 		bucket_push(done[statistics[i].u.sortwork.id], minib);
 	}	
 

@@ -17,6 +17,25 @@
 /* Max size of mini-bucket. */
 #define MINIBUCKET_SIZE 262144
 
+/* Debug? */
+#define ISDEBUG 0
+
+/* Tests if partial sorting was successful. */
+#define test_partial_order(array, n) {				\
+	if (ISDEBUG) {									\
+		for (int l = 0; l < ((n)-1); l++) 			\
+			assert(((array)[l]) <= ((array)[l+1]));	\
+	}												\
+}
+
+/* Tests if there's a negative number in the array */
+#define test_non_negatives(array, n) {				\
+	if (ISDEBUG) {									\
+		for (int l = 0; l < (n); l++) 			\
+			assert(((array)[l]) >= 0);				\
+	}												\
+}
+
 /* Asynchronous segments */
 static mppa_async_segment_t infos_seg;
 static mppa_async_segment_t minibs_seg;
@@ -27,7 +46,7 @@ static uint64_t start, end;
 /*  Array block. */
 struct  {
 	int size;                                   /* Size of block. */
-	int elements[CLUSTER_WORKLOAD/sizeof(int)]; /* Elements.      */
+	int elements[MINIBUCKET_SIZE]; /* Elements.      */
 } block;
 
 /* Sorts an array of numbers. */
@@ -50,15 +69,9 @@ static void clone_segments() {
 	cloneSegment(&minibs_seg, 3, 0, 0, NULL);
 }
 
-/* Sorts an array of numbers. */
-extern void sort2power(int *array, int size, int chunksize);
-
 static void work() {
-	int i;               /* Loop index. */
-	int id;              /* Bucket ID.  */
-	struct message *msg; /* Message.    */
-
-	int count = 0;
+	struct message *msg; /* Message.              */
+	int sizeAux;         /* Auxiliary block size. */
 
 	/* Slave life. */
 	while(1) {
@@ -68,20 +81,27 @@ static void work() {
 		if (msg->type == SORTWORK) {
 			/* Extract message information. */
 			block.size = msg->u.sortwork.size;
-			id = msg->u.sortwork.id;
 			message_destroy(msg);
 
 			/* Receive part of the array. */
-			dataGet(&block.elements, &minibs_seg, cid * MINIBUCKET_SIZE, block.size, sizeof(int), NULL);
+			dataGet(block.elements, &minibs_seg, cid * MINIBUCKET_SIZE, block.size, sizeof(int), NULL);
 
 			/* Sorting... */
 			start = timer_get();
-			//sort2power(block.elements, block.size, ceil(block.size/NUM_THREADS));
+
+			sizeAux = block.size;
+			while (sizeAux % NUM_THREADS != 0) {
+				block.elements[sizeAux] = INT_MAX;
+				sizeAux++;
+			}
+
+			/* Sorts minibucket. */
+			sort2power(block.elements, sizeAux, sizeAux/NUM_THREADS);
 			end = timer_get();
 			total += timer_diff(start, end);
 
 			/* Send data sorted. */
-			dataPut(&block.elements, &minibs_seg, cid * MINIBUCKET_SIZE, block.size, sizeof(int), NULL);
+			dataPut(block.elements, &minibs_seg, cid * MINIBUCKET_SIZE, block.size, sizeof(int), NULL);
 			
 			/* Message is ready signal. */
 			send_signal();
