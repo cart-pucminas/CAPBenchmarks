@@ -3,7 +3,7 @@
 #
 
 # Builds all kernels.
-all: fast gf km lu fn
+all: is #fast gf km lu fn
 
 # Builds FN kernel.
 fn:
@@ -30,6 +30,11 @@ fast:
 	cd FAST && $(MAKE) all
 	cp FAST/output/bin/*.img $(BINDIR)
 
+# Builds IS kernel.
+is:
+	cd IS && $(MAKE) all
+	cp IS/output/bin/*.img $(BINDIR)
+
 # Cleans compilation files.
 clean:
 	cd FN && $(MAKE) clean
@@ -37,4 +42,5 @@ clean:
 	cd LU && $(MAKE) clean
 	cd GF && $(MAKE) clean
 	cd FAST && $(MAKE) clean
+	cd IS && $(MAKE) clean
 	rm -f $(BINDIR)/*.img
