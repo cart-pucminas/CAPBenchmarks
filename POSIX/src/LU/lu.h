@@ -65,5 +65,4 @@
 
 	extern void matrix_show(matrix_t m);
 
-
 #endif /* _KM_H_ */

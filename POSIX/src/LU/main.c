@@ -161,7 +161,6 @@ int main(int argc, char **argv)
 	u = matrix_create(p->height, p->width);
 	matrix_random(m);
 	end = timer_get();
-	matrix_show(m);
 	if (verbose)
 		printf("  time spent: %f\n", timer_diff(start, end)*MICROSEC);
 	
@@ -177,7 +176,7 @@ int main(int argc, char **argv)
 	end = timer_get();
 //	matrix_show(l);
 //	matrix_show(u);
-	
+//	matrix_show(m);	
 #ifdef _XEON_PHI_
 	power = power_end();
 #endif
