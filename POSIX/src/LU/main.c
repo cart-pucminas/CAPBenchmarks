@@ -11,6 +11,7 @@
 #include <util.h>
 #include <timer.h>
 #include "lu.h"
+#include "posix.h"
 
 /*
  * Problem.
@@ -141,6 +142,9 @@ int main(int argc, char **argv)
 	matrix_t u;     /* Upper matrix. */
 	uint64_t end;   /* End time.     */
 	uint64_t start; /* Start time.   */
+	const char *name_matrix1 = "Matrix";
+	const char *name_matrix2 = "Lower";
+	const char *name_matrix3 = "Upper";
 	
 #ifdef _XEON_PHI_
 	double power;
@@ -156,9 +160,9 @@ int main(int argc, char **argv)
 	if (verbose)
 		printf("initializing...\n");
 	start = timer_get();
-	m = matrix_create(p->height, p->width);
-	l = matrix_create(p->height, p->width);
-	u = matrix_create(p->height, p->width);
+	m = matrix_create(p->height, p->width, name_matrix1);
+	l = matrix_create(p->height, p->width, name_matrix2);
+	u = matrix_create(p->height, p->width, name_matrix3);
 	matrix_random(m);
 	end = timer_get();
 	if (verbose)
@@ -171,9 +175,11 @@ int main(int argc, char **argv)
 	/* Matrix factorization. */
 	if (verbose)
 		printf("factorizing...\n");
+	fprintf(stderr,"Before LU\n");
 	start = timer_get();
 	lower_upper(m, l, u);
 	end = timer_get();
+	fprintf(stderr,"After LU\n");
 //	matrix_show(l);
 //	matrix_show(u);
 //	matrix_show(m);	
@@ -189,8 +195,11 @@ int main(int argc, char **argv)
 #endif
 	
 	/* House keeping. */
-	matrix_destroy(u);
-	matrix_destroy(l);
-	matrix_destroy(m);
+	close_shared_mem(name_matrix1);
+	close_shared_mem(name_matrix2);
+	close_shared_mem(name_matrix3);
+	//matrix_destroy(u);
+	//matrix_destroy(l);
+	//matrix_destroy(m);
 	return (0);
 }
