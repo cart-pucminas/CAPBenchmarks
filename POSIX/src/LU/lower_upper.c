@@ -10,8 +10,12 @@
 #include <omp.h>
 #include <util.h>
 #include <stdio.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <semaphore.h>
 #include "lu.h"
 #include "posix.h"
+#include "barrier.h"
 
 /*
  * Arguments sanity check.
@@ -24,6 +28,21 @@
 /*
  * Swaps two rows of a matrix.
  */
+
+
+int *ipvt;
+int *jpvt;
+
+sem_t *critical;
+sem_t *mutex;
+barrier_t* barrier; 
+
+const char *name_object1 = "ipvt";
+const char *name_object2 = "jpvt";
+const char *name_object3 = "barrier";
+const char *name_object4 = "critical";
+const char *name_object5 = "mutex";
+
 static void _swap_rows(struct matrix *m, int i1, int i2)
 {
 	int j;     /* Loop index.      */
@@ -60,17 +79,19 @@ static void _swap_columns(struct matrix *m, int j1, int j2)
  */
 static float _find_pivot(struct matrix *m, int i0, int j0)
 {
-	int i, j;         /* Loop indexes.          */
-	int ipvt, jpvt;   /* Pivot indexes.         */
+	int i, j; 	/* Loop indexes.          */
+//	int ipvt, jpvt;   /* Pivot indexes.         */
 	int pipvt, pjpvt; /* Private pivot indexes. */
-	
-	ipvt = i0;
-	jpvt = j0;
+		
+	*ipvt = i0;
+	*jpvt = j0;
 	
 	
 	pipvt = i0;
 	pjpvt = j0;
 		
+	wait_barrier(barrier);
+
 	/* Find pivot element. */
 	for (i = i0; i < m->height; i++)
 	{
@@ -86,18 +107,23 @@ static float _find_pivot(struct matrix *m, int i0, int j0)
 	}
 		
 		/* Reduct.(Critical) */
-	if (fabs(MATRIX(m, pipvt, pjpvt) > fabs(MATRIX(m, ipvt, jpvt))))
+	sem_wait(critical);
+	if (fabs(MATRIX(m, pipvt, pjpvt) > fabs(MATRIX(m, *ipvt, *jpvt))))
 	{
-		ipvt = pipvt;
-		jpvt = pjpvt;
+		*ipvt = pipvt;
+		*jpvt = pjpvt;
 	}
-		
+	sem_post(critical);	
 	
+	wait_barrier(barrier);	
+
+	_swap_rows(m, i0, *ipvt);
+	wait_barrier(barrier);
+	_swap_columns(m, j0, *jpvt);
 	
-	_swap_rows(m, i0, ipvt);
-	_swap_columns(m, j0, jpvt);
+	wait_barrier(barrier);
 	
-	return (MATRIX(m, ipvt, jpvt));
+	return (MATRIX(m, *ipvt, *jpvt));
 }
 
 /*
@@ -110,7 +136,7 @@ static void _row_reduction(struct matrix *m, int i0, float pivot)
 	float mult;  /* Row multiplier.  */
 	
 	j0 = i0;
-	
+		
 	/* Apply row redution in some lines. */
 	for (i = i0 + 1; i < m->height; i++)
 	{
@@ -130,9 +156,23 @@ static void _row_reduction(struct matrix *m, int i0, float pivot)
  */
 int lower_upper(struct matrix *m, struct matrix *l, struct matrix *u)
 {
+	
+	int nprocs = nthreads;
+	/* Shared Memory variables */
+	ipvt = open_shared_mem(name_object1,sizeof(int));
+	jpvt = open_shared_mem(name_object2,sizeof(int));
+	
+	
+	/* Semaphores */
+	barrier = open_shared_mem(name_object3,sizeof(barrier_t));
+	init_barrier(barrier,nprocs);
+	
+	mutex = sem_open(name_object5, O_CREAT, 0644, 1);
+	critical = sem_open(name_object4, O_CREAT, 0644, 1);
+	
 	int i, j;    /* Loop indexes. */
 	float pivot; /* Pivot.        */
-	
+
 	/* Apply elimination on all rows. */
 	for (i = 0; i < m->height - 1; i++)
 	{
@@ -146,7 +186,9 @@ int lower_upper(struct matrix *m, struct matrix *l, struct matrix *u)
 		
 		_row_reduction(m, i, pivot);
 	}
-	
+
+	wait_barrier(barrier);
+
 	/* Build upper and lower matrixes.  */
 	for (i = 0; i < m->height; i++)
 	{

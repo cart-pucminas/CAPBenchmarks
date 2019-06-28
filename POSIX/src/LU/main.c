@@ -182,7 +182,7 @@ int main(int argc, char **argv)
 	fprintf(stderr,"After LU\n");
 //	matrix_show(l);
 //	matrix_show(u);
-//	matrix_show(m);	
+	matrix_show(m);	
 #ifdef _XEON_PHI_
 	power = power_end();
 #endif
