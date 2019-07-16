@@ -7,6 +7,8 @@
 #include <sys/types.h>
 #include <string.h>
 #include <stdlib.h>
+#include <sys/wait.h>
+#include <semaphore.h>
 
 #include "posix.h"
 
@@ -36,4 +38,40 @@ void close_shared_mem(const char *name_object){
 	}	
 }
 
+int new_proc(int nprocs){
+	int id = 0;
+	for(int i = 1;i < nprocs;i++){
+		pid_t p = fork();
+		if(p == -1){
+			perror("fork");
+			exit(1);
+		}
+		else if(p == 0){
+			id = i;
+			break;
+		}
+	}
+	return id;
+}
 
+void close_procs(int nprocs,int id){
+	if(id > 0){
+		exit(3);
+	}
+	else{
+		for(int i = 1;i < nprocs;i++){
+			waitpid(-1,NULL,0);
+		}
+	}
+}
+
+void unlink_sem(const char *name_sem, sem_t *sem){
+	if(sem_close(sem) == -1){
+		perror("Error closing the semaphore\n");
+		exit(0);
+	}
+	if(sem_unlink(name_sem) == -1){
+		perror("Error unlinking the semaphore\n");
+		exit(0);
+	}
+}

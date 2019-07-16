@@ -42,7 +42,7 @@
 	/*
 	 * Creates a matrix.
 	 */
-	extern matrix_t matrix_create(int height, int width,const char *mem_name);
+	extern matrix_t matrix_create(int height, int width,const char *mem_name,const char *elem_name);
 	
 	/*
 	 * Destroys a matrix.

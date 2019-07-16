@@ -10,6 +10,7 @@
 #include <string.h>
 #include <util.h>
 #include <timer.h>
+#include <semaphore.h>
 #include "lu.h"
 #include "posix.h"
 
@@ -145,6 +146,9 @@ int main(int argc, char **argv)
 	const char *name_matrix1 = "Matrix";
 	const char *name_matrix2 = "Lower";
 	const char *name_matrix3 = "Upper";
+	const char *elem_name1 = "Elements1";
+	const char *elem_name2 = "Elements2";
+	const char *elem_name3 = "Elements3";
 	
 #ifdef _XEON_PHI_
 	double power;
@@ -160,9 +164,9 @@ int main(int argc, char **argv)
 	if (verbose)
 		printf("initializing...\n");
 	start = timer_get();
-	m = matrix_create(p->height, p->width, name_matrix1);
-	l = matrix_create(p->height, p->width, name_matrix2);
-	u = matrix_create(p->height, p->width, name_matrix3);
+	m = matrix_create(p->height, p->width, name_matrix1,elem_name1);
+	l = matrix_create(p->height, p->width, name_matrix2,elem_name2);
+	u = matrix_create(p->height, p->width, name_matrix3,elem_name3);
 	matrix_random(m);
 	end = timer_get();
 	if (verbose)
@@ -175,14 +179,12 @@ int main(int argc, char **argv)
 	/* Matrix factorization. */
 	if (verbose)
 		printf("factorizing...\n");
-	fprintf(stderr,"Before LU\n");
 	start = timer_get();
 	lower_upper(m, l, u);
 	end = timer_get();
-	fprintf(stderr,"After LU\n");
 //	matrix_show(l);
 //	matrix_show(u);
-	matrix_show(m);	
+//	matrix_show(m);	
 #ifdef _XEON_PHI_
 	power = power_end();
 #endif

@@ -8,6 +8,7 @@
 #include <global.h>
 #include <util.h>
 #include <stdio.h>
+#include <semaphore.h>
 #include "posix.h"
 #include "lu.h"
 
@@ -21,20 +22,17 @@
 /*
  * Creates a matrix.
  */
-struct matrix *matrix_create(int height, int width,const char *mem_name)
+struct matrix *matrix_create(int height, int width,const char *mem_name,const char *elem_name)
 {
 	struct matrix *m; /* Matrix.     */
-	
+
 	SANITY_CHECK();
 	
-	//m = smalloc(sizeof(struct matrix));
 	m = open_shared_mem(mem_name,sizeof(struct matrix)); 
-
 	/* Initialize matrix. */
 	m->height = height;
 	m->width = width;
-	m->elements = scalloc(height*width, sizeof(float));
-	
+	m->elements = open_shared_mem(elem_name,(height * width) * sizeof(float));
 	return (m);
 }
 
@@ -73,8 +71,7 @@ void matrix_random(struct matrix *m)
 {
 	int i, j;
 	
-	SANITY_CHECK();
-	
+	SANITY_CHECK();	
 	/* Fill matrix. */
 	for (i = 0; i < m->height; i++)
 	{

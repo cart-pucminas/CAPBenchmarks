@@ -32,6 +32,10 @@
 
 int *ipvt;
 int *jpvt;
+float *g_pivot;
+int pid;
+int *nprocs;
+int *size;
 
 sem_t *critical;
 sem_t *mutex;
@@ -42,6 +46,9 @@ const char *name_object2 = "jpvt";
 const char *name_object3 = "barrier";
 const char *name_object4 = "critical";
 const char *name_object5 = "mutex";
+const char *name_object6 = "g_pivot";
+const char *name_object7 = "nprocs";
+const char *name_object8 = "size";
 
 static void _swap_rows(struct matrix *m, int i1, int i2)
 {
@@ -49,7 +56,7 @@ static void _swap_rows(struct matrix *m, int i1, int i2)
 	float tmp; /* Temporary value. */
 	
 	/* Swap columns. */
-	for (j = 0; j < m->width; j++)
+	for (j = (0+pid); j < m->width; j+=*nprocs)
 	{
 		tmp = MATRIX(m, i1, j);
 		MATRIX(m, i1, j) = MATRIX(m, i2, j);
@@ -66,7 +73,7 @@ static void _swap_columns(struct matrix *m, int j1, int j2)
 	float tmp; /* Temporary value. */
 
 	/* Swap columns. */
-	for (i = 0; i < m->height; i++)
+	for (i = (0+pid); i < m->height; i+=*nprocs)
 	{
 		tmp = MATRIX(m, i, j1);
 		MATRIX(m, i, j1) = MATRIX(m, i, j2);
@@ -82,18 +89,16 @@ static float _find_pivot(struct matrix *m, int i0, int j0)
 	int i, j; 	/* Loop indexes.          */
 //	int ipvt, jpvt;   /* Pivot indexes.         */
 	int pipvt, pjpvt; /* Private pivot indexes. */
-		
 	*ipvt = i0;
 	*jpvt = j0;
 	
 	
 	pipvt = i0;
-	pjpvt = j0;
-		
+	pjpvt = j0;	
 	wait_barrier(barrier);
 
 	/* Find pivot element. */
-	for (i = i0; i < m->height; i++)
+	for (i = (i0+pid); i < m->height; i+=*nprocs)
 	{
 		for (j = j0; j < m->width; j++)
 		{
@@ -133,22 +138,21 @@ static void _row_reduction(struct matrix *m, int i0, float pivot)
 {
 	int j0;      /* Starting column. */
 	int i, j;    /* Loop indexes.    */
-	float mult;  /* Row multiplier.  */
-	
+	float mult;  /* Row multiplier.  */	
 	j0 = i0;
 		
 	/* Apply row redution in some lines. */
-	for (i = i0 + 1; i < m->height; i++)
+	for (i = (i0 + 1)+pid; i < m->height; i+=*nprocs)
 	{
 		mult = MATRIX(m, i, j0)/pivot;
-	
 		/* Store multiplier. */
 		MATRIX(m, i, j0) = mult;
 	
 		/* Iterate over columns. */
 		for (j = j0 + 1; j < m->width; j++)
-			MATRIX(m, i, j) = MATRIX(m, i, j) - mult*MATRIX(m, i0, j);
+			MATRIX(m, i, j) = MATRIX(m, i, j) - mult*MATRIX(m, i0, j);;
 	}
+	
 }
 
 /*
@@ -157,22 +161,28 @@ static void _row_reduction(struct matrix *m, int i0, float pivot)
 int lower_upper(struct matrix *m, struct matrix *l, struct matrix *u)
 {
 	
-	int nprocs = nthreads;
 	/* Shared Memory variables */
 	ipvt = open_shared_mem(name_object1,sizeof(int));
 	jpvt = open_shared_mem(name_object2,sizeof(int));
-	
-	
+	g_pivot = open_shared_mem(name_object6,sizeof(float));
+	nprocs = open_shared_mem(name_object7,sizeof(int));
+	size = open_shared_mem(name_object8,sizeof(int));
+
+
+		
+	*nprocs = nthreads;
 	/* Semaphores */
 	barrier = open_shared_mem(name_object3,sizeof(barrier_t));
-	init_barrier(barrier,nprocs);
+	init_barrier(barrier,*nprocs);
 	
 	mutex = sem_open(name_object5, O_CREAT, 0644, 1);
 	critical = sem_open(name_object4, O_CREAT, 0644, 1);
+
+	*size = m->height/(*nprocs);
+	pid = new_proc(*nprocs);
 	
 	int i, j;    /* Loop indexes. */
-	float pivot; /* Pivot.        */
-
+	float pivot; /* Pivot.        */	
 	/* Apply elimination on all rows. */
 	for (i = 0; i < m->height - 1; i++)
 	{
@@ -183,14 +193,18 @@ int lower_upper(struct matrix *m, struct matrix *l, struct matrix *u)
 			warning("cannot factorize matrix");
 			return (-1);
 		}
+		if(pid == 0){
+			*g_pivot = pivot;
+		}
+		wait_barrier(barrier);	
 		
-		_row_reduction(m, i, pivot);
+		_row_reduction(m, i, *g_pivot);
 	}
 
 	wait_barrier(barrier);
 
 	/* Build upper and lower matrixes.  */
-	for (i = 0; i < m->height; i++)
+	for (i = (*size)*pid; i < (*size)*(pid+1); i++)
 	{
 		for (j = 0; j < m->width; j++)
 		{
@@ -213,6 +227,15 @@ int lower_upper(struct matrix *m, struct matrix *l, struct matrix *u)
 			}
 		}
 	}
-	
+	close_procs(*nprocs,pid);
+	close_sem(barrier);
+	unlink_sem(name_object4,critical);
+	unlink_sem(name_object5,mutex);
+	close_shared_mem(name_object1);		
+	close_shared_mem(name_object2);
+	close_shared_mem(name_object3);
+	close_shared_mem(name_object6);
+	close_shared_mem(name_object7);
+	close_shared_mem(name_object8);
 	return (0);
 }

@@ -26,12 +26,15 @@ void init_barrier(barrier_t *barrier, int n){
 }
 
 void close_sem(barrier_t *barrier){
-	sem_close(&barrier -> mutex);
-	sem_close(&barrier -> turnstyle);
-	sem_close(&barrier -> turnstyle2);
-	sem_destroy(&barrier -> mutex);
-	sem_destroy(&barrier -> turnstyle);
-	sem_destroy(&barrier -> turnstyle2);
+	if(sem_destroy(&barrier -> mutex) == -1){
+		perror("Failed destroying barrier");
+	}	
+	if(sem_destroy(&barrier -> turnstyle) == -1){
+		perror("Failed destroying barrier");
+	}	
+	if(sem_destroy(&barrier -> turnstyle2) == -1){
+		perror("Failed destroying barrier");
+	}	
 }	
 
 void phase1_barrier(barrier_t *barrier){
