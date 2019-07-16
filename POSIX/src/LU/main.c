@@ -1,7 +1,7 @@
 /*
- * Copyright(C) 2014 Pedro H. Penna <pedrohenriquepenna@gmail.com>
+ * Copyright(C) 2019 Guilherme Reis Barbosa de Oliveira <grboliveira@sga.pucminas.br>
  * 
- * LU Factorization Benchmark Kernel.
+ * lu.c - Lower Upper Benchmark Kerkernl.
  */
 
 #include <omp.h>

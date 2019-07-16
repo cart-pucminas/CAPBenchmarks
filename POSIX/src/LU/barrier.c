@@ -1,3 +1,10 @@
+/*
+ * Copyright(C) 2019 Guilherme Reis Barbosa de Oliveira <grboliveira@sga.pucminas.br>
+ * 
+ * lu.c - Lower Upper Benchmark Kerkernl.
+ */
+
+
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <sys/mman.h>

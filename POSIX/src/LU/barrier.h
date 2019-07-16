@@ -1,3 +1,10 @@
+/*
+ * Copyright(C) 2019 Guilherme Reis Barbosa de Oliveira <grboliveira@sga.pucminas.br>
+ * 
+ * lu.c - Lower Upper Benchmark Kerkernl.
+ */
+
+
 #ifndef _BARRIER_H_
 #define _BARRIER_H_
 
