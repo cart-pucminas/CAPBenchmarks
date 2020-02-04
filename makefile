@@ -18,7 +18,7 @@ all-posix:
 # Builds all kernels for MPPA-256.
 all-mppa256:
 	mkdir -p bin
-	cd mppa256 && $(MAKE) all BINDIR=$(BINDIR)
+	cd mppa256 && $(MAKE) tsp BINDIR=$(BINDIR)
 
 # Builds all kernels for Gem5 Simulator
 # IMPORTANT: Must use a compatible Kernel
