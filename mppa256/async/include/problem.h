@@ -65,6 +65,12 @@ struct problem {
 	int n; /* Number of elements. */
 };
 
+#elif _TSP_
+
+struct problem {
+	int nb_towns; /* Number of towns */
+};
+
 #endif /* Benchmarks */
 
 #endif /* _MASTER_ */
