@@ -74,7 +74,7 @@ void readargs(int argc, char **argv) {
 	}
 	
 	/* Invalid argument(s). */
-	if (nclusters < 1)
+	if (nclusters < 1 || nclusters > NUM_CLUSTERS)
 		inform_usage();
 }
 
@@ -84,7 +84,7 @@ void inform_usage() {
 	printf("Brief: %s Kernel\n", bench_fullName);
 	printf("Options:\n");
 	printf("  --help             Display this information and exit\n");
-	printf("  --nclusters <value> Set number of threads\n");
+	printf("  --nclusters <value> Set number of clusters (1 to %d)\n", NUM_CLUSTERS);
 	printf("  --class <name>     Set problem class:\n");
 	printf("                       - tiny\n");
 	printf("                       - small\n");

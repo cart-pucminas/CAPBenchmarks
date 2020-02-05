@@ -1,6 +1,7 @@
 /* Kernel Includes */
 #include <problem.h>
 #include <global.h>
+#include <timer.h>
 #include "../common_main.h"
 
 /* C And MPPA Library Includes*/
@@ -35,7 +36,7 @@ struct problem huge     =  { 20 };
 /* Benchmark parameters. */
 int verbose = 0;              /* Be verbose?        */
 int nclusters = 1;            /* Number of threads. */
-static int seed = 122;        /* Seed number.     */
+static int seed = 122;        /* Seed number.     	*/
 struct problem *prob = &tiny; /* Problem.           */
 
 int parametersOk() {
@@ -53,22 +54,26 @@ int parametersOk() {
  * Runs benchmark.
  */
 int main (int argc, char **argv) {
+	uint64_t start, end; /* Start and end time.  */
 
 	readargs(argc, argv);
 
 	if (parametersOk()) {
+
+		timer_init();
+
+		start = timer_get();
+
         /* Always run with 16 threads per cluster by default */
-        run_tsp(prob->nb_towns, nclusters);
+        run_tsp(prob->nb_towns, seed, nclusters);
+
+        end = timer_get();
+        total = timer_diff(start, end);
+
+        inform_statistics();
     } else {
         printf("Invalid parameters. Terminating execution.\n");
     }
 
 	return 0;
-}
-
-void run_tsp (int nb_towns, int nb_clusters) {
-
-	/* Benchmark initialization. */
-	if (verbose)
-		printf("initializing...\n");
 }
