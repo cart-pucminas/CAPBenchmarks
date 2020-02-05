@@ -1,10 +1,12 @@
 /* Kernel Includes */
 #include <problem.h>
 #include <global.h>
+#include "../common_main.h"
 
 /* C And MPPA Library Includes*/
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 /* Problem initials and FullName */
 char *bench_initials = "TSP";
@@ -33,8 +35,19 @@ struct problem huge     =  { 20 };
 /* Benchmark parameters. */
 int verbose = 0;              /* Be verbose?        */
 int nclusters = 1;            /* Number of threads. */
-static int seed = 122;          /* Seed number.       */
+static int seed = 122;        /* Seed number.     */
 struct problem *prob = &tiny; /* Problem.           */
+
+int parametersOk() {
+    int entries = queue_size(nclusters, prob->nb_towns, NULL);
+    int req_mem = sizeof(job_queue_node_t) * entries;
+    if (req_mem > MAX_MEM_PER_CLUSTER) {
+        printf("Error, not enough memory. Verify MAX_TOWNS (%d), MIN_JOBS_THREAD (%d), and MAX_MEM_PER_CLUSTER (%d) parameters. Requested memory: %d bytes (should be < %d bytes)\n",
+	       MAX_TOWNS, MIN_JOBS_THREAD, MAX_MEM_PER_CLUSTER, req_mem, MAX_MEM_PER_CLUSTER);
+        return 0;
+    }
+    return 1;
+}
 
 /*
  * Runs benchmark.
@@ -43,9 +56,19 @@ int main (int argc, char **argv) {
 
 	readargs(argc, argv);
 
+	if (parametersOk()) {
+        /* Always run with 16 threads per cluster by default */
+        run_tsp(prob->nb_towns, nclusters);
+    } else {
+        printf("Invalid parameters. Terminating execution.\n");
+    }
+
+	return 0;
+}
+
+void run_tsp (int nb_towns, int nb_clusters) {
+
 	/* Benchmark initialization. */
 	if (verbose)
 		printf("initializing...\n");
-
-	return 0;
 }
