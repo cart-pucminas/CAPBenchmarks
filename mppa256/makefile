@@ -7,8 +7,12 @@
 # Problem size.
 
 # Builds kernel usync async.
-all:
+all-async:
 	cd async && $(MAKE) all
+
+# Builds kernel usync ipc.
+all-ipc:
+	cd ipc && $(MAKE) all
 	
 # Cleans compilation files.
 clean:

@@ -65,7 +65,7 @@ int main (int argc, char **argv) {
 		start = timer_get();
 
         /* Always run with 16 threads per cluster by default */
-        run_tsp(prob->nb_towns, seed, nclusters);
+        run_tsp(prob->nb_towns, seed);
 
         end = timer_get();
         total = timer_diff(start, end);

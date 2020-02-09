@@ -15,10 +15,15 @@ all-posix:
 	mkdir -p bin
 	cd posix && $(MAKE) all BINDIR=$(BINDIR)
 
-# Builds all kernels for MPPA-256.
-all-mppa256:
+# Builds all kernels (using async library) for MPPA-256.
+all-mppa256-async:
 	mkdir -p bin
-	cd mppa256 && $(MAKE) all BINDIR=$(BINDIR)
+	cd mppa256 && $(MAKE) all-async BINDIR=$(BINDIR)
+
+# Builds all kernels (using ipc library) for MPPA-256.
+all-mppa256-ipc:
+	mkdir -p bin
+	cd mppa256 && $(MAKE) all-ipc BINDIR=$(BINDIR)
 
 # Builds all kernels for Gem5 Simulator
 # IMPORTANT: Must use a compatible Kernel

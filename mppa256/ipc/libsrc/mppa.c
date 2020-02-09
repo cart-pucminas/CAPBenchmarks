@@ -5,6 +5,7 @@
  */
 
 #include <stdint.h>
+#include <stdlib.h>
 #include <mppa/osconfig.h>
 
 uint64_t k1_io_read64(unsigned addr)
