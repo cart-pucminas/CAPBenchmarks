@@ -17,9 +17,8 @@ uint64_t k1_io_read64(unsigned addr)
 #endif
 }
 
-int k1_get_cluster_id(void)
-{
-	return (__k1_get_cluster_id());
+int k1_get_cluster_id(void) {
+	return __k1_get_cluster_id();
 }
 
 void k1_dcache_invalidate_mem_area(void *p, size_t n)

@@ -164,7 +164,7 @@ struct rand_state_struct {
 #define RAND_STATE_T struct rand_state_struct
 
 struct rand_state_struct simple_rng_initialize(int seed);
-inline unsigned int simple_rng_next(struct rand_state_struct *current_state);
+unsigned int simple_rng_next(struct rand_state_struct *current_state);
 
 #define RAND_INIT(s) simple_rng_initialize(s)
 #define RAND_NEXT(state) simple_rng_next(&state)

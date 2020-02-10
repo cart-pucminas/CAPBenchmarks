@@ -104,7 +104,7 @@ struct rand_state_struct simple_rng_initialize(int seed) {
 /// series of random number generator tests.
 /// Written by John D. Cook
 
-inline unsigned int simple_rng_next(struct rand_state_struct *current_state) {
+unsigned int simple_rng_next(struct rand_state_struct *current_state) {
 	// 0 <= u < 2^32
 	unsigned int u;
 	current_state->z = 36969 * (current_state->z & 65535) + (current_state->z >> 16); 

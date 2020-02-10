@@ -6,7 +6,7 @@
 static int waiting_threads = 0;
 #endif
 
-inline void reset_queue(job_queue_t *q) {
+void reset_queue(job_queue_t *q) {
 	q->begin = 0;
 	q->end = 0;
 }
@@ -80,6 +80,9 @@ int get_job (job_queue_t *q, job_t *j) {
 					q->status = QUEUE_OK;
 				else
 					close_queue(q);
+			default:
+				COND_VAR_MUTEX_UNLOCK(q->cond_var);
+				return 0;
 		}
 	}
 

@@ -2,7 +2,6 @@
 #include "../common_main.h"
 
 static int *comm_buffer;
-static int clusters;
 static broadcast_t *broad;
 
 void callback_master (mppa_sigval_t sigval);
@@ -150,7 +149,7 @@ int main (int argc, char **argv) {
 	
 	readargs(argc, argv);
 	
-	//mppa_init_time();
+	timer_init();
 
     if (parametersOk()) {
         /* Always run with 16 thraeds per cluster by default */
@@ -164,7 +163,7 @@ int main (int argc, char **argv) {
 	return 0;
 }
 
-void run_tsp (int nb_threads, int nb_towns, int seed, int nb_clusters) {
+void run_tsp (int nb_threads, int nb_towns, int problem_seed, int nb_clusters) {
 	assert (nb_threads <= MAX_THREADS_PER_CLUSTER);
 	assert (nb_clusters <= MAX_CLUSTERS);
 
@@ -175,11 +174,11 @@ void run_tsp (int nb_threads, int nb_towns, int seed, int nb_clusters) {
 	int next_partition = 0;
 
 	printf ("Number of clusters..: %3d\nNumber of partitions: %3d\nNumber of threads...: %3d\nNumber of Towns.....: %3d\nSeed................: %3d\n", 
-		nb_clusters, nb_partitions, nb_threads, nb_towns, seed);
+		nb_clusters, nb_partitions, nb_threads, nb_towns, problem_seed);
 
-	//uint64_t start_comm_time, end_comm_time, comm_time = 0, master_time = 0;
-	//uint64_t start = mppa_get_time();
-	//end_comm_time = start;
+	uint64_t start_comm_time, end_comm_time, comm_time = 0, master_time = 0;
+	uint64_t start = timer_get();
+	end_comm_time = start;
 
 	int comm_buffer_size = (nb_clusters + 1) * sizeof (int);
 	comm_buffer = (int *) malloc(comm_buffer_size);
@@ -205,38 +204,40 @@ void run_tsp (int nb_threads, int nb_towns, int seed, int nb_clusters) {
 
 	sprintf(argv[0], "%d", nb_threads); 
 	sprintf(argv[1], "%d", nb_towns);
-	sprintf(argv[2], "%d", seed);
+	sprintf(argv[2], "%d", problem_seed);
 	sprintf(argv[3], "%d", nb_clusters);
 
   	for (rank = 0; rank < nb_clusters; rank++) {
 	    sprintf(argv[4], "%d", rank);
-		pid = mppa_spawn(rank, NULL, "slave", (const char **)argv, NULL);
+		pid = mppa_spawn(rank, NULL, "cluster_bin", (const char **)argv, NULL);
 		assert(pid >= 0);
 	}
 	
 	wait_barrier (barrier); //init barrier
+
+	printf("pass barrier");
 
 	//Manage partition requests
 	while(finished_clusters < nb_clusters) {
 		int from[2];
 		partition_interval_t partition_interval;
 
-		//start_comm_time = mppa_get_time();
-		//master_time += mppa_diff_time(end_comm_time, start_comm_time);
+		start_comm_time = timer_get();
+		master_time += timer_diff(end_comm_time, start_comm_time);
 		mppa_read_rqueue (rqueue_partition_request, &from, 2 * sizeof(int));
-		//end_comm_time = mppa_get_time();
-		//comm_time += mppa_diff_time(start_comm_time, end_comm_time);
+		end_comm_time = timer_get();
+		comm_time += timer_diff(start_comm_time, end_comm_time);
 
 		partition_interval = get_next_partition_default_impl(nb_partitions, nb_clusters, &next_partition, from[1]);
 		
 		if(partition_interval.start == -1) 
 			finished_clusters++;
 
-		//start_comm_time = mppa_get_time();
-		//master_time += mppa_diff_time(end_comm_time, start_comm_time);
+		start_comm_time = timer_get();
+		master_time += timer_diff(end_comm_time, start_comm_time);
 		mppa_write_rqueue (rqueue_partition_response[from[0]], &partition_interval, sizeof(partition_interval_t));
-		//end_comm_time = mppa_get_time();
-		//comm_time += mppa_diff_time(start_comm_time, end_comm_time);
+		end_comm_time = timer_get();
+		comm_time += timer_diff(start_comm_time, end_comm_time);
 		
 		nsend++;
 		data_sent += sizeof(partition_interval_t);
@@ -271,16 +272,16 @@ void run_tsp (int nb_threads, int nb_towns, int seed, int nb_clusters) {
 		free(argv[i]);
 	free(argv);
 
-	//uint64_t end = mppa_get_time();
-   	//uint64_t exec_time = mppa_diff_time(start, end);
+	uint64_t end = timer_get();
+   	uint64_t exec_time = timer_diff(start, end);
 
 	printf("shortest path size = %5d\n", min);
 	
-	/*printf("timing statistics:\n");
+	printf("timing statistics:\n");
 	LOG("  master time........: %f\n", master_time/1000000.0);
 	LOG("  comm time..........: %f\n", (exec_time - comm_time - master_time)/1000000.0);
 	LOG("  master blocked time: %f\n", comm_time/1000000.0);
-	printf("  total time: %f\n", exec_time/1000000.0); */
+	printf("  total time: %f\n", exec_time/1000000.0);
 	printf("data exchange statistics:\n");
 	printf("  data sent:            %d\n", data_sent);
 	printf("  number sends:         %u\n", nsend);
@@ -288,11 +289,11 @@ void run_tsp (int nb_threads, int nb_towns, int seed, int nb_clusters) {
 	printf("  number receives:      %u\n", nreceive);
 }
 
-void new_minimun_distance_found(tsp_t_pointer tsp) {
+void new_minimun_distance_found(__attribute__((unused)) tsp_t_pointer tsp) {
 	printf("SHOULD NOT BE HERE!!!\n");
 }
 
-partition_interval_t get_next_partition(tsp_t_pointer tsp) {
+partition_interval_t get_next_partition(__attribute__((unused)) tsp_t_pointer tsp) {
 	printf("SHOULD NOT BE HERE!!!\n");
 	partition_interval_t dummy;
 	dummy.start = -1;
@@ -300,5 +301,5 @@ partition_interval_t get_next_partition(tsp_t_pointer tsp) {
 	return dummy;
 }
 
-void callback_master (mppa_sigval_t sigval) {	
+void callback_master (__attribute__((unused)) mppa_sigval_t sigval) {	
 }
