@@ -55,7 +55,11 @@ int fast(char *img, char *output, int imgsize, int *mask, int masksize)
 	uint64_t start,end;
 	
 	open_noc_connectors();
+	start = timer_get();
 	spawn_slaves();
+	end = timer_get();
+	spawn = timer_diff(start,end);
+
 	
 	 /* Send mask. */
     	n = sizeof(int)*masksize;	

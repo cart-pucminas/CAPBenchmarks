@@ -21,6 +21,7 @@ extern int fast
 (char *img, char *output,int imgsize, int *mask, int masksize);
 
 /* Timing statistics. */
+uint64_t spawn = 0;           /* Time spent spawning slaves   */
 uint64_t master = 0;          /* Time spent on master.        */
 uint64_t slave[NUM_CLUSTERS]; /* Time spent on slaves.        */
 uint64_t communication = 0;   /* Time spent on communication. */
@@ -281,8 +282,9 @@ int main(int argc, char **argv)
 	printf("timing statistics:\n");
 	printf("  master:           %f\n", master*MICROSEC);
 	for (i = 0; i < nclusters; i++){
-		printf("  slave %d:         %f\n",i,slave[i]*MICROSEC);
+		printf("  slave %d:          %f\n",i,slave[i]*MICROSEC);
 	}
+	printf("  spawn %d CC:       %f\n", nclusters, spawn*MICROSEC);
 	printf("  communication:    %f\n", communication*MICROSEC);
 	printf("  total time:       %f\n", total*MICROSEC);
 	printf("data exchange statistics:\n");
@@ -290,6 +292,7 @@ int main(int argc, char **argv)
 	printf("  number sends:         %u\n", nsend);
 	printf("  data received:        %d\n", data_received);
 	printf("  number receives:      %u\n", nreceive);
+	printf("Sum. of corners = %d\n", numcorners);
 	
 	/* House keeping. */
 	free(mask);
