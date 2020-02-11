@@ -21,9 +21,10 @@ uint64_t communication = 0;
 uint64_t total = 0;
 
 /* FAST parameters. */
+static int aux_offset;
 static int masksize;
-static int mask[MASK_SIZE];
-static char chunk[(CHUNK_SIZE*CHUNK_SIZE)+IMG_SIZE*MASK_RADIUS];
+static int *mask;
+static char *chunk;
 static int corners[MAX_THREADS];
 static int output[CHUNK_SIZE*CHUNK_SIZE];
 
@@ -105,12 +106,15 @@ int main(int argc, char **argv)
 	/* Setup interprocess communication. */
 	open_noc_connectors();
 	
-	/* Receives filter mask.*/
+	/* Receives filter mask. */
 	data_receive(infd, &masksize, sizeof(int));
+	mask = (int *) smalloc(masksize * sizeof(int));
 	data_receive(infd, mask, sizeof(int)*masksize);
+
+	data_receive(infd, &aux_offset, sizeof(int));
+	chunk = (char *) smalloc((CHUNK_SIZE*CHUNK_SIZE) + (2* aux_offset + (CHUNK_SIZE*CHUNK_SIZE)));
     
-    	omp_set_num_threads(16);
-    
+    omp_set_num_threads(16);
     
 	/* Process chunks. */
     	while (1)

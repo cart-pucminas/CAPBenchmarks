@@ -60,6 +60,7 @@ int fast(char *img, char *output, int imgsize, int *mask, int masksize)
 	end = timer_get();
 	spawn = timer_diff(start,end);
 
+	offset = (imgsize/CHUNK_SIZE)*MASK_RADIUS;
 	
 	 /* Send mask. */
     	n = sizeof(int)*masksize;	
@@ -67,6 +68,7 @@ int fast(char *img, char *output, int imgsize, int *mask, int masksize)
 	{
 		data_send(outfd[i], &masksize, sizeof(int));
 		data_send(outfd[i], mask, n);
+		data_send(outfd[i], &offset, sizeof(int));
 	}
     
     	/* Process image in chunks. */
@@ -77,7 +79,6 @@ int fast(char *img, char *output, int imgsize, int *mask, int masksize)
     	for (i = 0; i < nchunks; i++)
    	{		
 		data_send(outfd[j], &msg, sizeof(int));
-		offset = (imgsize/CHUNK_SIZE)*MASK_RADIUS;
 		
 		if(i == nchunks-1){
 			int start = i*(CHUNK_SIZE * CHUNK_SIZE)- offset*CHUNK_SIZE;
@@ -91,12 +92,7 @@ int fast(char *img, char *output, int imgsize, int *mask, int masksize)
 			data_send(outfd[j], &end, sizeof(int));
 			data_send(outfd[j], &img[start],end*sizeof(char));
 		}
-		if(i == 0){
-			data_send(outfd[j], &i, sizeof(int));
-		}
-		else{
-			data_send(outfd[j], &offset, sizeof(int));
-		}
+		data_send(outfd[j], i == 0 ? &i : &offset, sizeof(int));
 		
 		j++;
 		
