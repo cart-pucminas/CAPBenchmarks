@@ -193,19 +193,6 @@ int friendly_numbers(int _start, int _end) {
 	/* Waits slaves partial sum */
 	waitCompletion();
 
-	int aux_sum = 0;
-
-	for (int i = 0; i < problemsize; i++) {
-		for (int j = i+1; j < problemsize; j++) {
-			if (tasks[i].num == tasks[j].num && tasks[i].den == tasks[j].den) {
-				printf("Match %d -> %d\n", tasks[i].number, tasks[j].number);
-				aux_sum++;
-			}
-		}
-	}
-
-	printf("aux_sum = %d\n",aux_sum);
-
 	/* Sum all partial sums */
 	sumAll();
 
