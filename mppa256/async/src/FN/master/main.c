@@ -27,7 +27,7 @@ size_t data_get = 0; /* Number of items put.    */
 unsigned nget = 0;        /* Number of items gotten. */
 
 /* Problem sizes */
-struct problem tiny     =  { 8000001, 8004096 };
+struct problem tiny     =  { 1, 373 };
 struct problem small    =  { 8000001, 8008192 };
 struct problem standard =  { 8000001, 8016384 };
 struct problem large    =  { 8000001, 8032768 };

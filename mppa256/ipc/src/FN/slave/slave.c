@@ -48,39 +48,38 @@ static void getwork(void)
 /*
  * Computes the Greatest Common Divisor of two numbers.
  */
-static int gcd(int a, int b)
-{
-  int c;
-  
+static int gcd(int a, int b) {
+	int mod;
+
   /* Compute greatest common divisor. */
-  while (a != 0)
-  {
-     c = a;
-     a = b%a;
-     b = c;
-  }
-  
-  return (b);
+	while (b != 0)
+	{
+		mod = a % b;
+		a = b;
+		b = mod;
+	}
+
+	return a;
 }
 
 /*
- * Some of divisors.
+ * Some of divisors. (Algorithm considering n >= 2)
  */
-static int sumdiv(int n)
-{
-	int sum;    /* Sum of divisors. */
-	int factor; /* Working factor.  */
-	
-	sum = 1 + n;
+static int sumdiv(int n) {
+	int sum;    /* Sum of divisors.     */
+	int factor; /* Working factor.      */
+	int maxD; 	/* Max divisor before n */
+
+	maxD = (int)n/2;
+
+	sum = (n == 1) ? 1 : 1 + n;
 	
 	/* Compute sum of divisors. */
-	for (factor = 2; factor < n; factor++)
-	{
+	for (factor = 2; factor <= maxD; factor++) {
 		/* Divisor found. */
-		if ((n%factor) == 0)
+		if ((n % factor) == 0)
 			sum += factor;
 	}
-	
 	return (sum);
 }
 
@@ -100,17 +99,18 @@ void friendly_numbers(void)
 		task[i].denominator = i;
 				
 		n = gcd(task[i].numerator, task[i].denominator);
-		task[i].numerator /= n;
-		task[i].denominator /= n;
+
+		if (n != 0) {
+			task[i].numerator /= n;
+			task[i].denominator /= n;
+		}
 	}
 }
 
 
-int main(int argc, char **argv)
+int main(__attribute__((unused)) int argc, char **argv)
 {
 	timer_init();
-
-    ((void) argc);
     
     total = 0;
     

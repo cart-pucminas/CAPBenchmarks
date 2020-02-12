@@ -53,11 +53,43 @@ typedef struct {
 static Item finishedTasks[MAX_TASK_SIZE*NUM_CLUSTERS];
 static Item task[MAX_TASK_SIZE];
 
+/* Total of friendly numbers */
+static int friendlyNumbers = 0;
+
 /* Parameters.*/
-static int endnum;      /* Start number.      */
-static int startnum;    /* End number.        */
-static int *tasksize;   /* Task size.         */
-static int avgtasksize; /* Average task size. */
+static int startnum;               /* Start number.      */
+static int endnum;                 /* End number.        */
+static int problemsize;            /* Total task size    */
+static int avgtasksize;            /* Average task size. */
+static int tasksize[NUM_CLUSTERS]; /* Task size.         */
+
+/* Timing statistics. */
+static uint64_t start;
+static uint64_t end;
+
+static void distributeTaskSizes(int _start, int _end) {
+	int i;
+
+	start = timer_get();
+
+	startnum = _start;
+	endnum = _end;
+
+	problemsize = (_end - _start + 1);
+
+	if (problemsize > MAX_TASK_SIZE)
+		problemsize = MAX_TASK_SIZE;
+
+	avgtasksize = problemsize/nclusters;
+	
+	/* Distribute task sizes. */
+	for (i = 0; i < nclusters; i++)
+		tasksize[i] = (i + 1 < nclusters)?avgtasksize:problemsize-i*avgtasksize;
+
+	end = timer_get();
+
+	master += timer_diff(start, end);
+}
 
 /*
  * Sends works to slaves.
@@ -197,23 +229,15 @@ static int count_friends(void)
  */
 int friendly_numbers(int _start, int _end) 
 {
-	int i;           /* Loop index.   */
-	int problemsize; /* Problem size. */
-	
-	startnum = _start;
-	endnum = _end;
-	
-	tasksize = smalloc(nclusters*sizeof(int));
-	
-	/* Distribute task sizes. */
-	problemsize = (_end - _start + 1);
-	avgtasksize = problemsize/nclusters;
-	for (i = 0; i < nclusters; i++)
-		tasksize[i] = (i + 1 < nclusters)?avgtasksize:problemsize-i*avgtasksize;
+	/* Intervals to each cluster */
+	distributeTaskSizes(_start, _end);
 	
 	/* Setup slaves. */
+	start = timer_get();
 	open_noc_connectors();
 	spawn_slaves();
+	end = timer_get();
+	spawn = timer_diff(start, end);
     
 	sendWork();
 	syncNumbers();
@@ -221,7 +245,10 @@ int friendly_numbers(int _start, int _end)
 	/* House keeping. */
 	join_slaves();
 	close_noc_connectors();
-	free(tasksize);
 
-	return (count_friends());
+	friendlyNumbers = count_friends();
+
+	printf("Friendly Numbers = %d \n", friendlyNumbers);
+
+	return friendlyNumbers;
 }

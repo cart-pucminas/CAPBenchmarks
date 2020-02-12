@@ -18,6 +18,7 @@ extern int friendly_numbers(int start, int end);
 
 /* Timing statistics. */
 uint64_t master = 0;          /* Time spent on master.        */
+uint64_t spawn = 0;           /* Time spent spawning slaves   */
 uint64_t slave[NUM_CLUSTERS]; /* Time spent on slaves.        */
 uint64_t communication = 0;   /* Time spent on communication. */
 uint64_t total = 0;           /* Total time.                  */
@@ -38,7 +39,7 @@ struct problem
 };
 
 /* Problem sizes. */
-static struct problem tiny     =  { 8000001, 8004096 };
+static struct problem tiny     =  { 0, 373 };
 static struct problem small    =  { 8000001, 8008192 };
 static struct problem standard =  { 8000001, 8016384 };
 static struct problem large    =  { 8000001, 8032768 };
@@ -167,6 +168,7 @@ int main(int argc, char **argv)
 	printf("  master:        %f\n", master*MICROSEC);
 	for (i = 0; i < nclusters; i++)
 		printf("  slave %d:      %f\n", i, slave[i]*MICROSEC);
+	printf("  spawn %d CC:       %f\n", nclusters, spawn*MICROSEC);
 	printf("  communication: %f\n", communication*MICROSEC);
 	printf("  total time:    %f\n", total*MICROSEC);
 	printf("data exchange statistics:\n");

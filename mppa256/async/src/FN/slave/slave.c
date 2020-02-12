@@ -8,6 +8,7 @@
 /* C And MPPA Library Includes*/
 #include <utask.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 /* Individual Slave statistics. */
 uint64_t total = 0;         /* Time spent on slave.    */
@@ -90,7 +91,7 @@ static int sumdiv(int n) {
 
 	maxD = (int)n/2;
 
-	sum = 1 + n;
+	sum = (n == 1) ? 1 : 1 + n;
 	
 	/* Compute sum of divisors. */
 	for (factor = 2; factor <= maxD; factor++) {
@@ -155,8 +156,10 @@ static void countFriends() {
 	#pragma omp parallel for private(i) default(shared) reduction(+: partial_friendly_sum)
 	for (i = offset; i < offset + tasksize; i++) {
 		for (int j = 0; j < i; j++) {
-			if ((allTasks[i].num == allTasks[j].num) && (allTasks[i].den == allTasks[j].den))
+			if ((allTasks[i].num == allTasks[j].num) && (allTasks[i].den == allTasks[j].den)){
+				printf("%ld, %ld, %ld\n", allTasks[i].number, allTasks[i].num, allTasks[i].den);
 				partial_friendly_sum++;
+			}
 		}
 	}
 
