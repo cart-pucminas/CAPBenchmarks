@@ -98,10 +98,15 @@ void inform_usage() {
 
 /* Show timing and data exchange statistics */
 void inform_statistics() {
+	uint64_t slave_average = 0;
+
 	printf("CPU timing statistics of %s:\n", bench_initials);
 	printf("  master:        %f\n", master*MICROSEC);
-	for (int i = 0; i < nclusters; i++)
+	for (int i = 0; i < nclusters; i++) {
 		printf("  slave %d:       %f\n", i, slave[i]*MICROSEC);
+		slave_average += slave[i];
+	}
+	printf("  slave avg:     %f\n", (slave_average/nclusters)*MICROSEC);
 	printf("  spawn %d CC:    %f\n", nclusters, spawn*MICROSEC);
 	printf("  communication: %f\n", communication*MICROSEC);
 	printf("  total time:    %f\n", total*MICROSEC);

@@ -248,7 +248,7 @@ int friendly_numbers(int _start, int _end)
 
 	friendlyNumbers = count_friends();
 
-	printf("Friendly Numbers = %d \n", friendlyNumbers);
+	printf("Friendly Pairs = %d \n", friendlyNumbers);
 
 	return friendlyNumbers;
 }

@@ -16,16 +16,6 @@ typedef struct {
     int den; 	/* Denominator */
 } Item;
 
-typedef struct {
-	size_t data_put;
-	size_t data_get;
-	unsigned nput;
-	unsigned nget;
-	uint64_t slave;
-	uint64_t communication;
-	int partial_sum;
-} Info;
-
 /* Timing statistics. */
 static uint64_t start;
 static uint64_t end;
@@ -33,13 +23,15 @@ static uint64_t end;
 #define MAX_TASK_SIZE 65536
 
 /* Async Segments. */
-static mppa_async_segment_t infos_segment;
+static mppa_async_segment_t infos_seg;
 static mppa_async_segment_t tasks_segment;
+
+/* Statistics information from slaves. */
+static struct message statistics[NUM_CLUSTERS];
 
 /* Slave offsets, tasks and work done */
 static int offsets[NUM_CLUSTERS];
 static Item tasks[MAX_TASK_SIZE];
-static Info tasksFinished[NUM_CLUSTERS];
 
 /* Total of friendly numbers */
 static int friendlyNumbers = 0;
@@ -100,24 +92,30 @@ static void setTasks() {
 }
 
 static void createSegments() {
-	createSegment(&tasks_segment, 1, &tasks, problemsize * sizeof(Item), 0, 0, NULL);
-	createSegment(&infos_segment, 2, &tasksFinished, nclusters * sizeof(Info), 0, 0, NULL);
+	createSegment(&signals_offset_seg, SIG_SEG_0, &sig_offsets, nclusters * sizeof(off64_t), 0, 0, NULL);
+	createSegment(&infos_seg, MSG_SEG_0, &statistics, nclusters * sizeof(struct message), 0, 0, NULL);
+	createSegment(&tasks_segment, 3, &tasks, problemsize * sizeof(Item), 0, 0, NULL);
 }
 
 static void spawnSlaves() {
 	start = timer_get();
 
+	char str_prb_size[10];
+	sprintf(str_prb_size, "%d", problemsize);
+
+	set_cc_signals_offset();
+
 	#pragma omp parallel for default(shared) num_threads(3)
 	for (int i = 0; i < nclusters; i++) {
-		char str_prb_size[10], str_size[10], str_offset[10];
-		sprintf(str_prb_size, "%d", problemsize);
+		char str_size[10], str_offset[10];
 		sprintf(str_size, "%d", tasksize[i]);
 		sprintf(str_offset, "%d", offsets[i]);
-		char *args[4];
+		char *args[5];
 		args[0] = str_prb_size;
 		args[1] = str_size;
 		args[2] = str_offset;
-		args[3] = NULL; 
+		args[3] = str_cc_signals_offset[i];
+		args[4] = NULL; 
 
 		/* Spawning PE0 of cluster i*/
 		spawn_slave(i, args);
@@ -128,49 +126,25 @@ static void spawnSlaves() {
 	spawn = timer_diff(start, end);
 }
 
-static void waitCompletion() {
+static void sumFriendlyNumbers() {
+	int i;
+
 	start = timer_get();
 
-	for (int i= 0; i < nclusters; i++)
-		waitCondition((long long *)&tasksFinished[i].slave, 0, MPPA_ASYNC_COND_GT, NULL);
-
-	end = timer_get();
-
-	communication += timer_diff(start, end);
-}
-
-static void sumAll() {
-	start = timer_get();
-
-	for (int i = 0; i < nclusters; i++)
-		friendlyNumbers += tasksFinished[i].partial_sum;
-
-	/* We calculated only the friendly pairs, so now
-	   we have to multiply the result by 2 in order
-	   to get all numbers that are friendly          */
-	friendlyNumbers *= 2;
+	#pragma omp parallel for private(i) default(shared) num_threads(3) reduction(+: friendlyNumbers)
+	for (i = 0; i < problemsize; i++) {
+		for (int j = i + 1; j < problemsize; j++) {
+			if (tasks[i].num == tasks[j].num && tasks[i].den == tasks[j].den)
+				friendlyNumbers++;
+		}
+	}
 
 	end = timer_get();
 
 	master += timer_diff(start, end);
 }
 
-static void setAllStatistics() {
-	uint64_t comm_Sum = 0;
-	uint64_t comm_Average = 0;
-	for (int i = 0; i < nclusters; i++) {
-		slave[i] = tasksFinished[i].slave;
-		comm_Sum += tasksFinished[i].communication;
-		data_put += tasksFinished[i].data_put;
-		data_get += tasksFinished[i].data_get;
-		nput += tasksFinished[i].nput;
-		nget += tasksFinished[i].nget;
-	}
-
-	comm_Average = (uint64_t)(comm_Sum+communication)/(nclusters+1);
-	communication = comm_Average;
-}
-
+/* Sum all friendly numbers. */
 int friendly_numbers(int _start, int _end) {
 	/* Intervals to each cluster */
 	distributeTaskSizes(_start, _end);
@@ -190,20 +164,23 @@ int friendly_numbers(int _start, int _end) {
 	/* Spawns all "nclusters" clusters */
 	spawnSlaves();
 
-	/* Waits slaves partial sum */
-	waitCompletion();
+	/* Synchronize variable offsets between Master and Slaves. */
+	get_slaves_signals_offset();
 
-	/* Sum all partial sums */
-	sumAll();
+	/* Wait all slaves statistics info. */
+	wait_statistics();
+
+	/* Sum all friendly numbers. */
+	sumFriendlyNumbers();
+
+	/* Set slaves statistics. */
+	set_statistics(statistics);
 
 	/* Waiting for PE0 of each cluster to end */
 	join_slaves();
 
 	/* Finalizes async server */
 	async_master_finalize();
-
-	/* Set statistics received by slaves */
-	setAllStatistics();
 
 	return friendlyNumbers;
 }

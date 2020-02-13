@@ -54,7 +54,7 @@ int main(int argc, const char **argv) {
 	inform_statistics();
 
 	if (verbose)
-		printf("  Friendly Numbers = %d\n", fd);
+		printf("  Friendly Pairs = %d\n", fd);
 	
 	return 0;
 }
