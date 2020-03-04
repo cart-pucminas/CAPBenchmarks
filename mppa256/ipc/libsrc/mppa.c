@@ -19,9 +19,9 @@ uint64_t k1_io_read64(unsigned addr)
 
 int k1_get_cluster_id(void) {
 #ifdef _MASTER_
-	return __k1_get_cluster_id();
-#else
 	return -1;
+#else
+	return __k1_get_cluster_id();
 #endif
 }
 
