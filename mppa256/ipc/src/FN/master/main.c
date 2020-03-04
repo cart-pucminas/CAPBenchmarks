@@ -159,7 +159,7 @@ int main(int argc, char **argv)
 	if (verbose)
 		printf("computing friendly numbers...\n");
 	start = timer_get();
-	friendly_numbers(p->start, p->end);
+	int fd = friendly_numbers(p->start, p->end);
 	end = timer_get();
 	total = timer_diff(start, end);
 
@@ -167,8 +167,8 @@ int main(int argc, char **argv)
 	printf("timing statistics:\n");
 	printf("  master:        %f\n", master*MICROSEC);
 	for (i = 0; i < nclusters; i++)
-		printf("  slave %d:      %f\n", i, slave[i]*MICROSEC);
-	printf("  spawn %d CC:       %f\n", nclusters, spawn*MICROSEC);
+		printf("  slave %d:       %f\n", i, slave[i]*MICROSEC);
+	printf("  spawn %d CC:    %f\n", nclusters, spawn*MICROSEC);
 	printf("  communication: %f\n", communication*MICROSEC);
 	printf("  total time:    %f\n", total*MICROSEC);
 	printf("data exchange statistics:\n");
@@ -176,6 +176,9 @@ int main(int argc, char **argv)
 	printf("  number sends:         %u\n", nsend);
 	printf("  data received:        %d\n", data_received);
 	printf("  number receives:      %u\n", nreceive);
+
+	if (verbose)
+		printf("  Friendly Pairs = %d\n", fd);
 	
 	return (0);
 }

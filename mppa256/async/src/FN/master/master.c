@@ -100,9 +100,6 @@ static void createSegments() {
 static void spawnSlaves() {
 	start = timer_get();
 
-	char str_prb_size[10];
-	sprintf(str_prb_size, "%d", problemsize);
-
 	set_cc_signals_offset();
 
 	#pragma omp parallel for default(shared) num_threads(3)
@@ -110,12 +107,11 @@ static void spawnSlaves() {
 		char str_size[10], str_offset[10];
 		sprintf(str_size, "%d", tasksize[i]);
 		sprintf(str_offset, "%d", offsets[i]);
-		char *args[5];
-		args[0] = str_prb_size;
-		args[1] = str_size;
-		args[2] = str_offset;
-		args[3] = str_cc_signals_offset[i];
-		args[4] = NULL; 
+		char *args[4];
+		args[0] = str_size;
+		args[1] = str_offset;
+		args[2] = str_cc_signals_offset[i];
+		args[3] = NULL; 
 
 		/* Spawning PE0 of cluster i*/
 		spawn_slave(i, args);

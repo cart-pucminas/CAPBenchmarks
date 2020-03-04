@@ -32,7 +32,6 @@ static Item task[MAX_TASK_SIZE];
 /* Informations about the task */
 static int offset;
 static int tasksize; 
-static int problemsize;
 
 /* Timing auxiliars */
 static uint64_t start, end;
@@ -115,10 +114,9 @@ int main(__attribute__((unused)) int argc , const char **argv) {
 
 	/* Problem information */
 	cid = __k1_get_cluster_id();
-	problemsize = atoi(argv[0]);
-	tasksize = atoi(argv[1]);
-	offset = atoi(argv[2]);
-	sigback_offset = (off64_t) atoll(argv[3]);
+	tasksize = atoi(argv[0]);
+	offset = atoi(argv[1]);
+	sigback_offset = (off64_t) atoll(argv[2]);
 
 	/* Synchronization of timer */
 	timer_init();

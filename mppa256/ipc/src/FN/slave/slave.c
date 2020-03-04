@@ -18,11 +18,14 @@
 #include <util.h>
 #include <ipc.h>
 
+/* Problem structure : number and abundances */
 typedef struct {
-    long int number;
-    long int numerator;
-    long int denominator;
+    long int number; /* Number      */
+    long int num; 	/* Numerator   */
+    long int den; 	/* Denominator */
 } Item;
+
+#define MAX_TASK_SIZE 65536
 
 /* Timing statistics. */
 uint64_t start;
@@ -30,20 +33,11 @@ uint64_t end;
 uint64_t communication = 0;
 uint64_t total = 0;
 
-static Item task[65536];
+/* Task sent by IO */
+static Item task[MAX_TASK_SIZE];
 
+/* Informations about the task */
 static int tasksize;
-
-static void syncNumbers(void)
-{
-    data_send(outfd, &task, tasksize*sizeof(Item));
-}
-
-static void getwork(void)
-{
-	data_receive(infd, &tasksize, sizeof(int));
-	data_receive(infd, &task, tasksize*sizeof(Item));
-}
 
 /*
  * Computes the Greatest Common Divisor of two numbers.
@@ -75,6 +69,7 @@ static int sumdiv(int n) {
 	sum = (n == 1) ? 1 : 1 + n;
 	
 	/* Compute sum of divisors. */
+	#pragma omp parallel for private(factor) default(shared) reduction(+: sum)
 	for (factor = 2; factor <= maxD; factor++) {
 		/* Divisor found. */
 		if ((n % factor) == 0)
@@ -83,56 +78,56 @@ static int sumdiv(int n) {
 	return (sum);
 }
 
-/*
- * Computes friendly numbers.
- */
-void friendly_numbers(void) 
-{
+static void calc_abundances() {
 	int n; /* Divisor.      */
 	int i; /* Loop indexes. */
 	
+	start = timer_get();
+
 	/* Compute abundances. */
 	#pragma omp parallel for private(i, n) default(shared)
-	for (i = 0; i < tasksize; i++) 
-	{		
-		task[i].numerator = sumdiv(task[i].number);
-		task[i].denominator = i;
-				
-		n = gcd(task[i].numerator, task[i].denominator);
+	for (i = 0; i < tasksize; i++) {		
+		task[i].num = sumdiv(task[i].number);
+		task[i].den = task[i].number;
+
+		n = gcd(task[i].num, task[i].den);
 
 		if (n != 0) {
-			task[i].numerator /= n;
-			task[i].denominator /= n;
+			task[i].num /= n;
+			task[i].den /= n;
 		}
 	}
+
+	end = timer_get();
+
+	/* Total slave time */
+	total += timer_diff(start, end);
 }
 
 
-int main(__attribute__((unused)) int argc, char **argv)
-{
+int main(__attribute__((unused)) int argc, char **argv) {
+	/* Synchronization of timer */
 	timer_init();
     
-    total = 0;
-    
+    /* Cluster id. */
     rank = atoi(argv[0]);
-    
+   
+ 	/* Get work from IO. */
     open_noc_connectors();
-	
-    getwork();
+    data_receive(infd, &tasksize, sizeof(int));
+	data_receive(infd, &task, tasksize*sizeof(Item));
 
-	start = timer_get();
-    friendly_numbers();
-	end = timer_get();
+	/* Calculation of all numbers abundances */
+    calc_abundances();
 
-    syncNumbers();
-
-	total = timer_diff(start, end);
+	/* Send abundance and stats. to IO. */
+    data_send(outfd, &task, tasksize*sizeof(Item));
 	data_send(outfd, &total, sizeof(uint64_t));
 
     /* Close channels. */
     mppa_close(infd);
     mppa_close(outfd);
-
     mppa_exit(0);
+
     return (0);
 }

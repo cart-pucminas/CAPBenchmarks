@@ -50,8 +50,7 @@ typedef struct {
 
 #define MAX_TASK_SIZE 65536
 
-static Item finishedTasks[MAX_TASK_SIZE*NUM_CLUSTERS];
-static Item task[MAX_TASK_SIZE];
+static Item tasks[MAX_TASK_SIZE];
 
 /* Total of friendly numbers */
 static int friendlyNumbers = 0;
@@ -59,9 +58,9 @@ static int friendlyNumbers = 0;
 /* Parameters.*/
 static int startnum;               /* Start number.      */
 static int endnum;                 /* End number.        */
-static int problemsize;            /* Total task size    */
-static int avgtasksize;            /* Average task size. */
-static int tasksize[NUM_CLUSTERS]; /* Task size.         */
+static int problemsize;            /* Total tasks size    */
+static int avgtasksize;            /* Average tasks size. */
+static int tasksize[NUM_CLUSTERS]; /* tasks size.         */
 
 /* Timing statistics. */
 static uint64_t start;
@@ -82,7 +81,7 @@ static void distributeTaskSizes(int _start, int _end) {
 
 	avgtasksize = problemsize/nclusters;
 	
-	/* Distribute task sizes. */
+	/* Distribute tasks sizes. */
 	for (i = 0; i < nclusters; i++)
 		tasksize[i] = (i + 1 < nclusters)?avgtasksize:problemsize-i*avgtasksize;
 
@@ -91,147 +90,75 @@ static void distributeTaskSizes(int _start, int _end) {
 	master += timer_diff(start, end);
 }
 
+static void setTasks() {
+	start = timer_get();
+
+	int i;
+	int aux = startnum;
+
+	for (i = 0; i < problemsize; i++)
+		tasks[i].number = aux++; 
+
+	end = timer_get();
+
+	master += timer_diff(start, end);
+}
+
 /*
- * Sends works to slaves.
+ * Send work to slaves.
  */
-static void sendWork(void)
-{
-    int i, j;               /* Loop indexes.            */
-	uint64_t start, end;    /* Timers.                  */
-    int lowernum, uppernum; /* Lower and upper numbers. */
+static void sendWork(void) {
+    int i = 0, offset = 0;
 
-    /* Distribute tasks to slaves. */
-    lowernum = startnum; uppernum = endnum;
-    for (i = 0; i < nclusters; i++)
-    {
-		start = timer_get();
-		
-		/* Build pool of tasks. */
-		for (j = 0; j < tasksize[i]; j += 2)
-		{
-			task[j].number = lowernum++;
-			task[j + 1].number = uppernum--;
-		}
-		
-		end = timer_get();
-		master += timer_diff(start, end);
-
+    for (i = 0; i < nclusters; i++) {
 		data_send(outfd[i], &tasksize[i], sizeof(int));
-		data_send(outfd[i], task, tasksize[i]*sizeof(Item));
+		data_send(outfd[i], &tasks[offset], tasksize[i]*sizeof(Item));
+		offset += tasksize[i];
     }
     
 }
 
-static void syncNumbers(void)
-{
-	int i;
+/*
+ * Receives work from slaves.
+ */
+static void receiveWork(void) {
+	int i = 0, offset = 0;
 
-	for (i = 0; i < nclusters - 1; i++)
-	{
-        data_receive(infd[i], &finishedTasks[i*avgtasksize], 
-													avgtasksize*sizeof(Item));
+	for (i = 0; i < nclusters; i++) {
+        data_receive(infd[i], &tasks[offset], tasksize[i]*sizeof(Item));
+        offset += tasksize[i];
 	}
-	
-	data_receive(infd[i], &finishedTasks[i*avgtasksize], 
-													tasksize[i]*sizeof(Item));
 }
 
-/*
- * Thread's data.
- */
-struct tdata
-{
-	/* Thread ID. */
-	pthread_t tid; 
-	 
-	struct
-	{
-		int i0;
-		int in;
-	} args;
-	
-	struct
-	{
-		int nfriends;
-	} result;
-} tdata[NUM_IO_CORES];
+static void sumFriendlyNumbers() {
+	int i, j; /* Loop index. */
 
-/*
- * Thread's main.
- */
-static void *thread_main(void *args)
-{
-	int i, j;        /* Loop indexes.      */
-	int nfriends;    /* Number of friends. */
-	struct tdata *t; /* Thread data.       */
-	
-	t = args;
-	
-	/* Count number of friends. */
-	nfriends = 0;
-	for (i = t->args.i0; i < t->args.in; i++)
-	{
-		for (j = 0; j < i; j++)
-		{
-			/* Friends. */
-			if ((finishedTasks[i].num == finishedTasks[j].num) && 
-			(finishedTasks[i].den == finishedTasks[j].den))
-				nfriends++;
-		}	
-	}
-	
-	t->result.nfriends = nfriends;
-	
-	pthread_exit(NULL);
-	return (NULL);
-}
-
-/*
- * Counts friendly numbers.
- */
-static int count_friends(void)
-{
-	int i;               /* Loop index.       */
-	int nfriends;        /* Number friends.   */
-	uint64_t start, end; /* Timers.           */
-	int chunksize;       /* Thread work size. */
-	
 	start = timer_get();
-	
-	/* Spwan slave threads. */
-	chunksize = (endnum - startnum + 1)/NUM_IO_CORES;
-	for (i = 0; i < NUM_IO_CORES; i++)
-	{
-		tdata[i].args.i0 = (i == 0) ? startnum + 1 : i*chunksize;
-		tdata[i].args.in = (i + 1 < NUM_IO_CORES) ? (i + 1)*chunksize :
-													(endnum - startnum + 1);
-		pthread_create(&tdata[i].tid, NULL, thread_main, (void *)&tdata[i]);
+
+	#pragma omp parallel for private(i, j) default(shared) reduction(+: friendlyNumbers)
+	for (i = 0; i < problemsize; i++) {
+		for (j = i + 1; j < problemsize; j++) {
+			if (tasks[i].num == tasks[j].num && tasks[i].den == tasks[j].den)
+				friendlyNumbers++;
+		}
 	}
-	
-	/* Join threads. */
-	for (i = 0; i < NUM_IO_CORES; i++)
-		pthread_join(tdata[i].tid, NULL);	
-	
-	/* Reduce. */
-	nfriends = 0;
-    for (i = 0; i < NUM_IO_CORES; i++)
-		nfriends += tdata[i].result.nfriends;
-		
+
 	end = timer_get();
+
 	master += timer_diff(start, end);
-    
-    return (nfriends);
 }
 
 
 /*
  * Counts the number of friendly numbers in a range.
  */
-int friendly_numbers(int _start, int _end) 
-{
+int friendly_numbers(int _start, int _end)  {
 	/* Intervals to each cluster */
 	distributeTaskSizes(_start, _end);
-	
+
+	/* Initializes tasks number values */
+	setTasks();
+
 	/* Setup slaves. */
 	start = timer_get();
 	open_noc_connectors();
@@ -239,16 +166,18 @@ int friendly_numbers(int _start, int _end)
 	end = timer_get();
 	spawn = timer_diff(start, end);
     
+    /* Send work to slaves. */
 	sendWork();
-	syncNumbers();
+
+	/* Receive work from slaves. */
+	receiveWork();
 	
 	/* House keeping. */
 	join_slaves();
 	close_noc_connectors();
 
-	friendlyNumbers = count_friends();
-
-	printf("Friendly Pairs = %d \n", friendlyNumbers);
+	/* Sum all friendly numbers. */
+	sumFriendlyNumbers();
 
 	return friendlyNumbers;
 }
