@@ -86,8 +86,6 @@ int fast(char *_img, char *_output, int _imgsize, int *_mask, int _masksize) {
 	offset = (imgsize/CHUNK_SIZE)*MASK_RADIUS; 
 	nchunks = (imgsize*imgsize)/(CHUNK_SIZE*CHUNK_SIZE);
 
-	printf("%d %d \n", imgsize, nchunks);
-
 	/* Initializes async server */
 	async_master_start();
 

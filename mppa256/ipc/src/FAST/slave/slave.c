@@ -22,11 +22,15 @@ uint64_t total = 0;
 
 /* FAST parameters. */
 static int aux_offset;
+static int nchunks;     
 static int masksize;
 static int *mask;
 static char *chunk;
 static int corners[MAX_THREADS];
 static int output[CHUNK_SIZE*CHUNK_SIZE];
+static int corners_sum;
+
+int nclusters;
 
 /**
  * FAST corner detection.
@@ -94,12 +98,12 @@ not_a_corner:				z++;
 int main(int argc, char **argv)
 {
 	int msg,offset;
+
 	timer_init();
-	int n;
 
 	((void)argc);
 	
-    	total = 0;
+    total = 0;
 
 	rank = atoi(argv[0]);	
 	
@@ -114,45 +118,46 @@ int main(int argc, char **argv)
 	data_receive(infd, &aux_offset, sizeof(int));
 	chunk = (char *) smalloc((CHUNK_SIZE*CHUNK_SIZE) + (2* aux_offset + (CHUNK_SIZE*CHUNK_SIZE)));
     
+    data_receive(infd, &nchunks, sizeof(int));
+    data_receive(infd, &nclusters, sizeof(int));
+
     omp_set_num_threads(16);
     
 	/* Process chunks. */
-    	while (1)
-	{
-		data_receive(infd, &msg, sizeof(int));
+	int nchunk, chunk_size, i;
+    for (nchunk = rank; nchunk < nchunks; nchunk += nclusters) 
+    {
+ 		if (nchunk == nchunks - 1)
+			chunk_size = (CHUNK_SIZE*CHUNK_SIZE) + (aux_offset * CHUNK_SIZE);
+		else
+			chunk_size = (CHUNK_SIZE*CHUNK_SIZE) + (2 * aux_offset * CHUNK_SIZE);
 
-		/* Parse message. */
-		switch (msg)
-		{
-			case MSG_CHUNK:
-				data_receive(infd, &n, sizeof(int)); 		//Receives size of chunk (includes halo)
-				data_receive(infd, chunk, n);			//Receives chunk
-				data_receive(infd, &offset, sizeof(int));	//Receives offset
-				
-				memset(corners,0,MAX_THREADS*sizeof(int));
-				memset(output,0,CHUNK_SIZE*CHUNK_SIZE*sizeof(char));
-				
-				start = timer_get();						
-				fast(offset, n);	
-				end = timer_get();
+		data_receive(infd, chunk, chunk_size);		//Receives chunk
 
-				total += timer_diff(start, end);
-				data_send(outfd, corners, MAX_THREADS*sizeof(int));
-				data_send(outfd, output, CHUNK_SIZE*CHUNK_SIZE*sizeof(char));
-				
-				break;
-			
-			default:
-				goto out;
-		}
+		memset(corners,0,MAX_THREADS*sizeof(int));
+		memset(output,0,CHUNK_SIZE*CHUNK_SIZE*sizeof(char));
+
+		start = timer_get();						
+		(nchunk == 0) ? fast(0, chunk_size) : fast(aux_offset, chunk_size);
+		end = timer_get();
+		total += timer_diff(start, end);
+
+		for (i = 0; i < MAX_THREADS; i++)
+			corners_sum += corners[i];
+
+		data_send(outfd, output, CHUNK_SIZE*CHUNK_SIZE*sizeof(char));
 	}
-
-out:
 	
+	data_send(outfd, &corners_sum, sizeof(int));
 	data_send(outfd, &total, sizeof(uint64_t));
 	
 	close_noc_connectors();
 	mppa_exit(0);
+
+	/* House keeping. */
+	free(mask);
+	free(chunk);
+
 	return (0);
 }
 	

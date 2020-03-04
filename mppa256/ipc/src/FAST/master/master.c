@@ -49,7 +49,6 @@ int fast(char *img, char *output, int imgsize, int *mask, int masksize)
 	int msg;             /* Message.          */
 	int offset;			
 	int nchunks;         /* Number of chunks. */
-	int corners[MAX_THREADS] = {0};
 	int numcorners = 0;
 	
 	uint64_t start,end;
@@ -61,38 +60,35 @@ int fast(char *img, char *output, int imgsize, int *mask, int masksize)
 	spawn = timer_diff(start,end);
 
 	offset = (imgsize/CHUNK_SIZE)*MASK_RADIUS;
-	
-	 /* Send mask. */
-    	n = sizeof(int)*masksize;	
+
+    /* Process image in chunks. */
+    j = 0; 
+    msg = MSG_CHUNK;
+    nchunks = (imgsize*imgsize)/(CHUNK_SIZE*CHUNK_SIZE);
+
+	/* Send mask. */
+    n = sizeof(int)*masksize;	
 	for (i = 0; i < nclusters; i++)
 	{
 		data_send(outfd[i], &masksize, sizeof(int));
 		data_send(outfd[i], mask, n);
 		data_send(outfd[i], &offset, sizeof(int));
+		data_send(outfd[i], &nchunks, sizeof(int));
+		data_send(outfd[i], &nclusters, sizeof(int));
 	}
-    
-    	/* Process image in chunks. */
-    	j = 0; 
-     	msg = MSG_CHUNK;
-    	nchunks = (imgsize*imgsize)/(CHUNK_SIZE*CHUNK_SIZE);
+
 	
-    	for (i = 0; i < nchunks; i++)
+	for (i = 0; i < nchunks; i++)
    	{		
-		data_send(outfd[j], &msg, sizeof(int));
-		
-		if(i == nchunks-1){
+		if(i == nchunks-1) {
 			int start = i*(CHUNK_SIZE * CHUNK_SIZE)- offset*CHUNK_SIZE;
 			int end = (CHUNK_SIZE*CHUNK_SIZE)+(offset*CHUNK_SIZE);
-			data_send(outfd[j], &end, sizeof(int));
 			data_send(outfd[j], &img[start],end*sizeof(char));
-		}
-		else{
+		} else {
 			int start = i*(CHUNK_SIZE * CHUNK_SIZE)- offset*CHUNK_SIZE;
 			int end = (CHUNK_SIZE*CHUNK_SIZE)+(2*offset*CHUNK_SIZE);
-			data_send(outfd[j], &end, sizeof(int));
 			data_send(outfd[j], &img[start],end*sizeof(char));
 		}
-		data_send(outfd[j], i == 0 ? &i : &offset, sizeof(int));
 		
 		j++;
 		
@@ -103,38 +99,21 @@ int fast(char *img, char *output, int imgsize, int *mask, int masksize)
 		if (j == nclusters)
 		{
 			for (/* NOOP */ ; j > 0; j--)
-			{
-				data_receive(infd[nclusters-j],&corners,MAX_THREADS*sizeof(int));
 				data_receive(infd[nclusters-j],&output[(nclusters - j)*CHUNK_SIZE*CHUNK_SIZE], CHUNK_SIZE*CHUNK_SIZE*sizeof(char));
-				
-				start=timer_get();
-				for(k=0;k<MAX_THREADS;k++){
-					numcorners += corners[k];
-				}
-				end=timer_get();
-				master += timer_diff(start,end);
-			}
 		}
 	}
 	
-	/* Receive remaining results. */
+	/* Receives remaining results. */
 	for (/* NOOP */ ; j > 0; j--)
-	{
-		data_receive(infd[j - 1],&corners,MAX_THREADS*sizeof(int));
 		data_receive(infd[j - 1],&output[(nchunks - j)*CHUNK_SIZE*CHUNK_SIZE], CHUNK_SIZE*CHUNK_SIZE*sizeof(char)); 
-		
-		start=timer_get();
-		for(k=0;k<MAX_THREADS;k++){
-			numcorners += corners[k];
-		}
-		end=timer_get();
-		master += timer_diff(start,end);
-	}
 	
-	/* House keeping. */
-	msg = MSG_DIE;
-	for (i = 0; i < nclusters; i++)
-		data_send(outfd[i], &msg, sizeof(int));
+	/* Receives sum of corners. */
+	int part_sum = 0;
+	for (i = 0; i < nclusters; i++) {
+		data_receive(infd[i], &part_sum, sizeof(int));
+		numcorners += part_sum;
+	}
+
 	join_slaves();
 	close_noc_connectors();
 	
