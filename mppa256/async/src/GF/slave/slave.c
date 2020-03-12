@@ -56,7 +56,6 @@ void gauss_filter() {
 		for (chunkI = 0; chunkI < CHUNK_SIZE; chunkI++) {
 			for (chunkJ = 0; chunkJ < CHUNK_SIZE; chunkJ++) {
 				pixel = 0.0;
-				
 				for (maskI = 0; maskI < masksize; maskI++) {
 					for (maskJ = 0; maskJ < masksize; maskJ++)
 						pixel += CHUNK(chunkI + maskI, chunkJ + maskJ) * MASK(maskI, maskJ);
@@ -68,7 +67,7 @@ void gauss_filter() {
 	}
 }
 
-static void process_chuncks() {
+static void process_chunks() {
 	int msg = 0;              /* Msg type.                        */
 
 	dataGet(mask, &mask_seg, 0, masksize*masksize, sizeof(double), NULL);
@@ -120,7 +119,7 @@ int main(__attribute__((unused))int argc, char **argv) {
 	send_sig_offset();
 
 	/* Processing the chuncks. */
-	process_chuncks();
+	process_chunks();
 
 	/* Put statistics in stats. segment on IO side. */
 	send_statistics(&infos_seg);

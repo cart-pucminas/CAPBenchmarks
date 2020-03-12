@@ -9,73 +9,71 @@
 #include <timer.h>
 #include <util.h>
 #include <ipc.h>
-#include "slave.h"
+#include <stdio.h>
+#include "../kernel.h"
 
-/* Timing statistics. */
-uint64_t start;
-uint64_t end;
+/* Kernel parameters. */
+static int masksize;                             /* Mask dimension.              */
+static int chunk_with_halo_size;     	         /* Chunk size including a halo. */
+static double *mask;                             /* Mask.                        */
+static unsigned char *chunk;                     /* Image input chunk.           */
+static unsigned char newchunk[CHUNK_SIZE_SQRD];  /* Image output chunk.          */
+
+/* Timing statistics auxiliars. */
+static uint64_t start, end;
 uint64_t communication = 0;
 uint64_t total = 0;
 
-/* Gaussian filter parameters. */
-static int masksize;
-static double mask[MASK_SIZE*MASK_SIZE];
-static unsigned char chunk[CHUNK_SIZE*CHUNK_SIZE];
-
-/*
- * Gaussian filter.
- */
-void gauss_filter(void)
-{
-	int i, j;
-	int half;
+/* Gaussian filter. */
+void gauss_filter() {
 	double pixel;
-	int imgI, imgJ, maskI, maskJ;
-	
-	#define MASK(i, j) \
-		mask[(i)*masksize + (j)]
-	
-	#define CHUNK(i, j) \
-		chunk[(i)*CHUNK_SIZE + (j)]
-	
-	i = 0; j = 0;
-	half = CHUNK_SIZE >> 1;
-	
-	#pragma omp parallel default(shared) private(imgI,imgJ,maskI,maskJ,pixel,i,j)
+	int chunkI, chunkJ, maskI, maskJ;
+
+	#pragma omp parallel default(shared) private(chunkI,chunkJ,maskI,maskJ,pixel)
 	{
 		#pragma omp for
-		for (imgI = 0; imgI < CHUNK_SIZE; imgI++)
-		{			
-			for (imgJ = 0; imgJ < CHUNK_SIZE; imgJ++)
-			{
+		for (chunkI = 0; chunkI < CHUNK_SIZE; chunkI++) {
+			for (chunkJ = 0; chunkJ < CHUNK_SIZE; chunkJ++) {
 				pixel = 0.0;
-				for (maskI = 0; maskI < masksize; maskI++)
-				{	
+				for (maskI = 0; maskI < masksize; maskI++) {
 					for (maskJ = 0; maskJ < masksize; maskJ++)
-					{
-						i = (imgI - half < 0) ? CHUNK_SIZE-1 - maskI : imgI - half;
-						j = (imgJ - half < 0) ? CHUNK_SIZE-1 - maskJ : imgJ - half;
-
-						pixel += CHUNK(i, j)*MASK(maskI, maskJ);
-					}
+						pixel += CHUNK(chunkI + maskI, chunkJ + maskJ) * MASK(maskI, maskJ);
 				}
-				   
-				CHUNK(imgI, imgJ) = (pixel > 255) ? 255 : (int)pixel;
+			   
+				NEWCHUNK(chunkI, chunkJ) = (pixel > 255) ? 255 : (int)pixel;
 			}
 		}
 	}
 }
 
+static void process_chunks() {
+	int msg = 0;              /* Msg type.                        */
 
-int main(int argc, char **argv)
-{
-	int msg;
+	data_receive(infd, mask, sizeof(double)*masksize*masksize);
 	
+	/* Process chunks. */
+	while (1) {
+		data_receive(infd, &msg, sizeof(int));
+
+		if (msg == MSG_CHUNK) {
+			data_receive(infd, chunk, chunk_with_halo_size * chunk_with_halo_size * sizeof(unsigned char));
+
+			start = timer_get();
+			gauss_filter();
+			end = timer_get();
+			total += timer_diff(start, end);
+
+			data_send(outfd, &newchunk, CHUNK_SIZE_SQRD * sizeof(unsigned char));
+		} else if (msg == MSG_DIE) {
+			break;
+		}
+	}
+}
+
+
+int main(__attribute__((unused)) int argc, char **argv) {	
+	/* Timer synchronization */
 	timer_init();
-
-	((void)argc);
-	
-    total = 0;
 
 	rank = atoi(argv[0]);	
 	
@@ -84,33 +82,20 @@ int main(int argc, char **argv)
 	
 	/* Receives filter mask.*/
 	data_receive(infd, &masksize, sizeof(int));
-	data_receive(infd, mask, sizeof(double)*masksize*masksize);
-    
-	/* Process chunks. */
-    while (1)
-	{
-		data_receive(infd, &msg, sizeof(int));
+	chunk_with_halo_size = CHUNK_SIZE + masksize - 1;
+		
+	mask = smalloc(masksize * masksize * sizeof(double));
+	chunk = (unsigned char *) smalloc(chunk_with_halo_size * chunk_with_halo_size * sizeof(unsigned char));
 
-		/* Parse message. */
-		switch (msg)
-		{
-			case MSG_CHUNK:
-				data_receive(infd, chunk, CHUNK_SIZE*CHUNK_SIZE);
-				start = timer_get();
-				gauss_filter();
-				end = timer_get();
-				total += timer_diff(start, end);
-				data_send(outfd, chunk, CHUNK_SIZE*CHUNK_SIZE);
-				break;
-			
-			default:
-				goto out;
-		}
-	}
+	/* Processing the chuncks. */
+	process_chunks();
 
-out:
-	
+	/* Sending time stats to IO. */
 	data_send(outfd, &total, sizeof(uint64_t));
+
+	/* House keeping. */
+	free(mask);
+	free(chunk);
 	
 	close_noc_connectors();
 	mppa_exit(0);

@@ -63,7 +63,7 @@ static void spawnSlaves() {
 	spawn = timer_diff(start, end);
 }
 
-static void process_chuncks() {
+static void process_chunks() {
 	int half = masksize/2;
 	int nchunks = 0;
 
@@ -165,7 +165,7 @@ void gauss_filter(unsigned char *img_, int imgsize_, double *mask_, int masksize
 	get_slaves_signals_offset();
 
 	/* Processing the chunks. */
-	process_chuncks();
+	process_chunks();
 
 	/* Wait all slaves statistics info. */
 	wait_statistics();

@@ -11,7 +11,7 @@
 #include <string.h>
 #include <timer.h>
 #include <util.h>
-#include "master.h"
+#include "../kernel.h"
 
 /*
  * Gaussian filter.
@@ -20,6 +20,7 @@ extern void gauss_filter
 (unsigned char *img, int imgsize, double *mask, int masksize);
 
 /* Timing statistics. */
+uint64_t spawn = 0; 		  /* Time spent to spawn ccs. 	  */
 uint64_t master = 0;          /* Time spent on master.        */
 uint64_t slave[NUM_CLUSTERS]; /* Time spent on slaves.        */
 uint64_t communication = 0;   /* Time spent on communication. */
@@ -41,11 +42,11 @@ struct problem
 };
 
 /* Problem sizes. */
-static struct problem tiny     = {  7,  2048 };
-static struct problem small    = {  7,  4096 };
-static struct problem standard = { 11,  8192 };
-static struct problem large    = { 11, 16384 };
-static struct problem huge     = { 15, 32768 };
+static struct problem tiny	   = {7, 2054}; /* 2048  + (7-1)  = 2054  */
+static struct problem small    = {7, 4102}; /* 4096  + (7-1)  = 4102  */
+static struct problem standard = {11, 8202}; /* 8192  + (11-1) = 8202  */
+static struct problem large    = {11, 16394}; /* 16384 + (11-1) = 16394 */
+static struct problem huge     = {15, 32782}; /* 32768 + (15-1) = 32782 */
 
 /* Benchmark parameters. */
 int verbose = 0;                  /* Be verbose?        */
@@ -144,40 +145,34 @@ static void readargs(int argc, char **argv)
 		usage();
 }
 
-/*
- * Generates mask.
- */
-static void generate_mask(double *mask)
-{
+/* Generates mask. */
+static void generate_mask(double *mask) {
 	int half;
 	int i, j;
+	int masksize;
 	double sec;
 	double first;
-	double total;
+	double total_aux;
+
+	masksize = p->masksize;
 	
 	first = 1.0/(2.0*PI*SD*SD);
-	half = p->masksize >> 1;
-	total = 0;
-	
-	#define MASK(i, j) \
-		mask[(i)*p->masksize + (j)]
+	half = masksize >> 1;
+	total_aux = 0;
 
-	for (i = -half; i <= half; i++)
-	{
-		for (j = -half; j <= half; j++)
-		{
+	for (i = -half; i <= half; i++) {
+		for (j = -half; j <= half; j++) {
 			sec = -((i*i + j*j)/2.0*SD*SD);
 			sec = pow(E, sec);
 
 			MASK(i + half, j + half) = first*sec;
-			total += MASK(i + half, j + half);
+			total_aux += MASK(i + half, j + half);
 		}
 	}
 	
-	for (i = 0 ; i < p->masksize; i++)
-	{
-		for (j = 0; j < p->masksize; j++)
-			MASK(i, j) /= total;
+	for (i = 0 ; i < masksize; i++) {
+		for (j = 0; j < masksize; j++)
+			MASK(i, j) /= total_aux;
 	}
 }
 
@@ -200,19 +195,24 @@ int main(int argc, char **argv)
 	/* Benchmark initialization. */
 	if (verbose)
 		printf("initializing...\n");
+
 	start = timer_get();
 	img = smalloc(p->imgsize*p->imgsize*sizeof(char));
+	
 	for (i = 0; i < p->imgsize*p->imgsize; i++)
 		img[i] = randnum() & 0xff;
+	
 	mask = smalloc(p->masksize*p->masksize*sizeof(double));
 	generate_mask(mask);
 	end = timer_get();
+	
 	if (verbose)
 		printf("  time spent: %f\n", timer_diff(start, end)*MICROSEC);
 		
 	/* Apply filter. */
 	if (verbose)
 		printf("applying filter...\n");
+
 	start = timer_get();
 	gauss_filter(img, p->imgsize, mask, p->masksize);
 	end = timer_get();
@@ -224,6 +224,7 @@ int main(int argc, char **argv)
 	printf("  master:        %f\n", master*MICROSEC);
 	for (i = 0; i < nclusters; i++)
 		printf("  slave %d:      %f\n", i, slave[i]*MICROSEC);
+	printf("  spawn %d CC:       %f\n", nclusters, spawn*MICROSEC);
 	printf("  communication: %f\n", communication*MICROSEC);
 	printf("  total time:    %f\n", total*MICROSEC);
 	printf("data exchange statistics:\n");
