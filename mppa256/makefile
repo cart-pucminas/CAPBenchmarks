@@ -14,6 +14,10 @@ all-async:
 all-ipc:
 	cd ipc && $(MAKE) all
 	
-# Cleans compilation files.
-clean:
+# Cleans async compilation files.
+clean-async:
 	cd async && $(MAKE) clean
+
+# Cleans async compilation files.
+clean-ipc:
+	cd ipc && $(MAKE) clean

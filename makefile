@@ -36,8 +36,10 @@ clean: clean-x86 clean-mppa256 clean-gem5 clean-posix
 
 clean-x86:
 	cd x86 && $(MAKE) clean BINDIR=$(BINDIR)
-clean-mppa256:
-	cd mppa256 && $(MAKE) clean BINDIR=$(BINDIR)
+clean-mppa256-async:
+	cd mppa256 && $(MAKE) clean-async BINDIR=$(BINDIR)
+clean-mppa256-ipc:
+	cd mppa256 && $(MAKE) clean-ipc BINDIR=$(BINDIR)	
 clean-gem5:
 	cd gem5 && $(MAKE) clean BINDIR=$(BINDIR)
 clean-posix:

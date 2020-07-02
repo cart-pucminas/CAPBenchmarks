@@ -122,13 +122,8 @@ static void process_chuncks() {
 	dataGet(mask, &mask_seg, 0, masksize, sizeof(int), NULL);
 
 	for (int nchunk = cid; nchunk < nchunks; nchunk += nclusters) {
-		if (nchunk > 0)
-			chunk_start = (nchunk * CHUNK_SIZE_SQRD) - (aux_offset * CHUNK_SIZE);
-
-		if (nchunk == nchunks - 1)
-			chunk_size = CHUNK_SIZE_SQRD + (aux_offset * CHUNK_SIZE);
-		else
-			chunk_size = CHUNK_SIZE_SQRD + (2 * aux_offset * CHUNK_SIZE);
+		chunk_start = nchunk > 0 ? (nchunk * CHUNK_SIZE_SQRD) - (aux_offset * CHUNK_SIZE) : 0;
+		chunk_size = CHUNK_SIZE_SQRD + ( (nchunk == nchunks - 1 ? 1 : 2) * aux_offset * CHUNK_SIZE);
 
 		dataGet(chunk, &img_seg, chunk_start, chunk_size, sizeof(char), NULL);
 

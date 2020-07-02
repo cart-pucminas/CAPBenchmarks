@@ -77,18 +77,13 @@ int fast(char *img, char *output, int imgsize, int *mask, int masksize)
 		data_send(outfd[i], &nclusters, sizeof(int));
 	}
 
-	
-	for (i = 0; i < nchunks; i++)
-   	{		
-		if(i == nchunks-1) {
-			int start = i*(CHUNK_SIZE * CHUNK_SIZE)- offset*CHUNK_SIZE;
-			int end = (CHUNK_SIZE*CHUNK_SIZE)+(offset*CHUNK_SIZE);
-			data_send(outfd[j], &img[start],end*sizeof(char));
-		} else {
-			int start = i*(CHUNK_SIZE * CHUNK_SIZE)- offset*CHUNK_SIZE;
-			int end = (CHUNK_SIZE*CHUNK_SIZE)+(2*offset*CHUNK_SIZE);
-			data_send(outfd[j], &img[start],end*sizeof(char));
-		}
+	int start_index = 0;
+	int chunck_size;
+	for (i = 0; i < nchunks; i++) {		
+		start_index = i > 0 ?  i * (CHUNK_SIZE * CHUNK_SIZE) - offset * CHUNK_SIZE : 0;
+		chunck_size = (CHUNK_SIZE * CHUNK_SIZE) + ( (i == nchunks - 1 ? 1 : 2) * offset * CHUNK_SIZE);
+
+		data_send(outfd[j], &img[start_index], chunck_size * sizeof(char));
 		
 		j++;
 		

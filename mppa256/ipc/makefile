@@ -12,7 +12,7 @@ export K1_TOOLCHAIN_DIR = /usr/local/k1tools
 
 # Builds all kernels.
 all:
-	cd $(SRCDIR) && $(MAKE) gf
+	cd $(SRCDIR) && $(MAKE) fast
 	
 # Cleans compilation files.
 clean:

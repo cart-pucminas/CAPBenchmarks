@@ -102,8 +102,6 @@ int main(int argc, char **argv)
 	timer_init();
 
 	((void)argc);
-	
-    total = 0;
 
 	rank = atoi(argv[0]);	
 	

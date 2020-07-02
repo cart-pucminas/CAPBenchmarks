@@ -73,7 +73,6 @@ static int sumdiv(int n) {
 	sum = (n == 1) ? 1 : 1 + n;
 	
 	/* Compute sum of divisors. */
-	#pragma omp parallel for private(factor) default(shared) reduction(+: sum)
 	for (factor = 2; factor <= maxD; factor++) {
 		/* Divisor found. */
 		if ((n % factor) == 0)
