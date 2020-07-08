@@ -5,143 +5,96 @@
  */
 
 #include <arch.h>
-#include <assert.h>
 #include <global.h>
-#include <pthread.h>
+#include <message.h>
 #include <stdint.h>
 #include <timer.h>
 #include <util.h>
 #include <ipc.h>
+#include "matrix.h"
 #include "master.h"
 
-/*
- * Arguments sanity check.
- */
-#define SANITY_CHECK() \
-	assert(m != NULL); \
-	assert(l != NULL); \
-	assert(u != NULL); \
-
-/*
- * Finds the pivot element.
- */
-extern float find_pivot(struct matrix *m, int i0, int j0);
-
-/*
- * Applies the row reduction algorithm in a matrix.
- */
+/* Applies the row reduction algorithm in a matrix. */
 extern void row_reduction(struct matrix *m, int i0);
 
-/*
- * Thread's data.
- */
-struct tdata
-{
-	/* Thread ID. */
-	pthread_t tid;
-	
-	/* Arguments. */
-	struct 
-	{
-		int i0;           /* Start row.      */
-		int in;           /* End row.        */
-		struct matrix *m; /* Reduced matrix. */
-		struct matrix *l; /* Lower matrix.   */
-		struct matrix *u; /* Upper matrix.   */
-	} args;
-} tdata[NUM_IO_CORES];
+/* Timing auxiliars */
+static uint64_t start, end;
 
-/*
- * Threads's main.
- */
-extern void *thread_main(void *args)
-{
-	int i, j;        /* Loop index.    */
-	struct tdata *t; /* Thread's data. */
-	
-	t = args;
-	
-	/* Build upper and lower matrixes.  */
-	for (i = t->args.i0; i < t->args.in; i++)
-	{
-		for (j = 0; j < t->args.m->width; j++)
-		{
-			if (i > j)
-			{
-				MATRIX(t->args.l, i, j) = 0.0;
-				MATRIX(t->args.u, i, j) = MATRIX(t->args.m, i, j);
-			}
-			
-			else if (i < j)
-			{	
-				MATRIX(t->args.l, i, j) = MATRIX(t->args.m, i, j);
-				MATRIX(t->args.u, i, j) = 0.0;
-			}
-			
-			else
-			{
-				MATRIX(t->args.l, i, j) = 1.0;
-				MATRIX(t->args.u, i, j) = 1.0;
+static void applyElimination(struct matrix *m) {
+	float pivot;         /* Pivot.      */
+	int i;
+	for (i = 0; i < m->height - 1; i++) {
+
+		pivot = MATRIX(m, i, i);
+
+		/* Impossible to solve. */
+		if (pivot == 0.0) {
+			warning("cannot factorize matrix into LU");
+			break;
+		}
+
+		row_reduction(m, i);
+	}
+}
+
+static void releaseSlaves() {
+	int i; /* Loop index. */
+	struct message *msg;
+
+	for (i = 0; i < nclusters; i++) {
+		msg = message_create(DIE);
+		message_send(outfd[i], msg);
+		message_destroy(msg);
+	}
+}
+
+static void split(struct matrix *m, struct matrix *l, struct matrix *u) {
+	int i, j; /* Loop indexes. */
+
+	start = timer_get();
+	#pragma omp parallel for default(shared)
+	for (i = 0; i < m->height; i++) {
+		for (j = 0; j < m->width; j++) {
+			if (j > i) {
+				MATRIX(u, i, j) = MATRIX(m, i, j);
+				MATRIX(l, i, j) = 0.0;
+			} else if (j < i) {
+				MATRIX(u, i, j) = 0.0;
+				MATRIX(l, i, j) = MATRIX(m, i, j);
+			} else {
+				MATRIX(l,i,j) = 1.0;
+				MATRIX(u,i,j) = MATRIX(m,i,j);
 			}
 		}
 	}
-	
-	pthread_exit(NULL);
-	return (NULL);
+	end = timer_get();
+	master += timer_diff(start, end);
 }
 
-/*
- * Performs LU factorization in a matrix.
- */
-int matrix_lu(struct matrix *m, struct matrix *l, struct matrix *u)
-{
+/* Performs LU factorization in a matrix */
+void matrix_lu(struct matrix *m, struct matrix *l, struct matrix *u) {
 	int i;               /* Loop index. */
 	float pivot;         /* Pivot.      */
 	uint64_t start, end; /* Timer.      */
 	
 	/* Setup slaves. */
 	open_noc_connectors();
-	spawn_slaves();
-	
-	/* Apply elimination on all rows. */
-	for (i = 0; i < m->height - 1; i++)
-	{
-		pivot = find_pivot(m, i, i);	
 
-		/* Impossible to solve. */
-		if (pivot == 0.0)
-		{
-			warning("cannot factorize matrix");
-			return (-1);
-		}
-
-		row_reduction(m, i);
-	}
-	
 	start = timer_get();
-
-	/* Spawn threads. */
-	for (i = 0; i < NUM_IO_CORES; i++)
-	{
-		tdata[i].args.i0 = i*(m->height >> 2);
-		tdata[i].args.in = (i + 1 < NUM_IO_CORES) ? (i + 1)*(m->height >> 2) :
-													 m->height;
-		tdata[i].args.m = m;
-		tdata[i].args.l = l;
-		tdata[i].args.u = u;
-		pthread_create(&tdata[i].tid, NULL, thread_main, (void *)&tdata[i]);
-	}
-	
-	/* Join threads. */
-	for (i = 0; i < NUM_IO_CORES; i++)
-		pthread_join(tdata[i].tid, NULL);
-		
+	spawn_slaves();
 	end = timer_get();
-	master += timer_diff(start, end);
+	spawn = timer_diff(start, end);
+
+	/* Apply elimination on all rows */
+	applyElimination(m);
+
+	/* End all slaves lives. */
+	releaseSlaves();
 		
-	/* House keeping. */
+	/* Waiting for PE0 of each cluster to end */
 	join_slaves();
 	close_noc_connectors();
-	
-	return (0);
+
+	/* Split matrix m into lower and upper matrices. */
+	split(m, l, u);
 }

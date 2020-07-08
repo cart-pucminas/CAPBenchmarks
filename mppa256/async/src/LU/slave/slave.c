@@ -58,7 +58,6 @@ void row_reduction(void) {
 			BLOCK(i, j) = BLOCK(i, j) - mult*pvtline.elements[j];
 	}
 }
-int resp = 0;
 
 static int doWork() {
 	int i0, j0;          /* Block start.              */

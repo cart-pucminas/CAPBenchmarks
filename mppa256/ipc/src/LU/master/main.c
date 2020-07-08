@@ -11,9 +11,11 @@
 #include <timer.h>
 #include <util.h>
 #include "master.h"
+#include "matrix.h"
 
 /* Timing statistics. */
 uint64_t master = 0;          /* Time spent on master.        */
+uint64_t spawn = 0;           /* Time spent spawning slaves   */
 uint64_t slave[NUM_CLUSTERS]; /* Time spent on slaves.        */
 uint64_t communication = 0;   /* Time spent on communication. */
 uint64_t total = 0;           /* Total time.                  */
@@ -140,14 +142,13 @@ static void readargs(int argc, char **argv)
 /*
  * Runs benchmark.
  */
-int main(int argc, char **argv)
-{
-	int i;          /* Loop index.   */
-	matrix_t m;     /* Matrix.       */
-	matrix_t l;     /* Lower matrix. */
-	matrix_t u;     /* Upper matrix. */
-	uint64_t end;   /* End time.     */
-	uint64_t start; /* Start time.   */
+int main(int argc, char **argv) {
+	uint64_t startTime, endTime; /* Start and End time.     */
+
+	matrix_t l, u;  /* Lower and Upper matrix. */
+	matrix_t m;    	/* Matrix.                 */
+
+	int i; /* Loop index. */
 	
 	readargs(argc, argv);
 	
@@ -157,28 +158,35 @@ int main(int argc, char **argv)
 	/* Benchmark initialization. */
 	if (verbose)
 		printf("initializing...\n");
-	start = timer_get();
+
+	startTime = timer_get();
 	m = matrix_create(p->height, p->width);
 	l = matrix_create(p->height, p->width);
 	u = matrix_create(p->height, p->width);
+
 	matrix_random(m);
-	end = timer_get();
+	endTime = timer_get();
+
 	if (verbose)
-		printf("  time spent: %f\n", timer_diff(start, end)*MICROSEC);
+		printf("  time spent: %f\n", timer_diff(startTime, endTime)*MICROSEC);
 	
 	/* Matrix factorization. */
 	if (verbose)
 		printf("factorizing...\n");
-	start = timer_get();
+
+	startTime = timer_get();
+
 	matrix_lu(m, l, u);
-	end = timer_get();
-	total = timer_diff(start, end);
+	endTime = timer_get();
+
+	total = timer_diff(startTime, endTime);
 
 	/* Print timing statistics. */
 	printf("timing statistics:\n");
 	printf("  master:        %f\n", master*MICROSEC);
 	for (i = 0; i < nclusters; i++)
-		printf("  slave %d:      %f\n", i, slave[i]*MICROSEC);
+		printf("  slave %d:       %f\n", i, slave[i]*MICROSEC);
+	printf("  spawn %d CC:    %f\n", nclusters, spawn*MICROSEC);
 	printf("  communication: %f\n", communication*MICROSEC);
 	printf("  total time:    %f\n", total*MICROSEC);
 	printf("data exchange statistics:\n");

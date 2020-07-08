@@ -11,28 +11,9 @@
 #include <stdint.h>
 #include <timer.h>
 #include <util.h>
+#include <ipc.h>
 #include "master.h"
-
-/*
- * Wrapper to data_send(). 
- */
-#define data_send(a, b, c)                   \
-	{                                        \
-		data_sent += c;                      \
-		nsend++;                             \
-		communication += data_send(a, b, c); \
-	}                                        \
-
-/*
- * Wrapper to data_receive(). 
- */
-#define data_receive(a, b, c)                   \
-	{                                           \
-		data_received += c;                     \
-		nreceive++;                             \
-		communication += data_receive(a, b, c); \
-	}                                           \
-
+#include "matrix.h"
 
 /* Work list. */
 static struct message *works = NULL; 
@@ -41,11 +22,7 @@ static struct message *works = NULL;
 uint64_t end;
 uint64_t start;
 
-/*
- * Populates work list.
- */
-static void works_populate(struct matrix *m, int i0, int j0)
-{
+static void works_populate(struct matrix *m, int i0, int j0) {
 	int i;               /* Loop index.     */
 	int height;          /* Number of rows. */
 	struct message *msg; /* Work.           */
@@ -53,25 +30,42 @@ static void works_populate(struct matrix *m, int i0, int j0)
 	height = (CLUSTER_WORKLOAD/sizeof(float))/((m->width - j0)*sizeof(float));
 	
 	/* Populate works. */
-	for (i = i0 + 1; i < m->height; i += height)
-	{
+	for (i = i0 + 1; i < m->height; i += height) {
 		if (i + height > m->height)
 			height = m->height - i;
 		
 		msg = message_create(REDUCTWORK, i0, i, j0, height, m->width - j0);
-		
 		push(works, msg);
 	}
 }
 
-/*
- * Applies the row reduction algorithm in a matrix.
- */
-void row_reduction(struct matrix *m, int i0)
-{
-	int i;               /* Loop indexes.          */
-	size_t n;            /* Bytes to send/receive. */
-	struct message *msg; /* Message.               */
+static void waitResults(int *index, struct matrix *m) {
+	struct message *msg;
+	int i = *index; 
+	int count;    
+	size_t n;           
+
+	/* Waits reduct work from all working clusters. */
+	for (/* NOOP */ ; i > 0; i--) {
+		msg = message_receive(infd[i - 1]);
+				
+		/* Receive matrix block. */
+		for (count = 0; count < msg->u.reductresult.height; count++) {
+			n = (msg->u.reductresult.width) * sizeof(float);
+			data_receive(infd[i - 1], &MATRIX(m, msg->u.reductresult.i0 + count, msg->u.reductresult.j0), n);
+		}
+				
+		message_destroy(msg);
+	}
+
+	*index = i;
+}
+
+/* Applies the row reduction algorithm in a matrix. */
+void row_reduction(struct matrix *m, int i0) {
+	int i, count; 			/* Loop indexes.          */
+	size_t n;            	/* Bytes to send/receive. */
+	struct message *msg; 	/* Message.               */
 	
 	start = timer_get();
 	works_populate(m, i0, i0);
@@ -80,55 +74,31 @@ void row_reduction(struct matrix *m, int i0)
 	
 	/* Send work. */
 	i = 0;
-	while (!empty(works))
-	{	
+	while (!empty(works)) {	
+		/* Pops a message from the worklist. */
 		pop(works, msg);
 		
 		/* Send message. */
 		message_send(outfd[i], msg);
 		
 		/* Send pivot line. */
-		n = (msg->u.reductwork.width)*sizeof(float);
-		
+		n = (msg->u.reductwork.width) * sizeof(float);
 		data_send(outfd[i], &MATRIX(m, msg->u.reductwork.ipvt, msg->u.reductwork.j0), n);
 		
 		/* Send matrix block. */
-		n = (msg->u.reductwork.height)*(msg->u.reductwork.width)*sizeof(float);
-		
-		data_send(outfd[i], &MATRIX(m,msg->u.reductwork.i0, msg->u.reductwork.j0), n);
+		for (count = 0; count < msg->u.reductwork.height; count++) {
+			n = (msg->u.reductwork.width) * sizeof(float);
+			data_send(outfd[i], &MATRIX(m, msg->u.reductwork.i0 + count, msg->u.reductwork.j0), n);
+		}
 		
 		i++;
 		message_destroy(msg);
 		
-		/* 
-		 * Slave processes are busy.
-		 * So let's wait for results.
-		 */
+		/* All slaves are working. Waiting for their results. */
 		if (i == nclusters)
-		{
-			/* Receive results. */
-			for (/* NOOP */ ; i > 0; i--)
-			{
-				msg = message_receive(infd[nclusters - i]);
-				
-				/* Receive matrix block. */
-				n = (msg->u.reductresult.height)*(msg->u.reductresult.width)*sizeof(float);
-				data_receive(infd[nclusters - i], &MATRIX(m,msg->u.reductresult.i0, msg->u.reductresult.j0), n);
-				
-				message_destroy(msg);
-			}
-		}
+			waitResults(&i, m);
 	}
 	
-	/* Receive results. */
-	for (/* NOOP */ ; i > 0; i--)
-	{			
-		msg = message_receive(infd[i - 1]);
-				
-		/* Receive matrix block. */
-		n = (msg->u.reductresult.height)*(msg->u.reductresult.width)*sizeof(float);
-		data_receive(infd[i - 1], &MATRIX(m,msg->u.reductresult.i0, msg->u.reductresult.j0), n);
-				
-		message_destroy(msg);
-	}
+	if (i > 0)
+		waitResults(&i, m);
 }

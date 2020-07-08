@@ -29,8 +29,7 @@ static void works_populate(struct matrix *m, int i0, int j0) {
 	height = (CLUSTER_WORKLOAD/sizeof(float))/((m->width - j0)*sizeof(float));
 	
 	/* Populate works. */
-	for (i = i0 + 1; i < m->height; i += height)
-	{
+	for (i = i0 + 1; i < m->height; i += height) {
 		if (i + height > m->height)
 			height = m->height - i;
 		
