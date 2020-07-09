@@ -52,7 +52,7 @@ static void split(struct matrix *m, struct matrix *l, struct matrix *u) {
 	int i, j; /* Loop indexes. */
 
 	start = timer_get();
-	#pragma omp parallel for default(shared)
+	#pragma omp parallel for default(shared) num_threads(3)
 	for (i = 0; i < m->height; i++) {
 		for (j = 0; j < m->width; j++) {
 			if (j > i) {

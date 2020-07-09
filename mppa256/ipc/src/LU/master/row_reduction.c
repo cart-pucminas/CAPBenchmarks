@@ -12,6 +12,7 @@
 #include <timer.h>
 #include <util.h>
 #include <ipc.h>
+#include <stdio.h>
 #include "master.h"
 #include "matrix.h"
 
@@ -50,9 +51,10 @@ static void waitResults(int *index, struct matrix *m) {
 		msg = message_receive(infd[i - 1]);
 				
 		/* Receive matrix block. */
+		n = (msg->u.reductresult.width) * sizeof(float);
+
 		for (count = 0; count < msg->u.reductresult.height; count++) {
-			n = (msg->u.reductresult.width) * sizeof(float);
-			data_receive(infd[i - 1], &MATRIX(m, msg->u.reductresult.i0 + count, msg->u.reductresult.j0), n);
+			data_receive(infd[i-1], &MATRIX(m, msg->u.reductresult.i0 + count, msg->u.reductresult.j0), n);
 		}
 				
 		message_destroy(msg);

@@ -11,7 +11,7 @@ platforms := hardware
 # Compilation flags flags
 cflags := -O3 -I $(INCDIR)
 lflags := -lm
-k1-lflags := -lmppaipc
+k1-lflags := -lmppaipc -lm
 
 # Builds master binary.
 io-bin := io_bin

@@ -9,6 +9,7 @@
 #include <timer.h>
 #include <util.h>
 #include <ipc.h>
+#include <stdio.h>
 #include "slave.h"
 
 /* Timing statistics. */
@@ -52,16 +53,11 @@ static int doWork() {
 	switch (msg->type) {
 		/* REDUCTRESULT. */
 		case REDUCTWORK :
+
 			/* Receive pivot line. */
 			n = (msg->u.reductwork.width) * sizeof(float);
 			assert(n <= sizeof(pvtline.elements));
 			data_receive(infd, pvtline.elements, n);
-				
-			/* Receive matrix block. */
-			for (count = 0; count < msg->u.reductwork.height; count++) {
-				n = (msg->u.reductwork.width) * sizeof(float);
-				data_receive(infd, &BLOCK(count, 0), n);
-			}
 			
 			/* Extract message information. */
 			block.height = msg->u.reductwork.height;
@@ -69,6 +65,12 @@ static int doWork() {
 			i0 = msg->u.reductwork.i0;
 			j0 = msg->u.reductwork.j0;
 			message_destroy(msg);
+
+			/* Receive matrix block. */
+			for (count = 0; count < msg->u.reductwork.height; count++) {
+				n = (msg->u.reductwork.width) * sizeof(float);
+				data_receive(infd, &BLOCK(count, 0), n);
+			}
 			
 			start = timer_get();
 			row_reduction();
@@ -78,11 +80,12 @@ static int doWork() {
 			/* Send message back.*/
 			msg = message_create(REDUCTRESULT, i0, j0, block.height, block.width);
 			message_send(outfd, msg);
+
 			message_destroy(msg);
 				
 			/* Send matrix block. */
 			for (count = 0; count < block.height; count++) {
-				n = block.width;
+				n = block.width * sizeof(float);
 				data_send(outfd, &BLOCK(count, 0), n);
 			}
 				

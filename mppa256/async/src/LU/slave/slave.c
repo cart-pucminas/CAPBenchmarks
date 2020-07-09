@@ -9,6 +9,7 @@
 /* C And MPPA Library Includes*/
 #include <math.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 /* Data exchange segments. */
 static mppa_async_segment_t matrix_segment;
