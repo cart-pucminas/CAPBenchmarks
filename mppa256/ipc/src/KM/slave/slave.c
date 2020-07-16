@@ -12,57 +12,27 @@
 #include <timer.h>
 #include <util.h>
 #include <ipc.h>
-#include "slave.h"
-
-#define NUM_THREADS (NUM_CORES/NUM_CLUSTERS)
-
-#define DIMENSION          16
-#define NUM_POINTS     262144
-#define NUM_CENTROIDS    1024
-
-/* Size of arrays. */
-#define MAP_SIZE (NUM_POINTS/NUM_CLUSTERS)                /* map[]         */
-#define POINTS_SIZE ((NUM_POINTS/NUM_CLUSTERS)*DIMENSION) /* points[]      */
-#define CENTROIDS_SIZE (NUM_CENTROIDS*DIMENSION)          /* centroids[]   */
-#define PPOPULATION_SIZE (NUM_CENTROIDS)                  /* ppopulation[] */
-#define LCENTROIDS_SIZE ((NUM_CENTROIDS/1)*DIMENSION)     /* lcentroids[]  */
-
-/* Delta of array sizes. */
-#define DELTA (NUM_CLUSTERS - 1)
-
-/*
- * Returns the ith data point.
- */
-#define POINT(i) \
-	(&points[(i)*dimension])
-
-/*
- * Returns the ith centroid.
- */
-#define CENTROID(i) \
-	(&centroids[(i)*dimension])
+#include <stdio.h>
+#include "../km.h"
 
 /* K-means. */
-int dimension;
-static int nprocs;
-static float mindistance;
-static int ncentroids;
-static float points[POINTS_SIZE + DELTA*DIMENSION];                    /* Data points.               */
-static float centroids[CENTROIDS_SIZE + NUM_CLUSTERS*DELTA*DIMENSION]; /* Data centroids.            */
-static int map[MAP_SIZE + DELTA];                                      /* Map of clusters.           */
-static int too_far[NUM_CLUSTERS*NUM_THREADS];                          /* Are points too far?        */
-static int has_changed[NUM_CLUSTERS*NUM_THREADS];                      /* Hash any centroid changed? */
-static int lncentroids[NUM_CLUSTERS];                                  /* Local number of centroids. */
-static int lnpoints;                                                   /* Local number of points.    */
-static int ppopulation[PPOPULATION_SIZE + NUM_CLUSTERS*DELTA];         /* Partial population.        */
-static float lcentroids[LCENTROIDS_SIZE + DELTA*DIMENSION];            /* Local centroids.           */
+int dimension;                        /* Dimension of data points.    */
+static int nprocs;					  /* Clusters spawned.            */
+static int ncentroids;                /* Number of centroids.         */
+static int lnpoints;                  /* Local number of points.      */
+static float *points;                 /* Data points.                 */
+static float *centroids;              /* Data centroids.              */
+static int *map;                      /* Map of clusters.             */
+static int *ppopulation;              /* Partial population.          */ 
+static int has_changed[NUM_THREADS];  /* Has any centroid changed?    */
 
 /* Thread communication. */
 static omp_lock_t lock[NUM_THREADS];
 
-/* Timing statistics. */
-uint64_t start;
-uint64_t end;
+/* Timing statistics auxiliars. */
+static uint64_t start, end;
+
+/* Individual Slave statistics. */
 uint64_t communication = 0;
 uint64_t total = 0;
 
@@ -70,327 +40,187 @@ uint64_t total = 0;
  *                                populate()                                 *
  *============================================================================*/
 
-/*
- * Populates clusters.
- */
-static void populate(void)
-{
-	int i, j;        /* Loop indexes.       */
-	float tmp;      /* Auxiliary variable. */
-	float distance; /* Smallest distance.  */
+static void populate() {
+	int tid;        /* Thread ID.             */
+	int i, j;       /* Loop indexes.          */
+	int lock_aux;   /* Lock auxiliar.         */
+	int init_map;   /* Point initial mapping. */
+	float tmp_dist; /* Temporary distance.    */
+	float distance; /* Distance.              */
 
 	start = timer_get();
-	memset(&too_far[rank*NUM_THREADS], 0, NUM_THREADS*sizeof(int)); 
-	
+
+	/* Reset variables for new calculation. */
+	memset(ppopulation, 0, ncentroids*sizeof(int));
+	memset(has_changed, 0, NUM_THREADS*sizeof(int));
+
 	/* Iterate over data points. */
-	#pragma omp parallel for schedule(static) default(shared) private(i, j, tmp, distance)
-	for (i = 0; i < lnpoints; i++)
+	#pragma omp parallel private(i, j, tmp_dist, distance, tid, init_map, lock_aux) default(shared)
 	{
-		distance = vector_distance(CENTROID(map[i]), POINT(i));
-		
-		/* Look for closest cluster. */
-		for (j = 0; j < ncentroids; j++)
-		{
-			/* Point is in this cluster. */
-			if (j == map[i])
-				continue;
-				
-			tmp = vector_distance(CENTROID(j), POINT(i));
-			
-			/* Found. */
-			if (tmp < distance)
-			{
-				map[i] = j;
-				distance = tmp;
+		tid = omp_get_thread_num();
+
+		#pragma omp for
+		for (i = 0; i < lnpoints; i++) {	
+			distance = vector_distance(CENTROID(map[i]), POINT(i));
+			init_map = map[i];
+
+			/* Looking for closest cluster. */
+			for (j = 0; j < ncentroids; j++) {	
+				/* Point is in this cluster. */
+				if (j == map[i])
+					continue;
+						
+				tmp_dist = vector_distance(CENTROID(j), POINT(i));
+					
+				/* Found. */
+				if (tmp_dist < distance) {
+					map[i] = j;
+					distance = tmp_dist;
+				}
 			}
+
+			lock_aux = map[i] % NUM_THREADS;
+
+			omp_set_lock(&lock[lock_aux]);
+			ppopulation[map[i]]++;
+			omp_unset_lock(&lock[lock_aux]);
+
+			if (map[i] != init_map)
+				has_changed[tid] = 1;
 		}
-		
-		/* Cluster is too far away. */
-		if (distance > mindistance)
-			too_far[rank*NUM_THREADS + omp_get_thread_num()] = 1;
 	}
+
 	end = timer_get();
 	total += timer_diff(start, end);
-	
 }
 
 /*============================================================================*
  *                          compute_centroids()                               *
  *============================================================================*/
 
-/*
- * Returns the population for clusther ith, vector jth.
- */
-#define POPULATION(i, j) \
-	(&ppopulation[(i)*lncentroids[rank] + (j)])
-
-/*
- * Returns the jth input centroid from the ith cluster.
- */
-#define PCENTROID(i, j) \
-	(&centroids[((i)*lncentroids[rank] + (j))*dimension])
-
-/*
- * Returns the ith local centroid.
- */
-#define LCENTROID(i) \
-	(&lcentroids[(i)*dimension])
-
-/*
- * Synchronizes partial centroids.
- */
-static void sync_pcentroids(void)
-{	
-	ssize_t n;
-	
-	/* Send partial centroids. */
-	n = ncentroids*dimension*sizeof(float);
-	total += data_send(outfd, centroids, n);
-	
-	/* Receive partial centroids. */
-	n = nprocs*lncentroids[rank]*dimension*sizeof(float);
-	total += data_receive(infd, centroids, n);
-}
-
-/*
- * Synchronizes partial population.
- */
-static void sync_ppopulation(void)
-{
-	ssize_t n;
-	
-	/* Send partial population. */
-	n = ncentroids*sizeof(int);
-	total += data_send(outfd, ppopulation, n);
-	
-	/* Receive partial population. */
-	n = nprocs*lncentroids[rank]*sizeof(int);
-	total += data_receive(infd, ppopulation, n);
-}
-
-/*
- * Synchronizes centroids.
- */
-static void sync_centroids(void)
-{
-	ssize_t n;
-	
-	n = lncentroids[rank]*dimension*sizeof(float);
-	total += data_send(outfd, lcentroids, n);
-	
-	n = ncentroids*dimension*sizeof(float);
-	total += data_receive(infd, centroids, n);
-}
-
-/*
- * Synchronizes status.
- */
-static void sync_status(void)
-{
-	ssize_t n;
-	
-	n = NUM_THREADS*sizeof(int);
-	total += data_send(outfd, &has_changed[rank*NUM_THREADS], n);
-	total += data_send(outfd, &too_far[rank*NUM_THREADS], n);
-		
-	n = nprocs*NUM_THREADS*sizeof(int);
-	total += data_receive(infd, has_changed, n);
-	total += data_receive(infd, too_far, n);
-}
-
-/*
- * Computes clusters' centroids.
- */
-static void compute_centroids(void)
-{
-	int i, j;       /* Loop indexes.        */
-	int population; /* Centroid population. */
+/* Computes clusters partial centroids. */
+static void compute_centroids() {
+	int i;        /* Loop index.                 */
+	int lock_aux; /* Lock auxiliar.              */
 
 	start = timer_get();
-	
-	memcpy(lcentroids, CENTROID(rank*(ncentroids/nprocs)), lncentroids[rank]*dimension*sizeof(float));
-	memset(&has_changed[rank*NUM_THREADS], 0, NUM_THREADS*sizeof(int));
-	memset(centroids, 0, (ncentroids + DELTA*nprocs)*dimension*sizeof(float));
-	memset(ppopulation, 0, (ncentroids + nprocs*DELTA)*sizeof(int));
 
-	/* Compute partial centroids. */
-	#pragma omp parallel for schedule(static) default(shared) private(i, j)
-	for (i = 0; i < lnpoints; i++)
-	{
-		j = map[i]%NUM_THREADS;
-		
-		omp_set_lock(&lock[j]);
-		
-		vector_add(CENTROID(map[i]), POINT(i));
-			
-		ppopulation[map[i]]++;
-		
-		omp_unset_lock(&lock[j]);
+	/* Clear all centroids for recalculation. */
+	memset(CENTROID(0), 0, ncentroids*dimension*sizeof(float));
+
+	/* Compute means. */
+	#pragma omp parallel for private(i, lock_aux) default(shared)
+	for (i = 0; i < lnpoints; i++) {
+			lock_aux = map[i] % NUM_THREADS;
+			omp_set_lock(&lock[lock_aux]);
+			vector_add(CENTROID(map[i]), POINT(i));
+			omp_unset_lock(&lock[lock_aux]);	
 	}
-	
+
 	end = timer_get();
 	total += timer_diff(start, end);
-	
-	sync_pcentroids();
-
-	sync_ppopulation();
-	
-	start = timer_get();
-
-	/* Compute centroids. */
-	#pragma omp parallel for schedule(static) default(shared) private(i, j, population)
-	for (j = 0; j < lncentroids[rank]; j++)
-	{
-		population = 0;
-		
-		for (i = 0; i < nprocs; i++)
-		{
-			if (*POPULATION(i, j) == 0)
-				continue;
-			
-			population += *POPULATION(i, j);
-			
-			if (i == rank)
-				continue;
-			
-			vector_add(PCENTROID(rank, j), PCENTROID(i, j));
-		}
-		
-		if (population > 1)
-			vector_mult(PCENTROID(rank, j), 1.0/population);
-		
-		/* Cluster mean has changed. */
-		if (!vector_equal(PCENTROID(rank, j), LCENTROID(j)))
-		{
-			has_changed[rank*NUM_THREADS + omp_get_thread_num()] = 1;
-			vector_assign(LCENTROID(j), PCENTROID(rank, j));
-		}
-	}
-	
-	end = timer_get();
-	total += timer_diff(start, end);
-		
-	sync_centroids();
-		
-	sync_status();
 }
 
 /*============================================================================*
- *                                 again()                                    *
+ *                                 sync()                                     *
  *============================================================================*/
 
-/*
- * Asserts if another iteration is needed.
- */
-static int again(void)
-{
-	int i;
-	
-	start = timer_get();
-	
-	/* Checks if another iteration is needed. */	
-	for (i = 0; i < nprocs*NUM_THREADS; i++)
-	{
-		if (has_changed[i] && too_far[i])
-		{
-			end = timer_get();
-			total += timer_diff(start, end);
-			return (1);
+/* Sync with IO and asserts if another iteration is needed. */
+static int sync() {
+	int i;       /* Loop index. */
+	int ret = 0; /* Is another iteration needed? */
+	int has_changed_aux = 0;
+
+	for (i = 0; i < NUM_THREADS; i++) {
+		if (has_changed[i]) {
+			has_changed_aux = 1;
+			break;
 		}
 	}
-	
-	end = timer_get();
-	total += timer_diff(start, end);
-			
-	return (0);
+
+	data_send(outfd, centroids, ncentroids * dimension * sizeof(float));
+	data_send(outfd, ppopulation, ncentroids * sizeof(int));
+	data_send(outfd, &has_changed_aux, sizeof(int));
+
+	data_receive(infd, &ret, sizeof(int));
+
+	if (ret == 1)
+		data_receive(infd, centroids, ncentroids * dimension * sizeof(float));
+
+	return ret;
 }
 
 /*============================================================================*
  *                                kmeans()                                    *
  *============================================================================*/
 
-/*
- * Clusters data.
- */
-static void kmeans(void)
-{	
-	int i;
-
+/* Clusters data. */
+static void kmeans() {	
+	int i; /* Loop index. */
 	omp_set_num_threads(NUM_THREADS);
 	for (i = 0; i < NUM_THREADS; i++)
 		omp_init_lock(&lock[i]);
-	
-	/* Cluster data. */
-	do
-	{	
+
+	/* Data exchange. */
+	do {	
 		populate();
 		compute_centroids();
-	} while (again());
+	} while (sync());
 }
 
 /*============================================================================*
  *                                 getwork()                                  *
  *============================================================================*/
 
-/*
- * Receives work from master process.
- */
-static void getwork(void)
-{	
-	int i;
-	
-	ssize_t n;     /* Bytes to send/receive.        */
-	ssize_t count; /* Bytes actually sent/received. */
-	
-	timer_init();
-	
-	n = sizeof(int);
-	total += data_receive(infd, &lnpoints, n);
-	
-	data_receive(infd, &nprocs, sizeof(int));
-	
-	data_receive(infd, &ncentroids, sizeof(int));
-	
-	data_receive(infd, &mindistance, sizeof(int));
-	
-	data_receive(infd, &dimension, sizeof(int));
-	
-	n = nprocs*sizeof(int);
-	total += data_receive(infd, lncentroids, n);
-	
-	n = dimension*sizeof(float);
-	for (i = 0; i < lnpoints; i++)
-		data_receive(infd, &points[i*dimension], n);
-	
-	n = ncentroids*dimension*sizeof(float);
-	total += data_receive(infd, centroids, n);
-	
-	n = lnpoints*sizeof(int);
-	total += data_receive(infd, map, n);
+/* Initialize all remaining variables. */
+static void init_variables() {
+	points =  smalloc(lnpoints * dimension * sizeof(float));
+	centroids = smalloc(ncentroids * dimension * sizeof(float));
+	map = smalloc(lnpoints * sizeof(int));
+	ppopulation = smalloc(ncentroids * sizeof(int));
+}
+
+/* Receives work from master process. */
+static void get_work() {
+	data_receive(infd, points, lnpoints * dimension * sizeof(float));
+	data_receive(infd, map, lnpoints * sizeof(int));
+	data_receive(infd, centroids, ncentroids * dimension * sizeof(float));
 }
 
 /*============================================================================*
  *                                  main()                                    *
  *============================================================================*/
 
-/*
- * Clusters data.
- */
-int main(int argc, char **argv)
-{
-	((void)argc);
-	
-	rank = atoi(argv[0]);
-	
+/* Clusters data. */
+int main (__attribute__((unused))int argc, char **argv) {
+	/* Timer synchronization */
+	timer_init();
+
 	/* Setup interprocess communication. */
+	rank = atoi(argv[0]);
 	open_noc_connectors();
+
+	/* Util information for the problem. */
+	data_receive(infd, &nprocs, sizeof(int));
+	data_receive(infd, &ncentroids, sizeof(int));
+	data_receive(infd, &dimension, sizeof(int));
+	data_receive(infd, &lnpoints, sizeof(int));
+
+	/* Initialize all remaining variables. */
+	init_variables();
 	
-	getwork();
+	/* Actual initial tasks. */
+	get_work();
 	
+	/* Start of km solving. */
 	kmeans();
-	
+
+	/* Sends mapping result and statistics to IO. */
+	data_send(outfd, map, lnpoints * sizeof(int));
 	data_send(outfd, &total, sizeof(uint64_t));
+	
 	close_noc_connectors();
 	mppa_exit(0);
+
 	return (0);
 }

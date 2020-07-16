@@ -1,24 +1,16 @@
-/*
- * Copyright(C) 2014 Pedro H. Penna <pedrohenriquepenna@gmail.com>
- * 
- * Kmeans Benchmark Kernel.
- */
-
 #include <arch.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <util.h>
 #include <timer.h>
-#include "master.h"
 
-/*
- * Clusters data. 
- */
-extern int *kmeans(vector_t *_points, int _npoints, int _ncentroids, float _mindistance);
+/* Clusters data. */
+extern int *kmeans(float *_points, int _npoints, int _ncentroids, int _dimension);
 
 /* Timing statistics. */
 uint64_t master = 0;          /* Time spent on master.        */
+uint64_t spawn = 0;           /* Time spent spawning slaves   */
 uint64_t slave[NUM_CLUSTERS]; /* Time spent on slaves.        */
 uint64_t communication = 0;   /* Time spent on communication. */
 uint64_t total = 0;           /* Total time.                  */
@@ -29,23 +21,18 @@ unsigned nsend = 0;       /* Number of sends.          */
 size_t data_received = 0; /* Number of bytes sent.     */
 unsigned nreceive = 0;    /* Number of receives.       */
 
-/*
- * Problem.
- */
-struct problem
-{
+/* Problem. */
+struct problem {
 	int npoints;       /* Number of points.    */
-	int dimension;     /* Data dimension.      */
 	int ncentroids;    /* Number of centroids. */
-	float mindistance; /* Minimum distance.    */
 };
 
 /* Problem sizes. */
-static struct problem tiny     = {  4096, 16,  256, 0.0 };
-static struct problem small    = {  8192, 16,  512, 0.0 };
-static struct problem standard = { 16384, 16, 1024, 0.0 };
-static struct problem large    = { 32768, 16, 1024, 0.0 };
-static struct problem huge     = { 65536, 16, 1024, 0.0 };
+static struct problem tiny     = {  4096, 256};
+static struct problem small    = {  8192, 512};
+static struct problem standard = { 16384, 1024};
+static struct problem large    = { 32768, 1024};
+static struct problem huge     = { 65536, 1024};
 
 /* Benchmark parameters. */
 int verbose = 0;                  /* Be verbose?        */
@@ -144,33 +131,31 @@ static void readargs(int argc, char **argv)
 		usage();
 }
 
-/*
- * Runs benchmark.
- */
-int main(int argc, char **argv)
-{
-	int i;          /* Loop index.      */
-	int *map;       /* Map of clusters. */
-	uint64_t end;   /* End time.        */
-	uint64_t start; /* Start time.      */
-	vector_t *data; /* Data points.     */
+/* Runs benchmark. */
+int main(int argc, char **argv) {
+	int i;               /* Loop index.      */
+	int *map;            /* Map of clusters. */
+	int dimension;       /* Dimension of points. */
+	float *points;       /* Data points.     */
+	uint64_t start, end; /* End time.        */
 	
 	readargs(argc, argv);
 	
 	timer_init();
 	srandnum(seed);
+
+	/* Setting the dimension for the problem. */
+	dimension = 16; 
 	
 	/* Benchmark initialization. */
 	if (verbose)
 		printf("initializing...\n");
 	start = timer_get();
-	data = smalloc(p->npoints*sizeof(vector_t));
-	for (i = 0; i < p->npoints; i++)
-	{
-		data[i] = vector_create(p->dimension);
-		vector_random(data[i]);
-	}
+	points = smalloc(p->npoints * dimension * sizeof(float));
+	for (i = 0; i < p->npoints * dimension; i++)
+		points[i] = randnum() & 0xffff;
 	end = timer_get();
+
 	if (verbose)
 		printf("  time spent: %f\n", timer_diff(start, end)*MICROSEC);
 	
@@ -178,7 +163,7 @@ int main(int argc, char **argv)
 	if (verbose)
 		printf("clustering data...\n");
 	start = timer_get();
-	map = kmeans(data, p->npoints, p->ncentroids, p->mindistance);
+	map = kmeans(points, p->npoints, p->ncentroids, dimension);
 	end = timer_get();
 	total = timer_diff(start, end);
 
@@ -187,6 +172,7 @@ int main(int argc, char **argv)
 	printf("  master:        %f\n", master*MICROSEC);
 	for (i = 0; i < nclusters; i++)
 		printf("  slave %d:      %f\n", i, slave[i]*MICROSEC);
+	printf("  spawn %d CC:    %f\n", nclusters, spawn*MICROSEC);
 	printf("  communication: %f\n", communication*MICROSEC);
 	printf("  total time:    %f\n", total*MICROSEC);
 	printf("data exchange statistics:\n");
@@ -197,9 +183,7 @@ int main(int argc, char **argv)
 	
 	/* House keeping. */
 	free(map);
-	for (i = 0; i < p->npoints; i++)
-		vector_destroy(data[i]);
-	free(data);
+	free(points);
 	
 	return (0);
 }

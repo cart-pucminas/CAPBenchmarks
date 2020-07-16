@@ -63,7 +63,7 @@ int main(int argc, char **argv) {
 	if (verbose)
 		printf("initializing...\n");
 	start = timer_get();
-	points = smalloc(prob->npoints*dimension*sizeof(float));
+	points = smalloc(prob->npoints * dimension * sizeof(float));
 	for (i = 0; i < prob->npoints * dimension; i++)
 		points[i] = randnum() & 0xffff;
 	end = timer_get();

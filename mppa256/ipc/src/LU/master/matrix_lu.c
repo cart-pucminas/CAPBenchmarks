@@ -73,8 +73,6 @@ static void split(struct matrix *m, struct matrix *l, struct matrix *u) {
 
 /* Performs LU factorization in a matrix */
 void matrix_lu(struct matrix *m, struct matrix *l, struct matrix *u) {
-	int i;               /* Loop index. */
-	float pivot;         /* Pivot.      */
 	uint64_t start, end; /* Timer.      */
 	
 	/* Setup slaves. */

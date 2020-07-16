@@ -230,10 +230,10 @@ static void sync_offsets() {
 
 /* Initialize all remaining variables. */
 static void init_variables() {
-	points =  smalloc(lnpoints*dimension*sizeof(float));
-	centroids = smalloc(ncentroids*dimension*sizeof(float));
-	map = smalloc(lnpoints*sizeof(int));
-	ppopulation = smalloc(ncentroids*sizeof(int));
+	points =  smalloc(lnpoints * dimension * sizeof(float));
+	centroids = smalloc(ncentroids * dimension * sizeof(float));
+	map = smalloc(lnpoints * sizeof(int));
+	ppopulation = smalloc(ncentroids * sizeof(int));
 }
 
 /* Receives work from master process. */
@@ -248,14 +248,6 @@ static void get_work() {
 /*============================================================================*
  *                                  main()                                    *
  *============================================================================*/
-
-static void send_result() {
-	dataPut(map, MPPA_ASYNC_DDR_0, var_offsets.map, lnpoints, sizeof(int), NULL);
-
-	/* Put statistics in stats. segment on IO side. */
-	send_statistics(&infos_seg);
-
-}
 
 /* Clusters data. */
 int main (__attribute__((unused))int argc, char **argv) {
@@ -289,7 +281,8 @@ int main (__attribute__((unused))int argc, char **argv) {
 	kmeans();
 
 	/* Sends mapping result and statistics to IO. */
-	send_result();
+	dataPut(map, MPPA_ASYNC_DDR_0, var_offsets.map, lnpoints, sizeof(int), NULL);
+	send_statistics(&infos_seg);
 
 	/* Finalizes async library and rpc client */
 	async_slave_finalize();

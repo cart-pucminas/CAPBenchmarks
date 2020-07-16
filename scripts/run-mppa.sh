@@ -15,7 +15,7 @@ export NPROCS=$nclusters
 
 echo "Problem size = $CLASS"
 
-for kernel in lu; #fn lu km gf fast is tsp;
+for kernel in km; #fn lu km gf fast is tsp;
 do
 	echo "  ========== Running $kernel kernel"
 	$K1DIR/k1-jtag-runner                        		\

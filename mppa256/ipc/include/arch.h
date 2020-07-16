@@ -26,6 +26,11 @@
 	 * Number of cores on a MPPA-256 processor.
 	 */
 	#define NUM_CORES 256
+
+	/*
+	 * Number of cores per cluster.
+	 */
+	#define NUM_THREADS 16
 	
 	/*
 	 * Frequency of cores.

@@ -21,17 +21,17 @@ static mppa_async_segment_t centroids_seg;
 static struct message statistics[NUM_CLUSTERS];
 
 /* K-means. */
-int dimension;              /* Dimension of data points.  */
-static int npoints;                /* Number of data points.     */
-static int ncentroids;             /* Number of centroids.       */
-static float *points;              /* Data points.               */
-static float *centroids;           /* Data centroids.            */
-static int *map;                   /* Map of clusters.           */
-static int *population;            /* Population of centroids.   */
-static int *ppopulation;           /* Partial population.        */
-static float *pcentroids;          /* Partial centroids.         */
-static int lnpoints[NUM_CLUSTERS]; /* Local number of points.    */
-static int has_changed[NUM_CLUSTERS]; /* Has any centroid changed?  */
+int dimension;              			/* Dimension of data points.  */
+static int npoints;              	  	/* Number of data points.     */
+static int ncentroids;            		/* Number of centroids.       */
+static float *points;              		/* Data points.               */
+static float *centroids;           		/* Data centroids.            */
+static int *map;                   		/* Map of clusters.           */
+static int *population;            		/* Population of centroids.   */
+static int *ppopulation;           		/* Partial population.        */
+static float *pcentroids;          		/* Partial centroids.         */
+static int lnpoints[NUM_CLUSTERS]; 		/* Local number of points.    */
+static int has_changed[NUM_CLUSTERS]; 	/* Has any centroid changed?  */
 
 /* Timing auxiliars */
 static uint64_t start, end;
@@ -96,6 +96,7 @@ static void initialize_variables() {
 	ppopulation = smalloc(ncentroids*nclusters*sizeof(int));
 	
 	start = timer_get();
+	
 	/* Initialize mapping. */
 	for (i = 0; i < npoints; i++)
 		map[i] = -1;
