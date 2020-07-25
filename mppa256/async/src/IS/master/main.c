@@ -31,7 +31,7 @@ size_t data_get = 0; /* Number of items put.    */
 unsigned nget = 0;   /* Number of items gotten. */
 
 /* Problem sizes. */
-struct problem tiny     = {   1024 };
+struct problem tiny     = {   8388608 };
 struct problem small    = {  16777216 };
 struct problem standard = {  33554432 };
 struct problem large    = {  67108864 };
@@ -61,7 +61,7 @@ int main(int argc, char **argv) {
 	a = smalloc(prob->n*sizeof(int));
 
 	for (i = 0; i < prob->n; i++)
-		a[i] = (randnum() & 0xfffff);
+		a[i] = randnum() & 0xfffff;
 	end = timer_get();
 
 	if (verbose)
