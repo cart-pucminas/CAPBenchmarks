@@ -199,8 +199,8 @@ static void sort(int *array, int n) {
 	end = timer_get();
 	master += timer_diff(start, end);
 
-	test_partial_order(array, n);
-	test_non_negatives(array, n);
+	// test_partial_order(array, n);
+	// test_non_negatives(array, n);
 
 	/* House keeping. */
 	for (i = 0; i < NUM_BUCKETS; i++) {
