@@ -17,23 +17,17 @@
 /* Max size of mini-bucket. */
 #define MINIBUCKET_SIZE 262144
 
-/* Debug? */
-#define ISDEBUG 0
 
 /* Tests if partial sorting was successful. */
-#define test_partial_order(array, n) {				\
-	if (ISDEBUG) {									\
-		for (int l = 0; l < ((n)-1); l++) 			\
-			assert(((array)[l]) <= ((array)[l+1]));	\
-	}												\
+#define test_partial_order(array, n) {			\
+	for (int l = 0; l < ((n)-1); l++) 			\
+		assert(((array)[l]) <= ((array)[l+1]));	\
 }
 
 /* Tests if there's a negative number in the array */
-#define test_non_negatives(array, n) {				\
-	if (ISDEBUG) {									\
-		for (int l = 0; l < (n); l++) 			\
-			assert(((array)[l]) >= 0);				\
-	}												\
+#define test_non_negatives(array, n) {		\
+	for (int l = 0; l < (n); l++) 			\
+		assert(((array)[l]) >= 0);			\
 }
 
 /* Asynchronous segments */
@@ -45,7 +39,7 @@ static uint64_t start, end;
 
 /*  Array block. */
 struct  {
-	int size;                                   /* Size of block. */
+	int size;                      /* Size of block. */
 	int elements[MINIBUCKET_SIZE]; /* Elements.      */
 } block;
 
@@ -100,6 +94,9 @@ static void work() {
 			end = timer_get();
 			total += timer_diff(start, end);
 
+			// test_partial_order(block.elements, sizeAux);
+			// test_non_negatives(block.elements, sizeAux);
+
 			/* Send data sorted. */
 			dataPut(block.elements, &minibs_seg, cid * MINIBUCKET_SIZE, block.size, sizeof(int), NULL);
 			
@@ -138,6 +135,5 @@ int main(__attribute__((unused))int argc, char **argv) {
 	/* Finalizes async library and rpc client */
 	async_slave_finalize();
 
-	fflush(stdout);
 	return 0;
 }

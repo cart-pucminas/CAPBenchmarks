@@ -52,7 +52,7 @@ void bucket_merge(struct bucket *b, int *array)
 	struct minibucket *min; /* Min mini-bucket.     */
 	
 	/* Merge buckets. */
-	for (i = 0;  i < b->size; i++, array++)
+	for (i = 0;  i < b->size; i++, array--)
 	{
 		min = b->head;
 		for (w = b->head; w != NULL; w = w->next)
@@ -60,6 +60,12 @@ void bucket_merge(struct bucket *b, int *array)
 			if (minibucket_top(min) > minibucket_top(w))
 				min = w;
 		}
+
+        /* 
+         * ISSUE = On class huge execution, variable "min" accesses
+		 * negative indexes (hence, it's going out of bounds).
+		 * This doens't affects execution time, only the ordering.
+		 */
 			
 		minibucket_pop(min, *array);
 	}

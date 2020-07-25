@@ -11,27 +11,21 @@
 #include <stdio.h>
 #include <math.h>
 #include <assert.h>
+#include <omp.h>
 
 /* Number of buckets. */
 #define NUM_BUCKETS 256
 
-/* Debug?. */
-#define ISDEBUG 0
-
 /* Tests if partial sorting was successful. */
-#define test_partial_order(array, n) {				\
-	if (ISDEBUG) {									\
-		for (int l = 0; l < ((n)-1); l++) 			\
-			assert(((array)[l]) <= ((array)[l+1]));	\
-	}												\
+#define test_partial_order(array, n) {			\
+	for (int l = 0; l < ((n)-1); l++) 			\
+		assert(((array)[l]) <= ((array)[l+1]));	\
 }
 
 /* Tests if there's a negative number in the array */
-#define test_non_negatives(array, n) {				\
-	if (ISDEBUG) {									\
-		for (int l = 0; l < (n); l++) 			\
-			assert(((array)[l]) >= 0);				\
-	}												\
+#define test_non_negatives(array, n) {		\
+	for (int l = 0; l < (n); l++) 			\
+		assert(((array)[l]) >= 0);			\
 }
 
 /* Data exchange segments. */
@@ -72,22 +66,29 @@ static void spawnSlaves() {
 
 /* Rebuilds array. */
 static void rebuild_array(struct bucket **done, int *array) {
-	int j = 0; /* array[] offset. */
-	int i, k;  /* Loop index.     */
+	int j = 0; 		/* array[] offset. */
+	int i, k;  		/* Loop index.     */
 	
-	int first = 1; /* Threads first iteration. */ 
-	#pragma omp parallel for private(i, k) firstprivate(j) default(shared) num_threads(3)
-	for (i = 0; i < NUM_BUCKETS; i++) {
-		// Initializing "j" with the right offset.
-		if (first) {
-			for (k = 0; k < i; k++)
-				j += bucket_size(done[k]);
-			first = 0;
+	int first = 1;
+
+	#pragma omp parallel private(i, k) firstprivate(first, j) default(shared) num_threads(NUM_IO_CORES-1)
+	{
+		#pragma omp for
+		for (i = 0; i < NUM_BUCKETS; i++) { 
+			if (first) {
+				for (k = 0; k < i; k++)
+					j += bucket_size(done[k]);
+				first = 0;
+			}
 		}
 
-		// Merging buckets.
-		j += bucket_size(done[i]);
-		bucket_merge(done[i], &array[j-1]);
+		#pragma omp barrier
+
+		#pragma omp for
+		for (i = 0; i < NUM_BUCKETS; i++) {
+			j += bucket_size(done[i]);
+			bucket_merge(done[i], &array[j-1]);
+		}
 	}
 }
 
@@ -96,6 +97,7 @@ static void sort(int *array, int n) {
 	int i, j;                 /* Loop indexes.        */
 	int range;                /* Bucket range.        */
 	struct minibucket *minib; /* Working mini-bucket. */
+	struct message *msg;      /* Working message.     */
 	struct bucket **todo;     /* Todo buckets.        */
 	struct bucket **done;     /* Done buckets.        */
 
@@ -135,7 +137,9 @@ static void sort(int *array, int n) {
 			minib = bucket_pop(todo[i]);
 
 			/* Send message. */
-			memcpy(&statistics[j], message_create(SORTWORK, i, minib->size), sizeof(struct message));
+			msg = message_create(SORTWORK, i, minib->size);
+			memcpy(&statistics[j], msg, sizeof(struct message));
+			message_destroy(msg);
 
 			/* Send data. */
 			memcpy(&minibs[j * MINIBUCKET_SIZE], minib->elements, minib->size * sizeof(int));
@@ -157,6 +161,9 @@ static void sort(int *array, int n) {
 					minib = minibucket_create();
 					minib->size = statistics[j].u.sortwork.size;
 					memcpy(minib->elements, &minibs[j * MINIBUCKET_SIZE], minib->size * sizeof(int));
+
+					// test_partial_order(minib->elements, minib->size);
+					// test_non_negatives(minib->elements, minib->size);
 
 					bucket_push(done[statistics[j].u.sortwork.id], minib);
 				}
@@ -181,7 +188,9 @@ static void sort(int *array, int n) {
 
 	/* Kill slaves. */
 	for (i = 0; i < nclusters; i++) {
-		memcpy(&statistics[i], message_create(DIE), sizeof(struct message));
+		msg = message_create(DIE);
+		memcpy(&statistics[i], msg, sizeof(struct message));
+		message_destroy(msg);
 		send_signal(i);
 	}
 
@@ -189,6 +198,9 @@ static void sort(int *array, int n) {
 	rebuild_array(done, array);
 	end = timer_get();
 	master += timer_diff(start, end);
+
+	test_partial_order(array, n);
+	test_non_negatives(array, n);
 
 	/* House keeping. */
 	for (i = 0; i < NUM_BUCKETS; i++) {

@@ -19,6 +19,7 @@ extern void bucketsort(int *array, int n);
 
 /* Timing statistics. */
 uint64_t master = 0;          /* Time spent on master.        */
+uint64_t spawn = 0;           /* Time spent spawning slaves   */
 uint64_t slave[NUM_CLUSTERS]; /* Time spent on slaves.        */
 uint64_t communication = 0;   /* Time spent on communication. */
 uint64_t total = 0;           /* Total time.                  */
@@ -159,11 +160,14 @@ int main(int argc, char **argv)
 	/* Benchmark initialization. */
 	if (verbose)
 		printf("initializing...\n");
+
 	start = timer_get();
 	a = smalloc(p->n*sizeof(int));
+
 	for (i = 0; i < p->n; i++)
 		a[i] = randnum() & 0xfffff;
 	end = timer_get();
+	
 	if (verbose)
 		printf("  time spent: %f\n", timer_diff(start, end)*MICROSEC);
 	

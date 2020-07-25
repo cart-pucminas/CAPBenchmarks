@@ -119,36 +119,39 @@ void _sort(int *a, int n)
 	insertion(a, 0, n - 1);
 }
 
-/*
- * Merges two arrays.
- */
-void merge(int *a, int *b, int size)
-{
+/* Merges two arrays. */
+int nextGap(int gap) {
+	if (gap <= 1)
+		return 0;
+	return (gap / 2) + (gap % 2);
+}
+
+
+void merge(int *arr1, int *arr2, int n, int m) {
+	int i, j, gap = n + m;
 	int tmp; /* Temporary value. */
-	int i, j;/* Loop indexes.    */
-	
-	
-	/* Merge. */
-	i = 0; j = 0;
-	while ((i < size) && (j < size))
-	{
-		if (b[j] < a[i])
-		{
-			exch(b[j], a[i], tmp)
-			j++;
-		}
-		else
-		{
-			i++;
+	for (gap = nextGap(gap); gap > 0; gap = nextGap(gap)) {
+		// comparing elements in the first array.
+		for (i = 0; i + gap < n; i++)
+			if (arr1[i] > arr1[i + gap])
+				exch(arr1[i], arr1[i + gap], tmp);
+
+		//comparing elements in both arrays.
+		for (j = gap > n ? gap-n : 0 ; i < n&&j < m; i++, j++)
+			if (arr1[i] > arr2[j])
+				exch(arr1[i], arr2[j], tmp);
+
+		if (j < m) {
+			//comparing elements in the second array.
+			for (j = 0; j + gap < m; j++)
+				if (arr2[j] > arr2[j + gap])
+					exch(arr2[j], arr2[j + gap], tmp);
 		}
 	}
 }
 
-/*
- * Mergesort algorithm.
- */
-void sort2power(int *array, int size, int chunksize)
-{
+/* Mergesort algorithm. */
+void sort2power(int *array, int size, int chunksize) {
 	int i; /* Loop index.         */
 	int N; /* Working array size. */
 
@@ -158,13 +161,14 @@ void sort2power(int *array, int size, int chunksize)
 		_sort(&array[i], (i + chunksize < size) ? chunksize : size - i);
 
 	/* Merge. */
-	for (N = chunksize; N < size; N = N + N)
-	{
+	for (N = chunksize; N < size; N += N) {
 		#pragma omp parallel for private(i) default(shared)
-		for (i = 0; i < size; i += N+N)
-		{
-			/* TODO: allow non-multiple of 2. */
-			merge(&array[i], &array[i + N], N);
+		for (i = 0; i < size; i += 2*N) {
+			if (i+N < size) {
+				merge(&array[i], &array[i+N], N, N);
+			} else {
+				merge(&array[i], &array[i], N, N);
+			}
 		}
 	}
 }
