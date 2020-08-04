@@ -66,7 +66,7 @@ static int sumdiv(int n) {
 	maxD = (int)n/2;
 
 	sum = (n == 1) ? 1 : 1 + n;
-	
+
 	/* Compute sum of divisors. */
 	for (factor = 2; factor <= maxD; factor++) {
 		/* Divisor found. */

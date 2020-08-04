@@ -67,19 +67,19 @@ static void readargs(int argc, char **argv)
 	int i;     /* Loop index.       */
 	char *arg; /* Working argument. */
 	int state; /* Processing state. */
-	
+
 	/* State values. */
 	#define READ_ARG     0 /* Read argument.         */
 	#define SET_nclusters 1 /* Set number of threads. */
 	#define SET_CLASS    2 /* Set problem class.     */
-	
+
 	state = READ_ARG;
-	
+
 	/* Read command line arguments. */
 	for (i = 1; i < argc; i++)
 	{
 		arg = argv[i];
-		
+
 		/* Set value. */
 		if (state != READ_ARG)
 		{
@@ -97,24 +97,24 @@ static void readargs(int argc, char **argv)
 						p = &large;
 					else if (!strcmp(argv[i], "huge"))
 						p = &huge;
-					else 
+					else
 						usage();
 					state = READ_ARG;
 					break;
-				
+
 				/* Set number of threads. */
 				case SET_nclusters :
 					nclusters = atoi(arg);
 					state = READ_ARG;
 					break;
-				
+
 				default:
-					usage();			
+					usage();
 			}
-			
+
 			continue;
 		}
-		
+
 		/* Parse argument. */
 		if (!strcmp(arg, "--verbose"))
 			verbose = 1;
@@ -125,7 +125,7 @@ static void readargs(int argc, char **argv)
 		else
 			usage();
 	}
-	
+
 	/* Invalid argument(s). */
 	if (nclusters < 1)
 		usage();
@@ -138,15 +138,15 @@ int main(int argc, char **argv) {
 	int dimension;       /* Dimension of points. */
 	float *points;       /* Data points.     */
 	uint64_t start, end; /* End time.        */
-	
+
 	readargs(argc, argv);
-	
+
 	timer_init();
 	srandnum(seed);
 
 	/* Setting the dimension for the problem. */
 	dimension = 16; 
-	
+
 	/* Benchmark initialization. */
 	if (verbose)
 		printf("initializing...\n");
@@ -158,7 +158,7 @@ int main(int argc, char **argv) {
 
 	if (verbose)
 		printf("  time spent: %f\n", timer_diff(start, end)*MICROSEC);
-	
+
 	/* Cluster data. */
 	if (verbose)
 		printf("clustering data...\n");
@@ -180,10 +180,10 @@ int main(int argc, char **argv) {
 	printf("  number sends:         %u\n", nsend);
 	printf("  data received:        %d\n", data_received);
 	printf("  number receives:      %u\n", nreceive);
-	
+
 	/* House keeping. */
 	free(map);
 	free(points);
-	
+
 	return (0);
 }
