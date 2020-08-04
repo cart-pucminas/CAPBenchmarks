@@ -5,7 +5,6 @@
 
 #include <global.h>
 #include <mppaipc.h>
-#include <omp.h>
 #include <timer.h>
 #include <util.h>
 #include <ipc.h>
@@ -29,9 +28,6 @@ void gauss_filter() {
 	double pixel;
 	int chunkI, chunkJ, maskI, maskJ;
 
-	#pragma omp parallel default(shared) private(chunkI,chunkJ,maskI,maskJ,pixel)
-	{
-		#pragma omp for
 		for (chunkI = 0; chunkI < CHUNK_SIZE; chunkI++) {
 			for (chunkJ = 0; chunkJ < CHUNK_SIZE; chunkJ++) {
 				pixel = 0.0;
@@ -43,7 +39,6 @@ void gauss_filter() {
 				NEWCHUNK(chunkI, chunkJ) = (pixel > 255) ? 255 : (int)pixel;
 			}
 		}
-	}
 }
 
 static void process_chunks() {
