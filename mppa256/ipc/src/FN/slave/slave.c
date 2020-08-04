@@ -11,7 +11,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <mppaipc.h>
-#include <omp.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <timer.h>
@@ -69,7 +68,6 @@ static int sumdiv(int n) {
 	sum = (n == 1) ? 1 : 1 + n;
 	
 	/* Compute sum of divisors. */
-	#pragma omp parallel for private(factor) default(shared) reduction(+: sum)
 	for (factor = 2; factor <= maxD; factor++) {
 		/* Divisor found. */
 		if ((n % factor) == 0)
@@ -85,7 +83,6 @@ static void calc_abundances() {
 	start = timer_get();
 
 	/* Compute abundances. */
-	#pragma omp parallel for private(i, n) default(shared)
 	for (i = 0; i < tasksize; i++) {		
 		task[i].num = sumdiv(task[i].number);
 		task[i].den = task[i].number;
