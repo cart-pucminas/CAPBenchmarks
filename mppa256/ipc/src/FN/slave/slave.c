@@ -35,19 +35,40 @@ uint64_t total = 0;
 /* Task sent by IO */
 static Item task[MAX_TASK_SIZE];
 
+struct division
+{
+	int quotient;
+	int remainder;
+};
+
+struct division divide(int a, int b)
+{
+	struct division result;
+
+	result.quotient = 0;
+	result.remainder = a;
+
+	while (result.remainder >= b)
+	{
+		result.remainder -= b;
+		result.quotient++;
+	}
+
+	return (result);
+}
+
 /* Informations about the task */
 static int tasksize;
 
 /*
  * Computes the Greatest Common Divisor of two numbers.
  */
-static int gcd(int a, int b) {
-	int mod;
-
-  /* Compute greatest common divisor. */
+static int gcd(int a, int b)
+{
 	while (b != 0)
 	{
-		mod = a % b;
+		struct division result = divide(a, b);
+		int mod = result.remainder;
 		a = b;
 		b = mod;
 	}
@@ -68,9 +89,10 @@ static int sumdiv(int n) {
 	sum = (n == 1) ? 1 : 1 + n;
 
 	/* Compute sum of divisors. */
-	for (factor = 2; factor <= maxD; factor++) {
-		/* Divisor found. */
-		if ((n % factor) == 0)
+	for (factor = 2; factor <= maxD; factor++)
+	{
+		struct division result = divide(n, factor);
+		if (result.remainder == 0)
 			sum += factor;
 	}
 	return (sum);
@@ -89,9 +111,12 @@ static void calc_abundances() {
 
 		n = gcd(task[i].num, task[i].den);
 
-		if (n != 0) {
-			task[i].num /= n;
-			task[i].den /= n;
+		if (n != 0)
+		{
+			struct division result1 = divide(task[i].num, n);
+			struct division result2 = divide(task[i].den, n);
+			task[i].num = result1.quotient;
+			task[i].den = result2.quotient;
 		}
 	}
 
