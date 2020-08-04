@@ -26,9 +26,6 @@ static int *map;                      /* Map of clusters.             */
 static int *ppopulation;              /* Partial population.          */ 
 static int has_changed[NUM_THREADS];  /* Has any centroid changed?    */
 
-/* Thread communication. */
-static omp_lock_t lock[NUM_THREADS];
-
 /* Timing statistics auxiliars. */
 static uint64_t start, end;
 
@@ -43,7 +40,6 @@ uint64_t total = 0;
 static void populate() {
 	int tid;        /* Thread ID.             */
 	int i, j;       /* Loop indexes.          */
-	int lock_aux;   /* Lock auxiliar.         */
 	int init_map;   /* Point initial mapping. */
 	float tmp_dist; /* Temporary distance.    */
 	float distance; /* Distance.              */
@@ -55,11 +51,6 @@ static void populate() {
 	memset(has_changed, 0, NUM_THREADS*sizeof(int));
 
 	/* Iterate over data points. */
-	#pragma omp parallel private(i, j, tmp_dist, distance, tid, init_map, lock_aux) default(shared)
-	{
-		tid = omp_get_thread_num();
-
-		#pragma omp for
 		for (i = 0; i < lnpoints; i++) {	
 			distance = vector_distance(CENTROID(map[i]), POINT(i));
 			init_map = map[i];
@@ -79,16 +70,12 @@ static void populate() {
 				}
 			}
 
-			lock_aux = map[i] % NUM_THREADS;
 
-			omp_set_lock(&lock[lock_aux]);
 			ppopulation[map[i]]++;
-			omp_unset_lock(&lock[lock_aux]);
 
 			if (map[i] != init_map)
 				has_changed[tid] = 1;
 		}
-	}
 
 	end = timer_get();
 	total += timer_diff(start, end);
@@ -101,7 +88,6 @@ static void populate() {
 /* Computes clusters partial centroids. */
 static void compute_centroids() {
 	int i;        /* Loop index.                 */
-	int lock_aux; /* Lock auxiliar.              */
 
 	start = timer_get();
 
@@ -109,12 +95,8 @@ static void compute_centroids() {
 	memset(CENTROID(0), 0, ncentroids*dimension*sizeof(float));
 
 	/* Compute means. */
-	#pragma omp parallel for private(i, lock_aux) default(shared)
 	for (i = 0; i < lnpoints; i++) {
-			lock_aux = map[i] % NUM_THREADS;
-			omp_set_lock(&lock[lock_aux]);
 			vector_add(CENTROID(map[i]), POINT(i));
-			omp_unset_lock(&lock[lock_aux]);	
 	}
 
 	end = timer_get();
@@ -156,11 +138,6 @@ static int sync() {
 
 /* Clusters data. */
 static void kmeans() {	
-	int i; /* Loop index. */
-	omp_set_num_threads(NUM_THREADS);
-	for (i = 0; i < NUM_THREADS; i++)
-		omp_init_lock(&lock[i]);
-
 	/* Data exchange. */
 	do {	
 		populate();

@@ -125,7 +125,6 @@ static int sync() {
 	memset(centroids, 0, ncentroids*dimension*sizeof(float));
 	memset(population, 0, ncentroids*sizeof(int));
 
-	#pragma omp parallel for private(i, j) default(shared) num_threads(3)
 	for (i = 0; i < ncentroids; i++) {
 		for (j = 0; j < nclusters; j++) {
 			vector_add(CENTROID(i), PCENTROID(j, i));
@@ -142,7 +141,6 @@ static int sync() {
 	end = timer_get();
 	master += timer_diff(start, end);
 
-	#pragma omp parallel for private(i) default(shared)
 	for (i = 0; i < nclusters; i++) {
 		data_send(outfd[i], &again, sizeof(int));
 		if (again == 1) {
