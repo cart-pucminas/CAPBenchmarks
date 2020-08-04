@@ -39,7 +39,7 @@ struct problem
 };
 
 /* Problem sizes. */
-static struct problem tiny     =  { 8000001, 8004096 };
+static struct problem tiny     =  { 1000001, 1000129 };
 static struct problem small    =  { 8000001, 8008192 };
 static struct problem standard =  { 8000001, 8016384 };
 static struct problem large    =  { 8000001, 8032768 };

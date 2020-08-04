@@ -28,7 +28,7 @@ struct problem {
 };
 
 /* Problem sizes. */
-static struct problem tiny     = {  4096, 256};
+static struct problem tiny     = { 30720, 64 };
 static struct problem small    = {  8192, 512};
 static struct problem standard = { 16384, 1024};
 static struct problem large    = { 32768, 1024};
@@ -145,7 +145,7 @@ int main(int argc, char **argv) {
 	srandnum(seed);
 
 	/* Setting the dimension for the problem. */
-	dimension = 16; 
+	dimension = 4;
 
 	/* Benchmark initialization. */
 	if (verbose)

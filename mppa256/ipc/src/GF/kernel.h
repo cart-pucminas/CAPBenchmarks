@@ -3,8 +3,8 @@
 
 	#define MICRO (1.0/1000000)
 
-	#define CHUNK_SIZE (512)     /* Maximum chunk size. */
-	#define MASK_SIZE   15
+	#define CHUNK_SIZE (64)     /* Maximum chunk size. */
+	#define MASK_SIZE   7
     #define NCHUNKS    1024     /* Maximum number of chunks */
 
 	#define PI 3.14159265359    /* pi */
@@ -41,6 +41,6 @@
 	#define NEWCHUNK(i, j) \
 		newchunk[(i)*CHUNK_SIZE + (j)]
 
-	#define CHUNK_SIZE_SQRD (262144)
+	#define CHUNK_SIZE_SQRD (64*64)
 
 #endif /* _KERNEL_H_ */
