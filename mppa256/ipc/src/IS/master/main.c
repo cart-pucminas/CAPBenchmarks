@@ -11,6 +11,7 @@
 #include <string.h>
 #include <timer.h>
 #include <util.h>
+#include <stdlib.h>
 
 /*
  * Bucket sort algorithm.
@@ -180,11 +181,16 @@ int main(int argc, char **argv)
 
 	total = timer_diff(start, end);
 
+	uint64_t slave_average = 0;
 	/* Print timing statistics. */
 	printf("timing statistics:\n");
 	printf("  master:        %f\n", master*MICROSEC);
-	for (i = 0; i < nclusters; i++)
-		printf("  slave %d:      %f\n", i, slave[i]*MICROSEC);
+	for (i = 0; i < nclusters; i++) {
+		printf("  slave %d:       %f\n", i, slave[i]*MICROSEC);
+		slave_average += slave[i];
+	}
+	printf("  slave avg:     %f\n", (slave_average/nclusters)*MICROSEC);
+	printf("  spawn %d CC:    %f\n", nclusters, spawn*MICROSEC);
 	printf("  communication: %f\n", communication*MICROSEC);
 	printf("  total time:    %f\n", total*MICROSEC);
 	printf("data exchange statistics:\n");

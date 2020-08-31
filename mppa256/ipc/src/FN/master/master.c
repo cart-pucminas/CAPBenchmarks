@@ -108,9 +108,9 @@ static void setTasks() {
  * Send work to slaves.
  */
 static void sendWork(void) {
-    int i = 0, offset = 0;
+    int offset = 0;
 
-    for (i = 0; i < nclusters; i++) {
+    for (int i = 0; i < nclusters; i++) {
 		data_send(outfd[i], &tasksize[i], sizeof(int));
 		data_send(outfd[i], &tasks[offset], tasksize[i]*sizeof(Item));
 		offset += tasksize[i];

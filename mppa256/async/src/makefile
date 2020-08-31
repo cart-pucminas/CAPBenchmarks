@@ -3,7 +3,7 @@
 #
 
 # Builds all kernels.
-all: fn lu km gf fast is tsp
+all: fn lu km gf fast is
 
 # Builds FN kernel.
 fn:
@@ -35,10 +35,10 @@ is:
 	cd IS && $(MAKE) all
 	cp IS/output/bin/*.img $(BINDIR)
 
-# Builds TSP kernel.
-tsp: 
-	cd TSP && $(MAKE) all
-	cp TSP/output/bin/*.img $(BINDIR)
+# # Builds TSP kernel.
+# tsp: 
+# 	cd TSP && $(MAKE) all
+# 	cp TSP/output/bin/*.img $(BINDIR)
 
 # Cleans compilation files.
 clean:
@@ -48,5 +48,5 @@ clean:
 	cd GF && $(MAKE) clean
 	cd FAST && $(MAKE) clean
 	cd IS && $(MAKE) clean
-	cd TSP && $(MAKE) clean
+# 	cd TSP && $(MAKE) clean
 	rm -f $(BINDIR)/*.img
